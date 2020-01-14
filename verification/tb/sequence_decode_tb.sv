@@ -186,18 +186,18 @@ module sequence_decode_tb;
         // TODO: min pause_len is determined by pause_n_asserts_after
         //       we really need an idea of what values we should be using
 
-        for (int pause_len = 14; pause_len <= 50; pause_len++) begin
-            $display("Testing with pause_len = %d", pause_len);
-            bfm.set_pause_length(pause_len);
-            run_tests;
-        end
+        // We also test all bit length between 126 and 130 cycles.
+        // I would be very suprised if this was ever not 128 cycles, but it's good to
+        // check that this works even if it's slightly off for some reason.
 
-        // TODO: loop this lots of time with varying timings:
-        //          Then we want to vary bit length by up to 2 each way
-        //          Maybe make it constant per transaction at first then vary per bit?
-        //          ...
-        //          Then add a loop where we vary all timings randomly per bit and leave
-        //          it to run for ages
+        for (int bit_len = 126; bit_len <= 130; bit_len++) begin
+            bfm.set_bit_length(bit_len);
+            for (int pause_len = 14; pause_len <= 50; pause_len++) begin
+                $display("Testing with bit_len = %d, pause_len = %d", bit_len, pause_len);
+                bfm.set_pause_length(pause_len);
+                run_tests;
+            end
+        end
 
         repeat (5) @(posedge clk);
         $stop;
