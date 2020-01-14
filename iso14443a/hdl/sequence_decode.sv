@@ -178,38 +178,28 @@ module sequence_decode
                     case (seq)
                         PCDBitSequence_X: begin
                             // last sequence was an x
-                            if (counter < 9'd64) begin
-                                seq <= PCDBitSequence_ERROR;
-                            end
-                            else begin // if (counter < 9'd132) -- not needed because we would have timed out if this were not true
-                                seq <= PCDBitSequence_X;
-                            end
+                            casez (counter)
+                                9'b000??????:   seq <= PCDBitSequence_ERROR;    // if (counter < 9'd64)
+                                default:        seq <= PCDBitSequence_X;        // else
+                            endcase
                         end
 
                         PCDBitSequence_Z: begin
                             // last sequence was a Z
-                            if (counter < 9'd64) begin
-                                seq <= PCDBitSequence_ERROR;
-                            end
-                            else if (counter < 9'd132) begin
-                                seq <= PCDBitSequence_Z;
-                            end
-                            else begin // if (counter < 9'd196) -- not needed because we would have timed out if this were not true
-                                seq <= PCDBitSequence_X;
-                            end
+                            casez (counter)
+                                9'b000??????:   seq <= PCDBitSequence_ERROR;    // if (counter < 9'd64)
+                                9'b001??????:   seq <= PCDBitSequence_Z;
+                                9'b0100000??:   seq <= PCDBitSequence_Z;        // else if (counter < 9'd132)
+                                default:        seq <= PCDBitSequence_X;        // else
+                            endcase
                         end
 
                         PCDBitSequence_Y: begin
-                            // last sequence was a Y
-                            if (counter < 9'd8) begin
-                                seq <= PCDBitSequence_ERROR;
-                            end
-                            else if (counter < 9'd64) begin
-                                seq <= PCDBitSequence_Z;
-                            end
-                            else begin // if (counter < 9'd132) -- not needed because we would have timed out if this were not true
-                                seq <= PCDBitSequence_X;
-                            end
+                            casez (counter)
+                                9'b000000???:   seq <= PCDBitSequence_ERROR;    // if (counter < 9'd8)
+                                9'b000??????:   seq <= PCDBitSequence_Z;        // else if (counter < 9'd64)
+                                default:        seq <= PCDBitSequence_X;        // else
+                            endcase
                         end
                     endcase
                 end
@@ -236,13 +226,5 @@ module sequence_decode
             end
         end
     end
-
-    // TODO: Can we optimise this code to remove the less thans?
-    //       if (counter == 9'd64) nextSeq <= X;
-    //       else if (counter == ...) nextSeq <= Y;
-    //       else if (counter == ...) timeout -> seq <= Y;
-    //       if (pause_detected) begin
-    //          seq_valid <= 1;
-    //          seq <= nextSeq;
 
 endmodule
