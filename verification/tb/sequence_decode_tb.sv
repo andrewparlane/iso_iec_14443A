@@ -177,6 +177,12 @@ module sequence_decode_tb;
         repeat (5) @(posedge clk);
 
         // Run the standard test suite with pause lengths between 14 and 50
+        // We don't know what the actual pause length will be coming from the PCD
+        // The spec defines mins and max timings, but it's a bit difficult to get
+        // an actual minimum. I think it's possible to design a pause frame that
+        // the PICC will only detect as being 6 cycles long. However that is unlikely.
+        // Additionally the delays in detecting pause frames in the analogue core
+        // are quite important in determining the effective pause frame length.
         // TODO: min pause_len is determined by pause_n_asserts_after
         //       we really need an idea of what values we should be using
 
