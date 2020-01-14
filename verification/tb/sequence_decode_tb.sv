@@ -176,40 +176,17 @@ module sequence_decode_tb;
         rst_n <= 1;
         repeat (5) @(posedge clk);
 
-        // Run the standard test suite several times with different settings
+        // Run the standard test suite with pause lengths between 14 and 50
+        // TODO: min pause_len is determined by pause_n_asserts_after
+        //       we really need an idea of what values we should be using
 
-        // 1) defaults
-        $display("Testing with default timings");
-        run_tests;
-
-        // 2) Max pause len
-        $display("Testing with max pause len");
-        bfm.set_pause_length(41);
-        run_tests;
-
-        // 3) Extra long pause len
-        $display("Testing with extra long pause len");
-        bfm.set_pause_length(50);
-        run_tests;
-
-        // 4) Short pause len
-        // NOTE: This currently fails, since pause_n_asserts_after_ps
-        //       is more than CLK_PERIOD * pause_len
-        $display("Testing with short pause len");
-        bfm.set_pause_length(14);
-        run_tests;
-
-        // 5) Min pause len according to ISO/IEC 14443-2
-        // NOTE: This currently fails, since pause_n_asserts_after_ps
-        //       is more than CLK_PERIOD * pause_len
-        $display("Testing with min pause len");
-        bfm.set_pause_length(6);
-        run_tests;
+        for (int pause_len = 14; pause_len <= 50; pause_len++) begin
+            $display("Testing with pause_len = %d", pause_len);
+            bfm.set_pause_length(pause_len);
+            run_tests;
+        end
 
         // TODO: loop this lots of time with varying timings:
-        //          First just varying pause times, maybe do all of 4 - 45 ticks
-        //          or just extremes and some in the middle
-        //          Then random pause len in that range per bit
         //          Then we want to vary bit length by up to 2 each way
         //          Maybe make it constant per transaction at first then vary per bit?
         //          ...
