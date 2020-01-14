@@ -101,7 +101,7 @@ module sequence_decode_tb;
         //    Y -> X
         //    Y -> Y    - IDLE
         //    X -> Z    - INVALID   // we test this later
-        $display("Running test 1");
+        //$display("Running test 1");
         seqs.push_back(PCDBitSequence_Z); // Start of Comms
         seqs.push_back(PCDBitSequence_Z); // Z -> Z
         seqs.push_back(PCDBitSequence_X); // Z -> X
@@ -121,7 +121,7 @@ module sequence_decode_tb;
         //    X -> Y -> Z
         //    Z -> Y -> X
         //    Z -> Y -> Z
-        $display("Running test 2");
+        //$display("Running test 2");
         seqs.delete;
         seqs.push_back(PCDBitSequence_Z);   // Start of comms
         seqs.push_back(PCDBitSequence_Y);   // Z -> Y -> Z
@@ -141,14 +141,14 @@ module sequence_decode_tb;
         wait(idle);
 
         // 3) Generate a random queue of sequences (excludes error cases)
-        $display("Running test 3");
+        //$display("Running test 3");
         seqs = bfm.generate_valid_sequence_queue(1000);
         expected = seqs;
         bfm.send_sequence_queue(seqs);
         wait(idle);
 
         // 4) Test X -> Z error cases
-        $display("Running test 4");
+        //$display("Running test 4");
         seqs.delete;
         seqs.push_back(PCDBitSequence_Z);   // Start of Comms
         seqs.push_back(PCDBitSequence_X);   // Z -> X
