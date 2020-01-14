@@ -142,7 +142,7 @@ module sequence_decode_tb;
 
         // 3) Generate a random queue of sequences (excludes error cases)
         $display("Running test 3");
-        seqs = bfm.generate_valid_sequence_queue(10);
+        seqs = bfm.generate_valid_sequence_queue(1000);
         expected = seqs;
         bfm.send_sequence_queue(seqs);
         wait(idle);
