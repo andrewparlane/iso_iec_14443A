@@ -3,3 +3,7 @@
 *.out
 Log/
 build/
+verification/modelsim/sim/coverage.ucdb
+verification/modelsim/sim/coverage.ucdb_old
+verification/modelsim/sim/waves/
+verification/modelsim/sim/work/
