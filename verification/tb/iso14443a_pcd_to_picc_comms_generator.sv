@@ -178,9 +178,9 @@ module iso14443a_pcd_to_picc_comms_generator
     // Run a counter to count ticks in each bit time
     // and pulse a signal at the start of each bit
     logic run_bit_time_counter = 0;
-    int bit_time_counter = 0;
+    int bit_time_counter;
 
-    always @(posedge pcd_clk) begin
+    always_ff @(posedge pcd_clk) begin
         if (run_bit_time_counter) begin
             if (bit_time_counter == (bit_time - 1)) begin
                 bit_time_counter    <= 0;

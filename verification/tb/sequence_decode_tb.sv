@@ -64,7 +64,7 @@ module sequence_decode_tb;
 
     PCDBitSequence expected[$];
 
-    always @(posedge clk) begin
+    always_ff @(posedge clk) begin
         if (seq_valid) begin
             gotSeqValidButNotExpected:
                 assert (expected.size != 0)
