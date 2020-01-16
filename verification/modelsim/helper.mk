@@ -198,7 +198,8 @@ VSIM_DUT_WAVES		=	dut/*
 VSIM_FLAGS					:=	$(MODELSIM_FLAG) \
 								-sv_seed random \
 								-error 3473 \
-								-error 3351
+								-error 3351 \
+								-batch
 
 # the run the test command, with coverage support
 #	Takes three arguments:
