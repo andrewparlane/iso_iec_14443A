@@ -429,6 +429,12 @@ module iso14443a_pcd_to_picc_comms_generator
         bit_queue bits;
         int last_byte;
 
+        // in some places we use 0 to represent 8 (so it can fit in 3 bits)
+        // but here we want the actual number of bits in the last byte
+        if (bits_in_last_byte == 0) begin
+            bits_in_last_byte = 8;
+        end
+
         bits = {};
         last_byte = data.size - 1;
         foreach (data[i]) begin

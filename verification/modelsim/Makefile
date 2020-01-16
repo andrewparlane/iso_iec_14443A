@@ -42,7 +42,10 @@ all: srcs tb_srcs
 sequence_decode: all
 	@$(call VSIM_CMD, sequence_decode_tb)
 
-.PHONY: sequence_decode
+frame_decode: all
+	@$(call VSIM_CMD, frame_decode_tb)
+
+.PHONY: sequence_decode frame_decode
 
 # delete the library and all compiled files
 clean: helper_clean
