@@ -161,6 +161,8 @@ module sequence_decode_tb;
         expected.push_back(PCDBitSequence_Z);
         expected.push_back(PCDBitSequence_X);
         expected.push_back(PCDBitSequence_ERROR);
+        expected.push_back(PCDBitSequence_Y);
+        expected.push_back(PCDBitSequence_Y);
 
         bfm.send_sequence_queue(seqs);
         wait(idle);
