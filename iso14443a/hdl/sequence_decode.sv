@@ -106,7 +106,9 @@ module sequence_decode
     //      Y           timeout     132                         |   IDLE
 
     // Note: In the case of an ERROR we wait until we've had 3 bit periods of time
-    //       without any pauses and then go idle
+    //       without any pauses and then issue a Y, one bit time later we'll issue
+    //       another Y and go idle. This is because the frame_decode module needs
+    //       to also go idle
 
     // TODO: In the TB test random sequences with random pause frame timings for each pause
     // Test with min 6, max 41 as per the spec, then widen the range and test 3 - 50
@@ -209,7 +211,9 @@ module sequence_decode
                     // no pause detected yet, have we timed out
                     if (((seq == PCDBitSequence_X)     && (counter == 9'd132)) ||
                         ((seq == PCDBitSequence_Y)     && (counter == 9'd132)) ||
-                        ((seq == PCDBitSequence_Z)     && (counter == 9'd196))) begin
+                        ((seq == PCDBitSequence_Z)     && (counter == 9'd196)) ||
+                        ((seq == PCDBitSequence_ERROR) && (counter == 9'd384))) begin
+
                         // we have timed out and so this must be a Y
                         seq         <= PCDBitSequence_Y;
                         seq_valid   <= 1;
@@ -219,10 +223,6 @@ module sequence_decode
                             // That's two Ys in a row, so we go idle now
                             idle <= 1;
                         end
-                    end
-                    else if ((seq == PCDBitSequence_ERROR) && (counter == 9'd384)) begin
-                        // we detected an error, but now have timed out and so we go idle
-                        idle <= 1;
                     end
                 end
             end
