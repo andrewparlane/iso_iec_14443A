@@ -7,3 +7,8 @@ verification/modelsim/sim/coverage.ucdb
 verification/modelsim/sim/coverage.ucdb_old
 verification/modelsim/sim/waves/
 verification/modelsim/sim/work/
+emulation/db/
+emulation/incremental_db/
+emulation/output_files/
+emulation/*.stp
+emulation/*.qws
