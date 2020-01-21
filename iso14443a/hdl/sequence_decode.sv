@@ -197,7 +197,9 @@ module sequence_decode
                         PCDBitSequence_Y: begin
                             casez (counter)
                                 9'b000000???:   seq <= PCDBitSequence_ERROR;    // if (counter < 9'd8)
-                                9'b000??????:   seq <= PCDBitSequence_Z;        // else if (counter < 9'd64)
+                                9'b000001???:   seq <= PCDBitSequence_Z;
+                                9'b00001????:   seq <= PCDBitSequence_Z;
+                                9'b0001?????:   seq <= PCDBitSequence_Z;        // else if (counter < 9'd64)
                                 default:        seq <= PCDBitSequence_X;        // else
                             endcase
                         end
