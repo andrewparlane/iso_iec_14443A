@@ -488,6 +488,31 @@ module frame_decode_tb;
             send_sequence_queue(seqs);
         end
 
+        // 10) Confirm data is received LSb first
+        $display("Testing LSb first");
+        expected.delete;
+        expected.push_back(construct_soc_event);
+        expected = {expected, construct_data_events('{8'h29})};
+        expected.push_back(construct_eoc_full_byte_event(ErrorType_NONE));
+
+        // 8'h29 = 8'b00101001
+        // LSb first: 10010100 + parity 0
+
+        seqs = '{PCDBitSequence_Z,  // SOC
+                 PCDBitSequence_X,  // 1
+                 PCDBitSequence_Y,  // 0
+                 PCDBitSequence_Z,  // 0
+                 PCDBitSequence_X,  // 1
+                 PCDBitSequence_Y,  // 0
+                 PCDBitSequence_X,  // 1
+                 PCDBitSequence_Y,  // 0
+                 PCDBitSequence_Z,  // 0
+                 PCDBitSequence_Z,  // 0 (parity)
+                 PCDBitSequence_Z,  // EOC
+                 PCDBitSequence_Y}; // EOC
+
+        send_sequence_queue(seqs);
+
         repeat (5) @(posedge clk);
         $stop;
     end
