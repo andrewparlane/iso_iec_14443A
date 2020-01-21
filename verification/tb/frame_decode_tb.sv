@@ -105,7 +105,7 @@ module frame_decode_tb;
         repeat (5) @(posedge clk);
 
         // 1) Test an 8 bit frame with parity bit OK
-        $display("Testing an 8 bit frame with parity bit OK");
+        //$display("Testing an 8 bit frame with parity bit OK");
         data = bfm.generate_byte_queue(1);
         fd_validator.clear_expected_queue;
         fd_validator.push_soc_event;
@@ -119,7 +119,7 @@ module frame_decode_tb;
         send_sequence_queue(seqs);
 
         // 2) Test an 8 bit frame with parity FAIL
-        $display("Testing an 8 bit frame with parity FAIL");
+        //$display("Testing an 8 bit frame with parity FAIL");
         data = bfm.generate_byte_queue(1);
         fd_validator.clear_expected_queue;
         fd_validator.push_soc_event;
@@ -134,7 +134,7 @@ module frame_decode_tb;
         send_sequence_queue(seqs);
 
         // 3) Test an 8 bit frame with parity missing
-        $display("Testing an 8 bit frame with parity bit missing");
+        //$display("Testing an 8 bit frame with parity bit missing");
         data = bfm.generate_byte_queue(1);
         fd_validator.clear_expected_queue;
         fd_validator.push_soc_event;
@@ -149,7 +149,7 @@ module frame_decode_tb;
         // 4) Test an 8 bit frame with sequence error in one location
         // don't mess with SOC (idx 0) or EOC (idx 10, 11)
         for (int i = 1; i <= 9; i++) begin
-            $display("Testing an 8 bit frame with a sequence error at idx %d", i);
+            //$display("Testing an 8 bit frame with a sequence error at idx %d", i);
             data = bfm.generate_byte_queue(1);
             fd_validator.clear_expected_queue;
             fd_validator.push_soc_event;
@@ -167,7 +167,7 @@ module frame_decode_tb;
         // 5a) Test a 0 bit frame (ZYY) (sequence error)
         // note we add the extra Y so that the EOC is detected
         // this is fine, since sequence_decode only goes idle after two Ys
-        $display("Testing a 0 bit frame (ZYY) (sequence error)");
+        //$display("Testing a 0 bit frame (ZYY) (sequence error)");
         fd_validator.clear_expected_queue;
         fd_validator.push_soc_event;
         fd_validator.push_eoc_full_byte_event(fd_validator.ErrorType_SEQUENCE);
@@ -178,7 +178,7 @@ module frame_decode_tb;
         send_sequence_queue(seqs);
 
         // 5b) Test a 0 bit frame (ZZY) (sequence error)
-        $display("Testing a 0 bit frame (ZZY) (sequence error)");
+        //$display("Testing a 0 bit frame (ZZY) (sequence error)");
         fd_validator.clear_expected_queue;
         fd_validator.push_soc_event;
         fd_validator.push_eoc_full_byte_event(fd_validator.ErrorType_SEQUENCE);
@@ -190,7 +190,7 @@ module frame_decode_tb;
 
         // 6) test 1 - 7 bit frames
         for (int bitLen = 1; bitLen <= 7; bitLen++) begin
-            $display("Testing a %d bit frame", bitLen);
+            //$display("Testing a %d bit frame", bitLen);
             data = bfm.generate_byte_queue(1);
             fd_validator.clear_expected_queue;
 
@@ -214,7 +214,7 @@ module frame_decode_tb;
             automatic int last_byte;
 
             // 7) Test an N bit frame with parity OK
-            $display("Testing a %d bit frame with parity bits OK", num_bits);
+            //$display("Testing a %d bit frame with parity bits OK", num_bits);
             data = bfm.generate_byte_queue(num_bytes);
 
             bits = bfm.convert_message_to_bit_queue(data, num_bits_in_last_byte);
@@ -240,7 +240,7 @@ module frame_decode_tb;
             // 8) Test an N bit frame with parity FAIL
             if (num_bits > 8) begin
                 automatic int broken_parity_byte    = $urandom_range(num_bytes - 2);
-                $display("Testing a %d bit frame with broken parity bit in byte %d", num_bits, broken_parity_byte);
+                //$display("Testing a %d bit frame with broken parity bit in byte %d", num_bits, broken_parity_byte);
                 data = bfm.generate_byte_queue(num_bytes);
 
                 bits = bfm.convert_message_to_bit_queue(data, num_bits_in_last_byte);
@@ -265,7 +265,7 @@ module frame_decode_tb;
 
             // 9) Test an N byte frame with last parity missing
             num_bytes = $urandom_range(1, 100);
-            $display("Testing a %d byte frame with last parity missing", num_bytes);
+            //$display("Testing a %d byte frame with last parity missing", num_bytes);
             data = bfm.generate_byte_queue(num_bytes);
 
             bits = bfm.convert_message_to_bit_queue(data, 8);
@@ -284,7 +284,7 @@ module frame_decode_tb;
         end
 
         // 10) Confirm data is received LSb first
-        $display("Testing LSb first");
+        //$display("Testing LSb first");
         fd_validator.clear_expected_queue;
         fd_validator.push_soc_event;
         fd_validator.push_data_events('{8'h29});
