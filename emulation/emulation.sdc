@@ -30,3 +30,7 @@ derive_pll_clocks -create_base_clocks
 set_false_path -from [get_ports KEY[*]]
 set_false_path -from [get_ports GPIO_0[*]]
 set_false_path -to   [get_ports LEDG[*]]
+set_false_path -to   [get_ports LEDR[*]]
+set_false_path -to   [get_ports HEX4[*]]
+set_false_path -to   [get_ports HEX5[*]]
+set_false_path -to   [get_ports HEX6[*]]

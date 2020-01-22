@@ -26,7 +26,11 @@ module emulation_top
     input                   CLOCK_50,
     input           [0:0]   KEY,
     input           [0:0]   GPIO_0, // our pause input (active high)
-    output logic    [8:0]   LEDG
+    output logic    [8:0]   LEDG,
+    output logic    [17:0]  LEDR,
+    output logic    [6:0]   HEX4,
+    output logic    [6:0]   HEX5,
+    output logic    [6:0]   HEX6
 );
 
     // ========================================================================
@@ -139,13 +143,103 @@ module emulation_top
     // The ISO14443 system
     // ========================================================================
 
-    iso14443a_top dut
+    /* iso14443a_top dut
     (
         .clk        (clk_13p56),
         .rst_n      (iso14443_rst_n),
 
         .pause_n    (pause_n)
+    ); */
+
+    logic iso14443_rst_n_synchronised;
+
+    active_low_reset_synchroniser reset_synchroniser
+    (
+        .clk        (clk_13p56),
+        .rst_n_in   (iso14443_rst_n),
+        .rst_n_out  (iso14443_rst_n_synchronised)
     );
+
+    logic       soc;
+    logic       eoc;
+    logic [7:0] data;
+    logic [2:0] data_bits;
+    logic       data_valid;
+    logic       sequence_error;
+    logic       parity_error;
+
+    rx rx_inst
+    (
+        .clk                (clk_13p56),
+        .rst_n              (iso14443_rst_n_synchronised),
+        .pause_n            (pause_n),
+
+        .soc                (soc),
+        .eoc                (eoc),
+        .data               (data),
+        .data_bits          (data_bits),
+        .data_valid         (data_valid),
+        .sequence_error     (sequence_error),
+        .parity_error       (parity_error)
+    );
+
+    logic [7:0] lastData;
+    logic [3:0] lastDataBits;
+    logic [3:0] lastFrameDataBytes;
+    logic       lastFrameSeenSoc;
+    logic       lastFrameSeenEoc;
+    logic       lastFrameSeenParity;
+    logic       lastFrameSeenSeqErr;
+    logic       lastFrameSeenDataValid;
+
+    always_ff @(posedge clk_13p56, negedge rst_n) begin
+        if (!rst_n) begin
+            lastData                <= 0;
+            lastDataBits            <= 0;
+            lastFrameDataBytes      <= 0;
+            lastFrameSeenSoc        <= 0;
+            lastFrameSeenEoc        <= 0;
+            lastFrameSeenParity     <= 0;
+            lastFrameSeenSeqErr     <= 0;
+            lastFrameSeenDataValid  <= 0;
+        end
+        else begin
+            if (soc) begin
+                // seen SOC, clear flags
+                lastFrameDataBytes      <= 0;
+                lastFrameSeenEoc        <= 0;
+                lastFrameSeenParity     <= 0;
+                lastFrameSeenSeqErr     <= 0;
+                lastFrameSeenDataValid  <= 0;
+
+                // set the SOC flag
+                lastFrameSeenSoc        <= 1;
+            end
+
+            if (eoc) begin
+                // seen EOC, clear SOC flag
+                lastFrameSeenSoc        <= 0;
+
+                // set the EOC flag
+                lastFrameSeenEoc        <= 1;
+            end
+
+            if (parity_error) begin
+                lastFrameSeenParity     <= 1;
+            end
+
+            if (sequence_error) begin
+                lastFrameSeenSeqErr     <= 1;
+            end
+
+            if (data_valid) begin
+                lastFrameDataBytes      <= lastFrameDataBytes + 1'd1;
+                lastFrameSeenDataValid  <= 1;
+                lastData                <= data;
+                lastDataBits            <= (data_bits == 0) ? 4'd8 : data_bits;
+            end
+        end
+    end
 
     // ========================================================================
     // LEDs (active high)
@@ -160,5 +254,39 @@ module emulation_top
     assign LEDG[6] = 0;
     assign LEDG[7] = 0;
     assign LEDG[8] = 0;
+
+    assign LEDR[0] = lastFrameSeenEoc;
+    assign LEDR[1] = lastFrameSeenSeqErr;
+    assign LEDR[2] = lastFrameSeenParity;
+    assign LEDR[3] = lastFrameSeenDataValid;
+    assign LEDR[4] = lastFrameSeenSoc;
+    assign LEDR[17:5] = 0;
+
+    seven_seg_hex seven_seg_inst_0
+    (
+        .clk        (clk_13p56_tmp),
+        .rst_n      (rst_n),
+        .en         (1'b1),
+        .hex        (lastDataBits),
+        .display    (HEX6)
+    );
+
+    seven_seg_hex seven_seg_inst_1
+    (
+        .clk        (clk_13p56_tmp),
+        .rst_n      (rst_n),
+        .en         (lastFrameSeenDataValid),
+        .hex        (lastData[7:4]),
+        .display    (HEX5)
+    );
+
+    seven_seg_hex seven_seg_inst_2
+    (
+        .clk        (clk_13p56_tmp),
+        .rst_n      (rst_n),
+        .en         (lastFrameSeenDataValid),
+        .hex        (lastData[3:0]),
+        .display    (HEX4)
+    );
 
 endmodule

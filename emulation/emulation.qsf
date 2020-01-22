@@ -500,6 +500,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../iso14443a/hdl/frame_decode.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../iso14443a/hdl/sequence_decode.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../iso14443a/hdl/rx.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../iso14443a/hdl/iso14443a_top.sv
+set_global_assignment -name SYSTEMVERILOG_FILE hdl/seven_seg_hex.sv
 set_global_assignment -name VERILOG_FILE hdl/ip/pll1.v
 set_global_assignment -name VERILOG_FILE hdl/ip/clkctrl.v
 set_global_assignment -name SYSTEMVERILOG_FILE hdl/emulation_top.sv
