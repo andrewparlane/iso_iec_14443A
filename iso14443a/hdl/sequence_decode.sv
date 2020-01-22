@@ -181,7 +181,9 @@ module sequence_decode
                         PCDBitSequence_X: begin
                             // last sequence was an x
                             casez (counter)
-                                9'b000??????:   seq <= PCDBitSequence_ERROR;    // if (counter < 9'd64)
+                                //9'b000??????:   seq <= PCDBitSequence_ERROR;    // if (counter < 9'd64)
+                                //default:        seq <= PCDBitSequence_X;        // else
+                                9'b00000????:   seq <= PCDBitSequence_ERROR;    // if (counter < 9'd16)
                                 default:        seq <= PCDBitSequence_X;        // else
                             endcase
                         end
@@ -189,19 +191,26 @@ module sequence_decode
                         PCDBitSequence_Z: begin
                             // last sequence was a Z
                             casez (counter)
-                                9'b000??????:   seq <= PCDBitSequence_ERROR;    // if (counter < 9'd64)
-                                9'b001??????:   seq <= PCDBitSequence_Z;
-                                9'b0100000??:   seq <= PCDBitSequence_Z;        // else if (counter < 9'd132)
+                                //9'b000??????:   seq <= PCDBitSequence_ERROR;    // if (counter < 9'd64)
+                                //9'b001??????:   seq <= PCDBitSequence_Z;
+                                //9'b0100000??:   seq <= PCDBitSequence_Z;        // else if (counter < 9'd132)
+                                //default:        seq <= PCDBitSequence_X;        // else
+                                9'b00000????:   seq <= PCDBitSequence_ERROR;    // if (counter < 9'd16)
+                                9'b00001????:   seq <= PCDBitSequence_Z;
+                                9'b0001?????:   seq <= PCDBitSequence_Z;
+                                9'b0010?????:   seq <= PCDBitSequence_Z;        // else if (counter < 9'd96)
                                 default:        seq <= PCDBitSequence_X;        // else
                             endcase
                         end
 
                         PCDBitSequence_Y: begin
                             casez (counter)
-                                9'b000000???:   seq <= PCDBitSequence_ERROR;    // if (counter < 9'd8)
-                                9'b000001???:   seq <= PCDBitSequence_Z;
-                                9'b00001????:   seq <= PCDBitSequence_Z;
-                                9'b0001?????:   seq <= PCDBitSequence_Z;        // else if (counter < 9'd64)
+                                //9'b000000???:   seq <= PCDBitSequence_ERROR;    // if (counter < 9'd8)
+                                //9'b000001???:   seq <= PCDBitSequence_Z;
+                                //9'b00001????:   seq <= PCDBitSequence_Z;
+                                //9'b0001?????:   seq <= PCDBitSequence_Z;        // else if (counter < 9'd64)
+                                //default:        seq <= PCDBitSequence_X;        // else
+                                9'b000??????:   seq <= PCDBitSequence_Z;        // if (counter < 64)
                                 default:        seq <= PCDBitSequence_X;        // else
                             endcase
                         end
@@ -209,9 +218,13 @@ module sequence_decode
                 end
                 else begin
                     // no pause detected yet, have we timed out
-                    if (((seq == PCDBitSequence_X)     && (counter == 9'd132)) ||
+                    //if (((seq == PCDBitSequence_X)     && (counter == 9'd132)) ||
+                    //    ((seq == PCDBitSequence_Y)     && (counter == 9'd132)) ||
+                    //    ((seq == PCDBitSequence_Z)     && (counter == 9'd196)) ||
+                    //    ((seq == PCDBitSequence_ERROR) && (counter == 9'd384))) begin
+                    if (((seq == PCDBitSequence_X)     && (counter == 9'd97)) ||
                         ((seq == PCDBitSequence_Y)     && (counter == 9'd132)) ||
-                        ((seq == PCDBitSequence_Z)     && (counter == 9'd196)) ||
+                        ((seq == PCDBitSequence_Z)     && (counter == 9'd161)) ||
                         ((seq == PCDBitSequence_ERROR) && (counter == 9'd384))) begin
 
                         // we have timed out and so this must be a Y
@@ -228,5 +241,11 @@ module sequence_decode
             end
         end
     end
+
+    // TODO: Should I support various timings here?
+    //       The received pause length depends on the PCD and our analogue implementation.
+    //       If we fabricate and get these timings wrong, then we will be unable to receive data.
+    //       We could suupport 2 or 3 different sets of timings (short pulses, medium, long pulses)
+    //       and then switch which mode to use using wire bonding?
 
 endmodule
