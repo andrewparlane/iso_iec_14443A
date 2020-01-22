@@ -25,7 +25,7 @@ module emulation_top
 (
     input                   CLOCK_50,
     input           [0:0]   KEY,
-    input           [0:0]   GPIO_0, // our pause_n input
+    input           [0:0]   GPIO_0, // our pause input (active high)
     output logic    [8:0]   LEDG
 );
 
@@ -37,9 +37,9 @@ module emulation_top
     logic rst_n;
     assign rst_n = KEY[0];
 
-    // GPIO_0[0] is pause_n
+    // GPIO_0[0] is pause
     logic pause_n;
-    assign pause_n = GPIO_0[0];
+    assign pause_n = !GPIO_0[0];
 
     // ========================================================================
     // PLLs and clock control
