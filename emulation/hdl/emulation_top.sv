@@ -143,7 +143,11 @@ module emulation_top
     // The ISO14443 system
     // ========================================================================
 
-    /* iso14443a_top dut
+    /* iso14443a_top
+    #(
+        .EMULATOR_PROJECT   (1)
+    )
+    dut
     (
         .clk        (clk_13p56),
         .rst_n      (iso14443_rst_n),
@@ -168,7 +172,11 @@ module emulation_top
     logic       sequence_error;
     logic       parity_error;
 
-    rx rx_inst
+    rx
+    #(
+        .EMULATOR_PROJECT   (1)
+    )
+    rx_inst
     (
         .clk                (clk_13p56),
         .rst_n              (iso14443_rst_n_synchronised),
