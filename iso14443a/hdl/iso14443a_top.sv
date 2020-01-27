@@ -24,6 +24,11 @@
 // SDC: create_clock - 13.56MHz +/- 7KHz + extra jitter?
 
 module iso14443a_top
+#
+(
+    // Some components need slight tweaks to work for the emulator project
+    parameter bit EMULATOR_PROJECT = 0
+)
 (
     // clk is our 13.56MHz input clock. It is recovered from the carrier wave,
     // and as such stops during pause frames. It must not have any glitches.
@@ -59,7 +64,11 @@ module iso14443a_top
     logic       sequence_error;
     logic       parity_error;
 
-    rx rx_inst
+    rx
+    #(
+        .EMULATOR_PROJECT   (EMULATOR_PROJECT)
+    )
+    rx_inst
     (
         .clk                (clk),
         .rst_n              (rst_n_synchronised),

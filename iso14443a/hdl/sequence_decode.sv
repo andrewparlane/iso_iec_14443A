@@ -24,6 +24,10 @@
 import ISO14443A_pkg::*;
 
 module sequence_decode
+#(
+    // We need to use different timings in the emulator project
+    parameter bit EMULATOR_PROJECT = 0
+)
 (
     // clk is our 13.56MHz input clock. It is recovered from the carrier wave,
     // and as such stops during pause frames. It must not have any glitches.
@@ -57,7 +61,9 @@ module sequence_decode
     // From that we can determine the current sequence. Since the clock stops during
     // pause frames, things are a bit more complicated.
     // Pause frames have according to ISO 14443-2A:2016 Table 4, have length between
-    // 6 and 41 clock ticks.
+    // 6 and 41 clock ticks, but the analogue front end (AFE) will change these timings a bit.
+    // Adittionally to get a 6 tick pause, the reader would have to be doing something pretty
+    // horrendous.
 
     // A bit time is 128 ticks.
     // Sequence X is a pause frame starting 64 ticks into the bit time.
@@ -110,9 +116,32 @@ module sequence_decode
     //       another Y and go idle. This is because the frame_decode module needs
     //       to also go idle
 
-    // TODO: In the TB test random sequences with random pause frame timings for each pause
-    // Test with min 6, max 41 as per the spec, then widen the range and test 3 - 50
-    // Be careful with X->Z (invalid) and Y->Y (idle)
+    // Note: When using the TRF7970A as the AFE in the emulation project. The pause lengths
+    //       are more in the order of 100 ticks. Way out of range. To decode this data I had
+    //       to change the timings to those listed below.
+
+    //      previous    event       counter min     counter max |   result
+    // ---------------------------------------------------------------------
+    //      IDLE        pause       N/A             N/A         |   Z (SOC)
+    //
+    //      X           pause       0               16          |   ERROR
+    //      X           pause       16              96          |   X
+    //      X           timeout     97                          |   Y
+    //
+    //      Z           pause       0               15          |   ERROR
+    //      Z           pause       16              95          |   Z
+    //      Z           pause       96              160         |   X
+    //      Z           timeout     161                         |   Y
+    //
+    //      Y           pause       0               63          |   z
+    //      Y           pause       64              131         |   x
+    //      Y           timeout     132                         |   IDLE
+
+    // TODO: Should I support various timings here?
+    //       The received pause length depends on the PCD and our analogue implementation.
+    //       If we fabricate and get these timings wrong, then we will be unable to receive data.
+    //       We could suupport 2 or 3 different sets of timings (short pulses, medium, long pulses)
+    //       and then switch which mode to use using wire bonding?
 
     // ------------------------------------------------------------------------
     // End of pause detector
@@ -139,6 +168,124 @@ module sequence_decode
 
     // time between pauses, max value we care about is 384, so 9 bits
     logic [8:0] counter;
+
+    // assuming a pause happens now, what would the next sequence be?
+    PCDBitSequence seq_on_pause;
+
+    // have we timed out yet?
+    logic timed_out;
+
+    // we use different timings for the emulator project, due to the TRF7970A producing
+    // crazy pause lengths in card emulation mode + DM0
+    generate
+
+        // ------------------------------------------------------------------------
+        // ASIC design case
+        // ------------------------------------------------------------------------
+
+        if (!EMULATOR_PROJECT) begin
+
+            always_comb begin
+                // the next sequence depends on how long it's been since the last pause
+                // and what the last sequence was
+                case (seq)
+                    PCDBitSequence_X: begin
+                        // last sequence was an x
+                        casez (counter)
+                            9'b000??????:   seq_on_pause = PCDBitSequence_ERROR;    // if (counter < 9'd64)
+                            default:        seq_on_pause = PCDBitSequence_X;        // else
+                        endcase
+                    end
+
+                    PCDBitSequence_Z: begin
+                        // last sequence was a Z
+                        casez (counter)
+                            9'b000??????:   seq_on_pause = PCDBitSequence_ERROR;    // if (counter < 9'd64)
+                            9'b001??????:   seq_on_pause = PCDBitSequence_Z;
+                            9'b0100000??:   seq_on_pause = PCDBitSequence_Z;        // else if (counter < 9'd132)
+                            default:        seq_on_pause = PCDBitSequence_X;        // else
+                        endcase
+                    end
+
+                    PCDBitSequence_Y: begin
+                        casez (counter)
+                            9'b000000???:   seq_on_pause = PCDBitSequence_ERROR;    // if (counter < 9'd8)
+                            9'b000001???:   seq_on_pause = PCDBitSequence_Z;
+                            9'b00001????:   seq_on_pause = PCDBitSequence_Z;
+                            9'b0001?????:   seq_on_pause = PCDBitSequence_Z;        // else if (counter < 9'd64)
+                            default:        seq_on_pause = PCDBitSequence_X;        // else
+                        endcase
+                    end
+
+                    // if the previous sequence wasn't a X, Y or Z, it must have bene an error
+                    // so the next sequence will be an error too
+                    default: seq_on_pause =  PCDBitSequence_ERROR;
+                endcase
+            end
+
+            // have we timed out?
+            always_comb begin
+                timed_out = ((seq == PCDBitSequence_X)     && (counter == 9'd132)) ||
+                            ((seq == PCDBitSequence_Y)     && (counter == 9'd132)) ||
+                            ((seq == PCDBitSequence_Z)     && (counter == 9'd196)) ||
+                            ((seq == PCDBitSequence_ERROR) && (counter == 9'd384));
+            end
+
+        end // !EMULATOR_PROJECT
+
+        // ------------------------------------------------------------------------
+        // EMULATOR PROJECT case
+        // ------------------------------------------------------------------------
+
+        else /* if (EMULATOR_PROJECT) */ begin
+
+            always_comb begin
+                // the next sequence depends on how long it's been since the last pause
+                // and what the last sequence was
+                case (seq)
+                    PCDBitSequence_X: begin
+                        // last sequence was an x
+                        casez (counter)
+                            9'b00000????:   seq_on_pause = PCDBitSequence_ERROR;    // if (counter < 9'd16)
+                            default:        seq_on_pause = PCDBitSequence_X;        // else
+                        endcase
+                    end
+
+                    PCDBitSequence_Z: begin
+                        // last sequence was a Z
+                        casez (counter)
+                            9'b00000????:   seq_on_pause = PCDBitSequence_ERROR;    // if (counter < 9'd16)
+                            9'b00001????:   seq_on_pause = PCDBitSequence_Z;
+                            9'b0001?????:   seq_on_pause = PCDBitSequence_Z;
+                            9'b0010?????:   seq_on_pause = PCDBitSequence_Z;        // else if (counter < 9'd96)
+                            default:        seq_on_pause = PCDBitSequence_X;        // else
+                        endcase
+                    end
+
+                    PCDBitSequence_Y: begin
+                        casez (counter)
+                            9'b000??????:   seq_on_pause = PCDBitSequence_Z;        // if (counter < 64)
+                            default:        seq_on_pause = PCDBitSequence_X;        // else
+                        endcase
+                    end
+
+                    // if the previous sequence wasn't a X, Y or Z, it must have bene an error
+                    // so the next sequence will be an error too
+                    default: seq_on_pause =  PCDBitSequence_ERROR;
+                endcase
+            end
+
+            // have we timed out?
+            always_comb begin
+                timed_out = ((seq == PCDBitSequence_X)     && (counter == 9'd97)) ||
+                            ((seq == PCDBitSequence_Y)     && (counter == 9'd132)) ||
+                            ((seq == PCDBitSequence_Z)     && (counter == 9'd161)) ||
+                            ((seq == PCDBitSequence_ERROR) && (counter == 9'd384));
+            end
+
+        end // EMULATOR_PROJECT
+
+    endgenerate
 
     always_ff @(posedge clk, negedge rst_n) begin
         if (!rst_n) begin
@@ -175,58 +322,11 @@ module sequence_decode
                         seq_valid <= 1;
                     end
 
-                    // the next sequence depends on how long it's been since the last pause
-                    // and what the last sequence was
-                    case (seq)
-                        PCDBitSequence_X: begin
-                            // last sequence was an x
-                            casez (counter)
-                                //9'b000??????:   seq <= PCDBitSequence_ERROR;    // if (counter < 9'd64)
-                                //default:        seq <= PCDBitSequence_X;        // else
-                                9'b00000????:   seq <= PCDBitSequence_ERROR;    // if (counter < 9'd16)
-                                default:        seq <= PCDBitSequence_X;        // else
-                            endcase
-                        end
-
-                        PCDBitSequence_Z: begin
-                            // last sequence was a Z
-                            casez (counter)
-                                //9'b000??????:   seq <= PCDBitSequence_ERROR;    // if (counter < 9'd64)
-                                //9'b001??????:   seq <= PCDBitSequence_Z;
-                                //9'b0100000??:   seq <= PCDBitSequence_Z;        // else if (counter < 9'd132)
-                                //default:        seq <= PCDBitSequence_X;        // else
-                                9'b00000????:   seq <= PCDBitSequence_ERROR;    // if (counter < 9'd16)
-                                9'b00001????:   seq <= PCDBitSequence_Z;
-                                9'b0001?????:   seq <= PCDBitSequence_Z;
-                                9'b0010?????:   seq <= PCDBitSequence_Z;        // else if (counter < 9'd96)
-                                default:        seq <= PCDBitSequence_X;        // else
-                            endcase
-                        end
-
-                        PCDBitSequence_Y: begin
-                            casez (counter)
-                                //9'b000000???:   seq <= PCDBitSequence_ERROR;    // if (counter < 9'd8)
-                                //9'b000001???:   seq <= PCDBitSequence_Z;
-                                //9'b00001????:   seq <= PCDBitSequence_Z;
-                                //9'b0001?????:   seq <= PCDBitSequence_Z;        // else if (counter < 9'd64)
-                                //default:        seq <= PCDBitSequence_X;        // else
-                                9'b000??????:   seq <= PCDBitSequence_Z;        // if (counter < 64)
-                                default:        seq <= PCDBitSequence_X;        // else
-                            endcase
-                        end
-                    endcase
+                    seq <= seq_on_pause;
                 end
                 else begin
                     // no pause detected yet, have we timed out
-                    //if (((seq == PCDBitSequence_X)     && (counter == 9'd132)) ||
-                    //    ((seq == PCDBitSequence_Y)     && (counter == 9'd132)) ||
-                    //    ((seq == PCDBitSequence_Z)     && (counter == 9'd196)) ||
-                    //    ((seq == PCDBitSequence_ERROR) && (counter == 9'd384))) begin
-                    if (((seq == PCDBitSequence_X)     && (counter == 9'd97)) ||
-                        ((seq == PCDBitSequence_Y)     && (counter == 9'd132)) ||
-                        ((seq == PCDBitSequence_Z)     && (counter == 9'd161)) ||
-                        ((seq == PCDBitSequence_ERROR) && (counter == 9'd384))) begin
-
+                    if (timed_out) begin
                         // we have timed out and so this must be a Y
                         seq         <= PCDBitSequence_Y;
                         seq_valid   <= 1;
@@ -241,11 +341,5 @@ module sequence_decode
             end
         end
     end
-
-    // TODO: Should I support various timings here?
-    //       The received pause length depends on the PCD and our analogue implementation.
-    //       If we fabricate and get these timings wrong, then we will be unable to receive data.
-    //       We could suupport 2 or 3 different sets of timings (short pulses, medium, long pulses)
-    //       and then switch which mode to use using wire bonding?
 
 endmodule
