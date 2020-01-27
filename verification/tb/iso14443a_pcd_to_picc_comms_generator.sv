@@ -240,26 +240,31 @@ module iso14443a_pcd_to_picc_comms_generator
     task send_sequence_x;
         repeat (sequence_x_pause_start_time) @(posedge pcd_clk);
         do_pause;
-        repeat (bit_time - sequence_x_pause_start_time - pause_len) @(posedge pcd_clk);
-    endtask
-
-    task send_sequence_y;
-        repeat (bit_time) @(posedge pcd_clk);
     endtask
 
     task send_sequence_z;
         repeat (sequence_z_pause_start_time) @(posedge pcd_clk);
         do_pause;
-        repeat (bit_time - sequence_z_pause_start_time - pause_len) @(posedge pcd_clk);
     endtask
 
     task send_sequence (PCDBitSequence seq);
-        case (seq)
-            PCDBitSequence_ERROR:   $warning("PCDBitSequence_ERROR is not supported here");
-            PCDBitSequence_X:       send_sequence_x;
-            PCDBitSequence_Y:       send_sequence_y;
-            PCDBitSequence_Z:       send_sequence_z;
-        endcase
+        // fork-join_none to make the sending of the pause none blocking
+        // this means pauses can run over into the start of the next bit time
+        // as would happen with a sequence X (sequence_x_pause_start_time == 64)
+        // and pause_len > 64.
+        fork
+            begin
+                case (seq)
+                    PCDBitSequence_ERROR:   $warning("PCDBitSequence_ERROR is not supported here");
+                    PCDBitSequence_X:       send_sequence_x;
+                    PCDBitSequence_Z:       send_sequence_z;
+                    //PCDBitSequence_Y:       // do nothing
+                endcase
+            end
+        join_none
+
+        // wait one bit time before returning
+        repeat (bit_time) @(posedge pcd_clk);
     endtask
 
     // ------------------------------------------------------------------------
