@@ -143,7 +143,9 @@ VCOM_FLAGS 			:= $(MODELSIM_FLAG) \
 NON_TB_VCOM_FLAGS	:= -check_synthesis
 
 # Flags for use with vlog (verilog compiler)
+# -suppress 2583 	supress a warning that says more checks will happen at vopt time
 VLOG_FLAGS 			:= $(MODELSIM_FLAG) \
+					   -suppress 2583 \
 					   -work $(VLIB_NAME)
 
 # Flags to use with modules we will synthesise (IE not testbenches)
