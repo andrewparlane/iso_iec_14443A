@@ -21,6 +21,8 @@
  * along with this code. If not, see <http://www.gnu.org/licenses/>.
  */
 
+`timescale 1ps/1ps
+
 import ISO14443A_pkg::*;
 
 module rx

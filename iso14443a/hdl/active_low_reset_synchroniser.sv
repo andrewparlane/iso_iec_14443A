@@ -21,6 +21,8 @@
  * along with this code. If not, see <http://www.gnu.org/licenses/>.
  */
 
+`timescale 1ps/1ps
+
 // Reset syncroniser for active low resets
 // On rst_n_in asserting, rst_n_out immediately asserts.
 // On rst_n_in deasserting, rst_n_out deasserts after the second rising edge of the clock
