@@ -78,9 +78,9 @@ module frame_decode_tb;
             repeat (5) @(posedge clk) begin end // sync to clock edge and delay between seqs
 
             sd_seq          = seqs[i];
-            sd_seq_valid    = 1;
+            sd_seq_valid    = 1'b1;
             @(posedge clk) begin end
-            sd_seq_valid    = 0;
+            sd_seq_valid    = 1'b0;
         end
 
         repeat (5) @(posedge clk) begin end
@@ -97,12 +97,12 @@ module frame_decode_tb;
         automatic bit               bits[$];
         automatic PCDBitSequence    seqs[$];
 
-        sd_seq_valid = 0;
+        sd_seq_valid = 1'b0;
 
         // reset for 5 ticks
-        rst_n <= 0;
+        rst_n <= 1'b0;
         repeat (5) @(posedge clk) begin end
-        rst_n <= 1;
+        rst_n <= 1'b1;
         repeat (5) @(posedge clk) begin end
 
         // 1) Test an 8 bit frame with parity bit OK
@@ -209,10 +209,10 @@ module frame_decode_tb;
         // repeat these tests a bunch of times
         repeat (1000) begin
             // 1 - 1000 bits (range is a bit arbitrary, but should be good enough)
-            automatic int num_bits              = $urandom_range(1, 1000);
-            automatic int num_bytes             = $ceil(num_bits / 8.0);
-            automatic int num_bits_in_last_byte = num_bits % 8;
-            automatic int last_byte;
+            automatic int       num_bits                = $urandom_range(1, 1000);
+            automatic int       num_bytes               = int'($ceil(num_bits / 8.0));
+            automatic int       num_bits_in_last_byte   = num_bits % 8;
+            automatic bit [7:0] last_byte;
 
             // 7) Test an N bit frame with parity OK
             //$display("Testing a %d bit frame with parity bits OK", num_bits);

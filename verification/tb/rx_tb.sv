@@ -86,9 +86,9 @@ module rx_tb;
         automatic PCDBitSequence    seqs[$];
 
         // reset for 5 ticks
-        rst_n <= 0;
+        rst_n <= 1'b0;
         repeat (5) @(posedge clk) begin end
-        rst_n <= 1;
+        rst_n <= 1'b1;
         repeat (5) @(posedge clk) begin end
 
         // 1) Test a single pause blip (0 byte frame: ZYY)
@@ -116,7 +116,7 @@ module rx_tb;
         repeat (1000) begin
             // first, how many bits to send? Max 80 bits = 10 bytes, Min 0 bits
             automatic int bits_to_send          = $urandom_range(80);
-            automatic int bytes_to_send         = $ceil(bits_to_send / 8.0);
+            automatic int bytes_to_send         = int'($ceil(bits_to_send / 8.0));
             automatic int bits_in_last_byte     = bits_to_send % 8;
 
             if (bits_to_send == 0) begin

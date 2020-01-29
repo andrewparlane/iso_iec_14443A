@@ -67,13 +67,13 @@ module frame_decode_validator
     // this is used to make sure the outputs are always valid
     // and that any event we add to the "expected" queue is also valid
     function bit validate_event (FrameDecodeEvent e);
-        automatic bit err = 0;
+        automatic bit err = 1'b0;
 
         if (e.soc) begin
             // eoc, sequence_error, parity_error, data_valid must not be set
             // data_bits must be 0
             if (e.eoc || e.sequence_error || e.parity_error || e.data_valid || e.data_bits != 0) begin
-                err = 1;
+                err = 1'b1;
             end
         end
 
@@ -81,10 +81,10 @@ module frame_decode_validator
             // soc must not be set
             // data_valid can only be set if data_bits != 0
             if (e.soc) begin
-                err = 1;
+                err = 1'b1;
             end
             if (e.data_valid && (e.data_bits == 0)) begin
-                err = 1;
+                err = 1'b1;
             end
         end
 
@@ -92,7 +92,7 @@ module frame_decode_validator
             // soc, parity_error, data_valid must not be set
             // data_bits must be 0
             if (e.soc || e.parity_error || e.data_valid) begin
-                err = 1;
+                err = 1'b1;
             end
         end
 
@@ -100,24 +100,24 @@ module frame_decode_validator
             // soc, sequence_error, data_valid must not be set
             // data_bits must be 0
             if (e.soc || e.sequence_error || e.data_valid) begin
-                err = 1;
+                err = 1'b1;
             end
         end
 
         if (e.data_valid) begin
             // none of soc, sequence_error or parity_error may be set
             if (e.soc || e.sequence_error || e.parity_error) begin
-                err = 1;
+                err = 1'b1;
             end
 
             // data bits must be none 0 if EOC is set
             if (e.eoc && (e.data_bits == 0)) begin
-                err = 1;
+                err = 1'b1;
             end
 
             // otherwise data bits must be 0
             if (!e.eoc && e.data_bits != 0) begin
-                err = 1;
+                err = 1'b1;
             end
         end
 
@@ -150,12 +150,12 @@ module frame_decode_validator
     // A function to build an event struct for the SOC event
     function automatic void push_soc_event;
         automatic FrameDecodeEvent e;
-        e.soc               = 1;
-        e.eoc               = 0;
-        e.sequence_error    = 0;
-        e.parity_error      = 0;
-        e.data_valid        = 0;
-        e.data_bits         = 0;
+        e.soc               = 1'b1;
+        e.eoc               = 1'b0;
+        e.sequence_error    = 1'b0;
+        e.parity_error      = 1'b0;
+        e.data_valid        = 1'b0;
+        e.data_bits         = 3'd0;
         e.data              = 8'hxx;
 
         expected.push_back(e);
@@ -164,13 +164,13 @@ module frame_decode_validator
     // A function to build an event struct for the EOC event
     // when the last byte is a full byte (standard frame), no data is issued
     // on the EOC event, there may however be an error.
-    function automatic void push_eoc_full_byte_event (ErrorType err, bit check_data_bits=1);
+    function automatic void push_eoc_full_byte_event (ErrorType err, bit check_data_bits=1'b1);
         automatic FrameDecodeEvent e;
-        e.soc               = 0;
-        e.eoc               = 1;
+        e.soc               = 1'b0;
+        e.eoc               = 1'b1;
         e.sequence_error    = (err == ErrorType_SEQUENCE);
         e.parity_error      = (err == ErrorType_PARITY);
-        e.data_valid        = 0;
+        e.data_valid        = 1'b0;
         e.data_bits         = check_data_bits ? 0 : 'x;
         e.data              = 8'hxx;
 
@@ -190,11 +190,11 @@ module frame_decode_validator
             new_data[i] = 1'bx;
         end
 
-        e.soc             = 0;
-        e.eoc             = 1;
-        e.sequence_error  = 0;
-        e.parity_error    = 0;
-        e.data_valid      = 1;
+        e.soc             = 1'b0;
+        e.eoc             = 1'b1;
+        e.sequence_error  = 1'b0;
+        e.parity_error    = 1'b0;
+        e.data_valid      = 1'b1;
         e.data_bits       = bitLen;
         e.data            = new_data;
 
@@ -206,12 +206,12 @@ module frame_decode_validator
 
         foreach (data[i]) begin
             automatic FrameDecodeEvent e;
-            e.soc               = 0;
-            e.eoc               = 0;
-            e.sequence_error    = 0;
-            e.parity_error      = 0;
-            e.data_valid        = 1;
-            e.data_bits         = 0;
+            e.soc               = 1'b0;
+            e.eoc               = 1'b0;
+            e.sequence_error    = 1'b0;
+            e.parity_error      = 1'b0;
+            e.data_valid        = 1'b1;
+            e.data_bits         = 3'd0;
             e.data              = data[i];
 
             expected.push_back(e);
@@ -221,12 +221,12 @@ module frame_decode_validator
     // Set up an event struct for an expected parity fail
     function automatic void push_parity_fail_event;
         automatic FrameDecodeEvent e;
-        e.soc               = 0;
-        e.eoc               = 0;
-        e.sequence_error    = 0;
-        e.parity_error      = 1;
-        e.data_valid        = 0;
-        e.data_bits         = 0;
+        e.soc               = 1'b0;
+        e.eoc               = 1'b0;
+        e.sequence_error    = 1'b0;
+        e.parity_error      = 1'b1;
+        e.data_valid        = 1'b0;
+        e.data_bits         = 3'd0;
         e.data              = 8'hxx;
 
         expected.push_back(e);
@@ -235,11 +235,11 @@ module frame_decode_validator
     // Set up an event struct for an expected sequenec error
     function automatic void push_sequence_error_event;
         automatic FrameDecodeEvent e;
-        e.soc               = 0;
-        e.eoc               = 0;
-        e.sequence_error    = 1;
-        e.parity_error      = 0;
-        e.data_valid        = 0;
+        e.soc               = 1'b0;
+        e.eoc               = 1'b0;
+        e.sequence_error    = 1'b1;
+        e.parity_error      = 1'b0;
+        e.data_valid        = 1'b0;
         e.data_bits         = 'hx;  // we don't know on which bit the error occured
         e.data              = 8'hxx;
 
