@@ -231,13 +231,13 @@ module sequence_decode_tb;
 
     // check that after we go idle, there are no more expected sequences
     // Except if we produced an PCDBitSequence_ERROR
-    noMoreExpectedAfterGoingIdle:
-    assert property (
-        @(posedge clk)
-        disable iff (!rst_n)
-        ($rose(idle) && (seq != PCDBitSequence_ERROR)) |=>  // takes one tick to detect the seq_valid and pop it from the queue
-            (expected.size == 0))
-        else $error("DUT goes idle but more sequences expected");
+    // VCS doesn't like .size in an assert property
+    always @(posedge clk) begin
+        if ($rose(idle) && (seq != PCDBitSequence_ERROR)) begin
+            noMoreExpectedAfterGoingIdle:
+            assert (expected.size() == 0) else $error("DUT goes idle but more sequences expected");
+        end
+    end
 
     // ensure that the DUT goes none idle when the BFM is transmitting
     dutGoesNoneIdleDuringTransfer:
