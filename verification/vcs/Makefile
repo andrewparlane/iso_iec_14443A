@@ -12,16 +12,28 @@
 #		your PATH / other environment vars. They should all be /usr/synopsys2
 # ----------------------------------------------------------------------------------
 
+# Remote server path
+# change this to allow syncing local changes to the remote server
+# Note there is no need to create this directory first nor to have the git repository
+# checked out. Simple run "make push_to_remote" and all the files required for simulation
+# with VCS will be pushed to the remote server.
+# Then you should SSH into the remote server, cd to verification/vcs/
+# and use this makefile as normal
+REMOTE_SERVER 	= user@server:~/desired/destination/
+
 # Directories
-SRC_DIR			= ../../iso14443a/hdl
+ROOT_DIR		= ../..
+# relative to ROOT_DIR
+SRC_DIR			= iso14443a/hdl
 PKG_DIR			= $(SRC_DIR)/pkg
-TB_SRC_DIR		= ../tb
-WORK_DIR		= work
+TB_SRC_DIR		= verification/tb
+VCS_DIR			= verification/vcs
+WORK_DIR		= $(VCS_DIR)/work
 
 # src files
-SRCS	= $(wildcard $(PKG_DIR)/*.sv) \
-		  $(wildcard $(SRC_DIR)/*.sv) \
-		  $(wildcard $(TB_SRC_DIR)/*.sv)
+SRCS	= $(wildcard $(ROOT_DIR)/$(PKG_DIR)/*.sv) \
+		  $(wildcard $(ROOT_DIR)/$(SRC_DIR)/*.sv) \
+		  $(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/*.sv)
 
 # List of testbenches, these should correspond with the top level modules
 # that you wish to simulate.
@@ -82,6 +94,8 @@ VLOGAN_ARGS	= -full64 +lint=all +warn=all -sverilog
 VCS_ARGS	= -full64 +lint=all +warn=all -assert enable_diag -debug_acc+all
 VSIM_ARGS	= -assert global_finish_maxfail=10 -cm assert -ucli
 
+AN_DB_DIR	= $(ROOT_DIR)/$(WORK_DIR)/AN.DB
+
 # Takes zero arguments
 define ANALYSE
 	$(call COLOURISE, vlogan $(VLOGAN_ARGS) $(SRCS))
@@ -124,12 +138,12 @@ all: analyse elaborate
 .PHONY: all
 
 # Analyse files only if any of the sources have changed more recently than the AN.DB folder
-$(WORK_DIR)/AN.DB: $(SRCS)
+$(AN_DB_DIR): $(SRCS)
 	@echo -e "$(COLOUR_BLUE)Analysing because of changes in: $? $(COLOUR_NONE)\n"
 	@$(call ANALYSE)
 
 # Elaborate rules, of the format sequence_decode_tb_simv:
-$(patsubst %,%_simv,$(TBS)): $(WORK_DIR)/AN.DB
+$(patsubst %,%_simv,$(TBS)): $(AN_DB_DIR)
 	@$(call ELABORATE, $(subst _simv,,$@))
 
 # Simulation rules
@@ -137,10 +151,14 @@ $(TBS): elaborate
 	@$(call RUN_SIM, $@)
 
 # PHONY rules
-analyse: $(WORK_DIR)/AN.DB
+analyse: $(AN_DB_DIR)
 elaborate: $(patsubst %,%_simv,$(TBS))
 
 .PHONY: analyse elaborate
+
+# Rules for working remotely
+push_to_remote:
+	cd $(ROOT_DIR) && rsync -rRv $(SRC_DIR) $(TB_SRC_DIR) $(VCS_DIR) $(REMOTE_SERVER)
 
 clean:
 	-@rm ???*_simv
