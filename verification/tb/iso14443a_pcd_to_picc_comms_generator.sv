@@ -128,7 +128,7 @@ module iso14443a_pcd_to_picc_comms_generator
     initial begin
         pcd_clk <= 0;
         forever begin
-            #(int'(CLOCK_PERIOD_PS/2));
+            #(int'(CLOCK_PERIOD_PS/2))
             pcd_clk <= ~pcd_clk;
         end
     end
@@ -164,7 +164,7 @@ module iso14443a_pcd_to_picc_comms_generator
     initial begin
         clk <= 0;
         forever begin
-            #(int'(CLOCK_PERIOD_PS/2));
+            #(int'(CLOCK_PERIOD_PS/2))
             if (!stop_clk) begin
                 clk <= ~clk;
             end
@@ -233,17 +233,17 @@ module iso14443a_pcd_to_picc_comms_generator
 
     task do_pause;
         pcd_pause_n = 0;
-        repeat (pause_len) @(posedge pcd_clk);
+        repeat (pause_len) @(posedge pcd_clk) begin end
         pcd_pause_n = 1;
     endtask
 
     task send_sequence_x;
-        repeat (sequence_x_pause_start_time) @(posedge pcd_clk);
+        repeat (sequence_x_pause_start_time) @(posedge pcd_clk) begin end
         do_pause;
     endtask
 
     task send_sequence_z;
-        repeat (sequence_z_pause_start_time) @(posedge pcd_clk);
+        repeat (sequence_z_pause_start_time) @(posedge pcd_clk) begin end
         do_pause;
     endtask
 
@@ -264,7 +264,7 @@ module iso14443a_pcd_to_picc_comms_generator
         join_none
 
         // wait one bit time before returning
-        repeat (bit_time) @(posedge pcd_clk);
+        repeat (bit_time) @(posedge pcd_clk) begin end
     endtask
 
     // ------------------------------------------------------------------------
@@ -505,7 +505,7 @@ module iso14443a_pcd_to_picc_comms_generator
     initial sending = 0;
     task send_sequence_queue (PCDBitSequence seqs[$]);
         // synch to posedge of pcd_clk
-        @(posedge pcd_clk);
+        @(posedge pcd_clk) begin end
         run_bit_time_counter <= 1;
 
         sending              <= 1;
@@ -514,7 +514,7 @@ module iso14443a_pcd_to_picc_comms_generator
 
         // enforce a small time between frames (5 bit times)
         // to ensure that the decoder goes idle
-        repeat(5*bit_time) @(posedge pcd_clk);
+        repeat(5*bit_time) @(posedge pcd_clk) begin end
         run_bit_time_counter <= 0;
     endtask
 
