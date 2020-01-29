@@ -41,7 +41,7 @@ module frame_decode_validator
     assign event_detected = soc | eoc | sequence_error | parity_error | data_valid;
 
     // A struct to combine the frame_decode / rx outputs
-    typedef struct
+    typedef struct packed
     {
         logic       soc;            // no other flags should be set
         logic       eoc;            // data_valid may be set if data_bits != 0
