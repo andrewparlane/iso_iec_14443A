@@ -174,9 +174,9 @@ module sequence_decode_tb;
         //bfm.set_sequence_timings(4, 12, 6, 0);
 
         // reset for 5 ticks
-        rst_n <= 0;
+        rst_n <= 1'b0;
         repeat (5) @(posedge clk) begin end
-        rst_n <= 1;
+        rst_n <= 1'b1;
         repeat (5) @(posedge clk) begin end
 
         // Run the standard test suite with pause lengths between 14 and 50

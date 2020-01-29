@@ -127,7 +127,7 @@ module iso14443a_pcd_to_picc_comms_generator
     // it's constant at CLOCK_FREQ_HZ
     logic pcd_clk;
     initial begin
-        pcd_clk <= 0;
+        pcd_clk <= 1'b0;
         forever begin
             #(int'(CLOCK_PERIOD_PS/2))
             pcd_clk <= ~pcd_clk;
@@ -140,7 +140,7 @@ module iso14443a_pcd_to_picc_comms_generator
 
     // We set this to emulate the PCD sending a pause
     logic pcd_pause_n;
-    initial pcd_pause_n = 1;
+    initial pcd_pause_n = 1'b1;
 
     // The PICC's pause_n signal asserts / deasserts some delay after the pcd_pause_n
     // signal, so just use the #(rise_delay, fall_delay) syntax of verilog.
@@ -163,7 +163,7 @@ module iso14443a_pcd_to_picc_comms_generator
     //       and starts. This matches the analogue implementation of the clock
     //       recovery block.
     initial begin
-        clk <= 0;
+        clk <= 1'b0;
         forever begin
             #(int'(CLOCK_PERIOD_PS/2))
             if (!stop_clk) begin
@@ -178,7 +178,7 @@ module iso14443a_pcd_to_picc_comms_generator
 
     // Run a counter to count ticks in each bit time
     // and pulse a signal at the start of each bit
-    logic run_bit_time_counter = 0;
+    logic run_bit_time_counter = 1'd0;
     int bit_time_counter;
 
     always_ff @(posedge pcd_clk) begin
@@ -233,9 +233,9 @@ module iso14443a_pcd_to_picc_comms_generator
     // ------------------------------------------------------------------------
 
     task do_pause;
-        pcd_pause_n = 0;
+        pcd_pause_n = 1'b0;
         repeat (pause_len) @(posedge pcd_clk) begin end
-        pcd_pause_n = 1;
+        pcd_pause_n = 1'b1;
     endtask
 
     task send_sequence_x;
@@ -411,7 +411,7 @@ module iso14443a_pcd_to_picc_comms_generator
 
         new_bits = {};
         bit_count = 0;
-        parity = 1;
+        parity = 1'b1;
         foreach (bits[i]) begin
             new_bits.push_back(bits[i]);
 
@@ -423,7 +423,7 @@ module iso14443a_pcd_to_picc_comms_generator
             if (bit_count == 8) begin
                 bit_count = 0;
                 new_bits.push_back(parity);
-                parity = 1;
+                parity = 1'b1;
             end
         end
 
@@ -503,20 +503,20 @@ module iso14443a_pcd_to_picc_comms_generator
     // and that sending two or more sequence Ys in a row will result in the
     // sequence_decode core going idle and reporting the next sequence as a Z
     // regardless of what you ask it to send.
-    initial sending = 0;
+    initial sending = 1'b0;
     task send_sequence_queue (PCDBitSequence seqs[$]);
         // synch to posedge of pcd_clk
         @(posedge pcd_clk) begin end
-        run_bit_time_counter <= 1;
+        run_bit_time_counter <= 1'b1;
 
-        sending              <= 1;
+        sending              <= 1'b1;
         foreach (seqs[i]) send_sequence(seqs[i]);
-        sending              <= 0;
+        sending              <= 1'b0;
 
         // enforce a small time between frames (5 bit times)
         // to ensure that the decoder goes idle
         repeat(5*bit_time) @(posedge pcd_clk) begin end
-        run_bit_time_counter <= 0;
+        run_bit_time_counter <= 1'b0;
     endtask
 
     // Sends just the bits in the queue. It does not add parity bits in.
