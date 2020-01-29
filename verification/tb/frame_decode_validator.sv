@@ -268,7 +268,7 @@ module frame_decode_validator
                 assert (expected.size != 0)
                 else $error("event detected but not expecting anything");
 
-            if (expected.size != 0) begin
+            if (expected.size != 0) begin: expectedQueueNotEmpty
                 automatic FrameDecodeEvent expectedEvent = expected.pop_front;
 
                 expectedEventValid:
