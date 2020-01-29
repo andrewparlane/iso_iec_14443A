@@ -62,7 +62,7 @@ COLOUR_ORANGE	= \x1b[33;01m
 #	Takes two arguments:
 #		1) pattern to match
 #		2) colour to highlight (only highlights the matched pattern, not the whole line)
-GENERATE_COLOURISE_SED = -e $$'s/$(1)/$(2)\\1$(COLOUR_NONE)/'
+GENERATE_COLOURISE_SED = -e $$'s/$(1)/$(2)\\1$(COLOUR_NONE)/I'
 
 # SED command to do all colour substitutions
 # 	This is just a list of sed expressions generated using the GENERATE_COLOURISE_SED macro
