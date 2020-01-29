@@ -294,42 +294,49 @@ module frame_decode_validator
         !rst_n |->
             (!soc && !eoc &&
              !parity_error && !sequence_error &&
-             !data_valid && !event_detected));
+             !data_valid && !event_detected))
+        else $error("Outputs not as expected whilst in reset");
 
     // Check that the outputs are always valid
     outputsValid:
     assert property (
         @(posedge clk)
-        validate_event(outputs));
+        validate_event(outputs))
+        else $error("Current outputs not valid");
 
     // soc is only valid for one tick at a time
     socOnlyOneTick:
     assert property (
         @(posedge clk)
-        soc |=> !soc);
+        soc |=> !soc)
+        else $error("soc asserted for more than one tick");
 
     // eoc is only valid for one tick at a time
     eocOnlyOneTick:
     assert property (
         @(posedge clk)
-        eoc |=> !eoc);
+        eoc |=> !eoc)
+        else $error("eoc asserted for more than one tick");
 
     // sequence_error is only valid for one tick at a time
     sequenceErrorOnlyOneTick:
     assert property (
         @(posedge clk)
-        sequence_error |=> !sequence_error);
+        sequence_error |=> !sequence_error)
+        else $error("sequence_error asserted for more than one tick");
 
     // parity_error is only valid for one tick at a time
     parityErrorOnlyOneTick:
     assert property (
         @(posedge clk)
-        parity_error |=> !parity_error);
+        parity_error |=> !parity_error)
+        else $error("parity_error asserted for more than one tick");
 
     // data_valid is only valid for one tick at a time
     dataValidOnlyOneTick:
     assert property (
         @(posedge clk)
-        data_valid |=> !data_valid);
+        data_valid |=> !data_valid)
+        else $error("data_valid asserted for more than one tick");
 
 endmodule
