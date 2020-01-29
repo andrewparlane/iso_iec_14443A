@@ -23,8 +23,6 @@
 
 `timescale 1ps/1ps
 
-import ISO14443A_pkg::*;
-
 module rx
 #
 (
@@ -54,6 +52,8 @@ module rx
     output logic        sequence_error,
     output logic        parity_error
 );
+
+    import ISO14443A_pkg::*;
 
     // The pause_n signal is asynchronous it can assert / deassert at any point
     // during the clock cycle. Additionally the clock will not be running during

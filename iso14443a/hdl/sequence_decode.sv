@@ -23,8 +23,6 @@
 
 `timescale 1ps/1ps
 
-import ISO14443A_pkg::*;
-
 module sequence_decode
 #(
     // We need to use different timings in the emulator project
@@ -33,22 +31,24 @@ module sequence_decode
 (
     // clk is our 13.56MHz input clock. It is recovered from the carrier wave,
     // and as such stops during pause frames. It must not have any glitches.
-    input                       clk,
+    input                                   clk,
 
     // rst is our active low synchronised asynchronous reset signal
-    input                       rst_n,
+    input                                   rst_n,
 
     // pause_n_synchronised is the synchronised pause_n signal.
     // since the clock stops during pause frames, we can only expect pause_n_synchronised
     // to be asserted (0) for a couple of clock ticks.
     // So we just look for rising edges (end of pause)
-    input                       pause_n_synchronised,
+    input                                   pause_n_synchronised,
 
     // outputs
-    output PCDBitSequence       seq,
-    output logic                seq_valid,
-    output logic                idle
+    output ISO14443A_pkg::PCDBitSequence    seq,
+    output logic                            seq_valid,
+    output logic                            idle
 );
+
+    import ISO14443A_pkg::*;
 
     // ------------------------------------------------------------------------
     // Comments about how this code works
