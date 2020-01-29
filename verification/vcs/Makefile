@@ -70,11 +70,11 @@ GENERATE_COLOURISE_SED = -e $$'s/$(1)/$(2)\\1$(COLOUR_NONE)/'
 # 	to add more colourization. IE. if you want to COLOURISE lines with Importing in them
 # 	Additionally you can override COLOURISE_SED_ALL to replace all colourization options
 COLOURISE_SED_ALL ?= sed -r $(call GENERATE_COLOURISE_SED,(^Error.*$$),$(COLOUR_RED)) 									\
-							$(call GENERATE_COLOURISE_SED,(^Note.*$$),$(COLOUR_BLUE)) 									\
-							$(call GENERATE_COLOURISE_SED,(^(Warning|Lint).*$$),$(COLOUR_ORANGE)) 						\
 							$(call GENERATE_COLOURISE_SED,(^.*(failed|Fatal).*$$),$(COLOUR_RED)) 						\
 							$(call GENERATE_COLOURISE_SED,(^.* 0 successes.*$$),$(COLOUR_RED))							\
 							$(call GENERATE_COLOURISE_SED,(^.* [1-9][0-9]* failures.*$$),$(COLOUR_RED))					\
+							$(call GENERATE_COLOURISE_SED,(^(Warning|Lint).*$$),$(COLOUR_ORANGE)) 						\
+							$(call GENERATE_COLOURISE_SED,(^Note.*$$),$(COLOUR_BLUE)) 									\
 							$(call GENERATE_COLOURISE_SED,(^.* [1-9][0-9]* successes, 0 failures.*$$),$(COLOUR_GREEN))
 
 # Actual macro that COLOURISEs
