@@ -215,7 +215,8 @@ module sequence_decode_tb;
     assert property (
         @(posedge clk)
         !rst_n |->
-            (idle && !seq_valid));
+            (idle && !seq_valid))
+            else $error("signals invalid in reset");
 
     // check that we always produce a sequence on going idle
     // and that it is a Y.
@@ -225,7 +226,8 @@ module sequence_decode_tb;
         @(posedge clk)
         disable iff (!rst_n)
         ($rose(idle) && (seq != PCDBitSequence_ERROR)) |->
-            ($rose(seq_valid) && seq == PCDBitSequence_Y));
+            ($rose(seq_valid) && seq == PCDBitSequence_Y))
+        else $error("No valid sequence on DUT going idle");
 
     // check that after we go idle, there are no more expected sequences
     // Except if we produced an PCDBitSequence_ERROR
@@ -234,7 +236,8 @@ module sequence_decode_tb;
         @(posedge clk)
         disable iff (!rst_n)
         ($rose(idle) && (seq != PCDBitSequence_ERROR)) |=>  // takes one tick to detect the seq_valid and pop it from the queue
-            (expected.size == 0));
+            (expected.size == 0))
+        else $error("DUT goes idle but more sequences expected");
 
     // ensure that the DUT goes none idle when the BFM is transmitting
     dutGoesNoneIdleDuringTransfer:
@@ -242,13 +245,15 @@ module sequence_decode_tb;
         @(posedge clk)
         disable iff (!rst_n)
         $rose(sending) |=>
-            (sending throughout !idle [->1]));   // sending stays true at least until idle goes to 0
+            (sending throughout !idle [->1]))    // sending stays true at least until idle goes to 0
+        else $error("DUT fails to go none idle during transmission");
 
     // seqValid is only valid for one tick at a time
     seqValidOnlyOneTick:
     assert property (
         @(posedge clk)
         disable iff (!rst_n)
-        seq_valid |=> !seq_valid);
+        seq_valid |=> !seq_valid)
+        else $error("seq_valid asserted for more than one tick");
 
 endmodule
