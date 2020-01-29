@@ -23,30 +23,30 @@
 
 `timescale 1ps/1ps
 
-import ISO14443A_pkg::*;
-
 module frame_decode
 (
     // clk is our 13.56MHz input clock. It is recovered from the carrier wave,
     // and as such stops during pause frames. It must not have any glitches.
-    input                       clk,
+    input                                   clk,
 
     // rst is our active low synchronised asynchronous reset signal
-    input                       rst_n,
+    input                                   rst_n,
 
     // inputs from sequence_decode
-    input PCDBitSequence        sd_seq,
-    input                       sd_seq_valid,
+    input ISO14443A_pkg::PCDBitSequence     sd_seq,
+    input                                   sd_seq_valid,
 
     // outputs
-    output logic                soc,                // start of comms
-    output logic                eoc,                // end of comms
-    output logic [7:0]          data,
-    output logic [2:0]          data_bits,          // number of valid data bits in data. 0 means all 8 bits are present
-    output logic                data_valid,
-    output logic                sequence_error,
-    output logic                parity_error
+    output logic                            soc,                // start of comms
+    output logic                            eoc,                // end of comms
+    output logic [7:0]                      data,
+    output logic [2:0]                      data_bits,          // number of valid data bits in data. 0 means all 8 bits are present
+    output logic                            data_valid,
+    output logic                            sequence_error,
+    output logic                            parity_error
 );
+
+    import ISO14443A_pkg::*;
 
     logic           idle;               // are we currently idle
     PCDBitSequence  last_seq;           // last sequence received (so we can detect EOC)
