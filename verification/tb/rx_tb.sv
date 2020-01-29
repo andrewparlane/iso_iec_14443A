@@ -106,7 +106,7 @@ module rx_tb;
                  PCDBitSequence_Y};
         bfm.send_sequence_queue(seqs);
 
-        assert(fd_validator.expected_queue_is_empty) else $fatal(1, "Finished transmitting but expected queue is not empty");
+        assert(fd_validator.expected_queue_is_empty()) else $fatal(1, "Finished transmitting but expected queue is not empty");
 
         // TODO: Increase test count to lots
         //       should also do this in all TBs
@@ -309,7 +309,7 @@ module rx_tb;
                 endcase
             end
 
-            assert(fd_validator.expected_queue_is_empty) else $fatal(1, "Finished transmitting but expected queue is not empty");
+            assert(fd_validator.expected_queue_is_empty()) else $fatal(1, "Finished transmitting but expected queue is not empty");
         end
 
         repeat (5) @(posedge clk) begin end
