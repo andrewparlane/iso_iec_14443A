@@ -49,13 +49,13 @@ module active_low_reset_synchroniser
         if (!rst_n_in) begin
             // rst_in asserted (asynchronous)
             // set both FFDs to 0 immediately (propagate reset assertions immediately)
-            shift_reg[0]    <= 0;
-            shift_reg[1]    <= 0;
+            shift_reg[0]    <= 1'b0;
+            shift_reg[1]    <= 1'b0;
         end
         else begin
             // on the rising edge of the clock (while not in reset)
             // shift '1' through the two FFDs
-            shift_reg[0]    <= 1;
+            shift_reg[0]    <= 1'b1;
             shift_reg[1]    <= shift_reg[0];
         end
     end

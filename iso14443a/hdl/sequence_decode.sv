@@ -156,7 +156,7 @@ module sequence_decode
 
     always_ff @(posedge clk, negedge rst_n) begin
         if (!rst_n) begin
-            last_pause_n    <= 1; // not in pause frame
+            last_pause_n    <= 1'b1; // not in pause frame
         end
         else begin
             // update cached value
@@ -291,12 +291,12 @@ module sequence_decode
 
     always_ff @(posedge clk, negedge rst_n) begin
         if (!rst_n) begin
-            idle            <= 1;
-            seq_valid       <= 0;
+            idle            <= 1'b1;
+            seq_valid       <= 1'b0;
         end
         else begin
             // this should only be asserted for one tick at a time
-            seq_valid <= 0;
+            seq_valid <= 1'b0;
 
             if (idle) begin
                 // since we are idle then the first sequence we detect has to be Z
@@ -304,9 +304,9 @@ module sequence_decode
                 // start of communications is represented by a sequence Z
                 if (pause_detected) begin
                     seq             <= PCDBitSequence_Z;
-                    seq_valid       <= 1;
-                    idle            <= 0;
-                    counter         <= 1;   // reset the counter
+                    seq_valid       <= 1'b1;
+                    idle            <= 1'b0;
+                    counter         <= 9'd1;   // reset the counter
                 end
             end
             else begin
@@ -317,11 +317,11 @@ module sequence_decode
 
                 if (pause_detected) begin
                     // when a pause is detected we reset the counter to 1
-                    counter <= 1;
+                    counter <= 9'd1;
 
                     // and we issue a sequence, unless we previously errored
                     if (seq != PCDBitSequence_ERROR) begin
-                        seq_valid <= 1;
+                        seq_valid <= 1'b1;
                     end
 
                     seq <= seq_on_pause;
@@ -331,12 +331,12 @@ module sequence_decode
                     if (timed_out) begin
                         // we have timed out and so this must be a Y
                         seq         <= PCDBitSequence_Y;
-                        seq_valid   <= 1;
-                        counter     <= 1;
+                        seq_valid   <= 1'b1;
+                        counter     <= 9'd1;
 
                         if (seq == PCDBitSequence_Y) begin
                             // That's two Ys in a row, so we go idle now
-                            idle <= 1;
+                            idle <= 1'b1;
                         end
                     end
                 end
