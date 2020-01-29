@@ -147,7 +147,18 @@ module iso14443a_pcd_to_picc_comms_generator
     // note: we can't initialise pause_n because the simulator doesn't like that
     //       it's assigned with an assign and in an initial, so just make sure
     //       that the resret is longer than pause_n_deasserts_after_ps
-    assign #(pause_n_deasserts_after_ps, pause_n_asserts_after_ps) pause_n = pcd_pause_n;
+    // note: The following works in questasim, but VCS doesn't like it
+    //assign #(pause_n_deasserts_after_ps, pause_n_asserts_after_ps) pause_n = pcd_pause_n;
+    always_comb begin
+        if (!pcd_pause_n) begin
+            // pcd_pause_n asserted
+            pause_n <= #pause_n_asserts_after_ps 1'b0;
+        end
+        else begin
+            // pcd_pause_n deasserted
+            pause_n <= #pause_n_deasserts_after_ps 1'b1;
+        end
+    end
 
     // ------------------------------------------------------------------------
     // PICC clock generation
@@ -155,7 +166,17 @@ module iso14443a_pcd_to_picc_comms_generator
 
     // We also have the stop_clk internal signal which behaves in the same way
     logic stop_clk;
-    assign #(clock_stops_after_ps, clock_starts_after_ps) stop_clk = !pcd_pause_n;
+    //assign #(clock_stops_after_ps, clock_starts_after_ps) stop_clk = !pcd_pause_n;
+    always_comb begin
+        if (!pcd_pause_n) begin
+            // pcd_pause_n asserted
+            stop_clk <= #clock_stops_after_ps 1'b1;
+        end
+        else begin
+            // pcd_pause_n deasserted
+            stop_clk <= #clock_starts_after_ps 1'b0;
+        end
+    end
 
     // generate the PICC's clock
     // Note: this clock can be in phase to the pcd_clk or 180 degrees out of phase.
