@@ -68,23 +68,23 @@ module frame_decode
 
     always_ff @(posedge clk, negedge rst_n) begin
         if (!rst_n) begin
-            soc                 <= 0;
-            eoc                 <= 0;
-            data_valid          <= 0;
-            parity_error        <= 0;
-            sequence_error      <= 0;
+            soc                 <= 1'b0;
+            eoc                 <= 1'b0;
+            data_valid          <= 1'b0;
+            parity_error        <= 1'b0;
+            sequence_error      <= 1'b0;
 
-            next_bit_is_parity  <= 0;
-            idle                <= 1;
+            next_bit_is_parity  <= 1'b0;
+            idle                <= 1'b1;
             last_seq            <= PCDBitSequence_Y; // idle
         end
         else begin
             // these should only be asserted for one tick
-            soc             <= 0;
-            eoc             <= 0;
-            data_valid      <= 0;
-            parity_error    <= 0;
-            sequence_error  <= 0;
+            soc             <= 1'b0;
+            eoc             <= 1'b0;
+            data_valid      <= 1'b0;
+            parity_error    <= 1'b0;
+            sequence_error  <= 1'b0;
 
             // nothing to do if !sd_seq_valid
             if (sd_seq_valid) begin
@@ -98,13 +98,13 @@ module frame_decode
 
                     if (last_seq == PCDBitSequence_Z) begin
                         // This is the start of comms
-                        soc                 <= 1;
-                        data_bits           <= 0;
-                        idle                <= 0;
-                        expected_parity     <= 1;
-                        next_bit_is_parity  <= 0;
-                        data_received       <= 0;
-                        error_detecetd      <= 0;
+                        soc                 <= 1'b1;
+                        data_bits           <= '0;
+                        idle                <= 1'b0;
+                        expected_parity     <= 1'b1;
+                        next_bit_is_parity  <= 1'b0;
+                        data_received       <= '0;
+                        error_detecetd      <= 1'b0;
                     end
                 end
                 else begin
@@ -112,19 +112,19 @@ module frame_decode
                     // Check for EOC
                     if ((sd_seq == PCDBitSequence_Y) &&
                         ((last_seq == PCDBitSequence_Y) || (last_seq == PCDBitSequence_Z))) begin
-                        eoc     <= 1;
-                        idle    <= 1;
+                        eoc     <= 1'b1;
+                        idle    <= 1'b1;
 
                         if (next_bit_is_parity) begin
                             // this is an error
                             // if you have 8 data bits you must have a parity bit
-                            parity_error <= 1;
+                            parity_error <= 1'b1;
                         end
 
                         if (!data_received) begin
                             // 0 byte frame, consists of sequences ZY
                             // this is a sequence error
-                            sequence_error <= 1;
+                            sequence_error <= 1'b1;
                         end
 
                         if (!next_bit_is_parity && data_received && !error_detecetd) begin
@@ -137,36 +137,36 @@ module frame_decode
                     else if (!error_detecetd) begin
                         // we've at least received one bit of data
                         // even if it's a sequence error
-                        data_received <= 1;
+                        data_received <= 1'b1;
 
                         // Check for error
                         if (last_seq == PCDBitSequence_ERROR) begin
-                            sequence_error      <= 1;
-                            error_detecetd      <= 1;
+                            sequence_error      <= 1'b1;
+                            error_detecetd      <= 1'b1;
                             // clear this so we don't report parity error in EOC
-                            next_bit_is_parity  <= 0;
+                            next_bit_is_parity  <= 1'b0;
                         end
                         // Is it the parity bit?
                         else if (next_bit_is_parity) begin
-                            next_bit_is_parity <= 0;
+                            next_bit_is_parity <= 1'b0;
 
                             // next_bit is the received parity_bit
                             // check it's correct
                             if (expected_parity == next_bit) begin
                                 // all good
-                                data_bits   <= 0; // represents 8 valid data bits, also ready for next byte
-                                data_valid  <= 1;
-                                expected_parity <= 1;
+                                data_bits       <= 3'd0; // represents 8 valid data bits, also ready for next byte
+                                data_valid      <= 1'b1;
+                                expected_parity <= 1'b1;
                             end
                             else begin
                                 // parity error
-                                parity_error    <= 1;
-                                error_detecetd  <= 1;
+                                parity_error    <= 1'b1;
+                                error_detecetd  <= 1'b1;
                             end
                         end
                         // otherwise it's just a data bit
                         else begin
-                            data_received   <= 1;
+                            data_received   <= 1'b1;
                             data[data_bits] <= next_bit;
 
                             if (next_bit) begin
@@ -176,7 +176,7 @@ module frame_decode
 
                             if (data_bits == 3'd7) begin
                                 // last data bit received
-                                next_bit_is_parity <= 1;
+                                next_bit_is_parity <= 1'b1;
                             end
 
                             data_bits <= data_bits + 1'd1;
