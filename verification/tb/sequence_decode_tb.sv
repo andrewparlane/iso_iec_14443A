@@ -114,7 +114,7 @@ module sequence_decode_tb;
         seqs.push_back(PCDBitSequence_Y); // Y -> Y - IDLE
         expected = seqs;
         bfm.send_sequence_queue(seqs);
-        wait(idle);
+        wait(idle) begin end
 
         // 2) We also want to test the 4 combinations that have Y in the middle:
         //    X -> Y -> X
@@ -138,14 +138,14 @@ module sequence_decode_tb;
 
         expected = seqs;
         bfm.send_sequence_queue(seqs);
-        wait(idle);
+        wait(idle) begin end
 
         // 3) Generate a random queue of sequences (excludes error cases)
         //$display("Running test 3");
         seqs = bfm.generate_valid_sequence_queue(1000);
         expected = seqs;
         bfm.send_sequence_queue(seqs);
-        wait(idle);
+        wait(idle) begin end
 
         // 4) Test X -> Z error cases
         //$display("Running test 4");
@@ -165,7 +165,7 @@ module sequence_decode_tb;
         expected.push_back(PCDBitSequence_Y);
 
         bfm.send_sequence_queue(seqs);
-        wait(idle);
+        wait(idle) begin end
     endtask
 
 
@@ -174,9 +174,9 @@ module sequence_decode_tb;
 
         // reset for 5 ticks
         rst_n <= 0;
-        repeat (5) @(posedge clk);
+        repeat (5) @(posedge clk) begin end
         rst_n <= 1;
-        repeat (5) @(posedge clk);
+        repeat (5) @(posedge clk) begin end
 
         // Run the standard test suite with pause lengths between 14 and 50
         // We don't know what the actual pause length will be coming from the PCD
@@ -201,7 +201,7 @@ module sequence_decode_tb;
             end
         end
 
-        repeat (5) @(posedge clk);
+        repeat (5) @(posedge clk) begin end
         $stop;
     end
 

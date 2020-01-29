@@ -74,15 +74,15 @@ module frame_decode_tb;
 
     task send_sequence_queue (PCDBitSequence seqs[$]);
         foreach (seqs[i]) begin
-            repeat (5) @(posedge clk);  // sync to clock edge and delay between seqs
+            repeat (5) @(posedge clk) begin end // sync to clock edge and delay between seqs
 
             sd_seq          = seqs[i];
             sd_seq_valid    = 1;
-            @(posedge clk);
+            @(posedge clk) begin end
             sd_seq_valid    = 0;
         end
 
-        repeat (5) @(posedge clk);
+        repeat (5) @(posedge clk) begin end
         assert (fd_validator.expected_queue_is_empty) else $error("Finished sending but still expected data");
     endtask
 
@@ -100,9 +100,9 @@ module frame_decode_tb;
 
         // reset for 5 ticks
         rst_n <= 0;
-        repeat (5) @(posedge clk);
+        repeat (5) @(posedge clk) begin end
         rst_n <= 1;
-        repeat (5) @(posedge clk);
+        repeat (5) @(posedge clk) begin end
 
         // 1) Test an 8 bit frame with parity bit OK
         //$display("Testing an 8 bit frame with parity bit OK");
@@ -308,7 +308,7 @@ module frame_decode_tb;
 
         send_sequence_queue(seqs);
 
-        repeat (5) @(posedge clk);
+        repeat (5) @(posedge clk) begin end
         $stop;
     end
 

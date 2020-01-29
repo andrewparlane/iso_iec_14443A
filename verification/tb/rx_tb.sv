@@ -86,9 +86,9 @@ module rx_tb;
 
         // reset for 5 ticks
         rst_n <= 0;
-        repeat (5) @(posedge clk);
+        repeat (5) @(posedge clk) begin end
         rst_n <= 1;
-        repeat (5) @(posedge clk);
+        repeat (5) @(posedge clk) begin end
 
         // 1) Test a single pause blip (0 byte frame: ZYY)
         // note we add the extra Y so that the EOC is detected
@@ -311,7 +311,7 @@ module rx_tb;
             assert(fd_validator.expected_queue_is_empty) else $fatal(1, "Finished transmitting but expected queue is not empty");
         end
 
-        repeat (5) @(posedge clk);
+        repeat (5) @(posedge clk) begin end
         $stop;
     end
 
