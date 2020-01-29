@@ -80,7 +80,7 @@ module rx_tb;
         TestType_SEQUENCE_ERROR
     } TestType;
 
-    initial begin
+    initial begin: testStimulus
         automatic bit [7:0]         data[$];
         automatic bit               bits[$];
         automatic PCDBitSequence    seqs[$];
@@ -106,14 +106,14 @@ module rx_tb;
                  PCDBitSequence_Y};
         bfm.send_sequence_queue(seqs);
 
-        assert(fd_validator.expected_queue_is_empty()) else $fatal(1, "Finished transmitting but expected queue is not empty");
+        expectedQueueEmpty1: assert(fd_validator.expected_queue_is_empty()) else $fatal(1, "Finished transmitting but expected queue is not empty");
 
         // TODO: Increase test count to lots
         //       should also do this in all TBs
         //       Do this once switched to synopsys VCS
 
         // Test random Transfers
-        repeat (1000) begin
+        repeat (1000) begin: randomTransferLoop
             // first, how many bits to send? Max 80 bits = 10 bytes, Min 0 bits
             automatic int bits_to_send          = $urandom_range(80);
             automatic int bytes_to_send         = int'($ceil(bits_to_send / 8.0));
@@ -309,7 +309,7 @@ module rx_tb;
                 endcase
             end
 
-            assert(fd_validator.expected_queue_is_empty()) else $fatal(1, "Finished transmitting but expected queue is not empty");
+            expectedQueueEmpty2: assert(fd_validator.expected_queue_is_empty()) else $fatal(1, "Finished transmitting but expected queue is not empty");
         end
 
         repeat (5) @(posedge clk) begin end

@@ -84,7 +84,7 @@ module frame_decode_tb;
         end
 
         repeat (5) @(posedge clk) begin end
-        assert (fd_validator.expected_queue_is_empty()) else $error("Finished sending but still expected data");
+        expectedQueueEmpty: assert (fd_validator.expected_queue_is_empty()) else $error("Finished sending but still expected data");
     endtask
 
 
