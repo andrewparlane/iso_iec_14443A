@@ -23,9 +23,10 @@
 
 `timescale 1ps/1ps
 
-import ISO14443A_pkg::*;
-
 module frame_decode_tb;
+
+    import ISO14443A_pkg::*;
+
     // --------------------------------------------------------------
     // Ports to DUT
     // all named the same as in the DUT, so I can use .*

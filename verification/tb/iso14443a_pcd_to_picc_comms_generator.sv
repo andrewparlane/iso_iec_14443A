@@ -23,7 +23,6 @@
 
 `timescale 1ps/1ps
 
-import ISO14443A_pkg::*;
 
 // This module generates an emulated version of the clk and pause_n outputs
 // of the ISO/IEC 14443A analogue IP core for use with simulations.
@@ -51,6 +50,8 @@ module iso14443a_pcd_to_picc_comms_generator
     output logic pause_n,   // Note: you can not rely on this to be synchronised to a clock edge
     output logic sending    // Indicates that we are sending something
 );
+
+    import ISO14443A_pkg::*;
 
     // Calculate our clock period in ps
     localparam CLOCK_PERIOD_PS = 1000000000000.0 / CLOCK_FREQ_HZ;
