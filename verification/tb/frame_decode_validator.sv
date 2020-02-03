@@ -270,15 +270,18 @@ module frame_decode_validator
 
             if (expected.size != 0) begin: expectedQueueNotEmpty
                 automatic FrameDecodeEvent expectedEvent = expected.pop_front;
+                automatic logic expected_event_valid = validate_event(expectedEvent);
+                automatic string err_str_actual = event_to_string(outputs);
+                automatic string err_str_expected = event_to_string(expectedEvent);
 
                 expectedEventValid:
-                    assert (validate_event(expectedEvent))
+                    assert (expected_event_valid)
                     else $fatal(1, "An expected event was found not valid");
 
                 eventNotAsExpected:
                     assert (outputs ==? expectedEvent)  // ==? so we allow 'x in expectedEvent as a wildcard
                     else $error("Detected event is not as expected. Got %s, expected %s",
-                                event_to_string(outputs), event_to_string(expectedEvent));
+                                err_str_actual, err_str_expected);
             end
         end
     end
@@ -298,10 +301,12 @@ module frame_decode_validator
         else $error("Outputs not as expected whilst in reset");
 
     // Check that the outputs are always valid
+    logic outputs_valid;
+    assign outputs_valid = validate_event(outputs);
     outputsValid:
     assert property (
         @(posedge clk)
-        validate_event(outputs))
+        outputs_valid)
         else $error("Current outputs not valid");
 
     // soc is only valid for one tick at a time

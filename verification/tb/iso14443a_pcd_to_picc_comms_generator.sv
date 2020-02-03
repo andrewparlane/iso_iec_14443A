@@ -496,9 +496,12 @@ module iso14443a_pcd_to_picc_comms_generator
     endfunction
 
     // little test to make sure the calculate_crc algorithm is correct
-    initial begin
-        crcTest1: assert (calculate_crc('{8'h0, 8'h0}) == 16'h1EA0) else $fatal(1, "calculate_crc test 1 failed");
-        crcTest2: assert (calculate_crc('{8'h12, 8'h34}) == 16'hCF26) else $fatal(1, "calculate_crc test 2 failed");
+    initial begin: crcTest
+        automatic logic [15:0] testCRC1 = calculate_crc('{8'h0, 8'h0});
+        automatic logic [15:0] testCRC2 = calculate_crc('{8'h12, 8'h34});
+
+        crcTest1: assert (testCRC1 == 16'h1EA0) else $fatal(1, "calculate_crc test 1 failed");
+        crcTest2: assert (testCRC2 == 16'hCF26) else $fatal(1, "calculate_crc test 2 failed");
     end
 
     function byte_queue add_crc_to_message (bit [7:0] data [$]);
