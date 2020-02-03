@@ -74,6 +74,8 @@ module frame_decode_tb;
     // --------------------------------------------------------------
 
     task send_sequence_queue (PCDBitSequence seqs[$]);
+        automatic logic expectedEmpty;
+
         foreach (seqs[i]) begin
             repeat (5) @(posedge clk) begin end // sync to clock edge and delay between seqs
 
@@ -84,7 +86,9 @@ module frame_decode_tb;
         end
 
         repeat (5) @(posedge clk) begin end
-        expectedQueueEmpty: assert (fd_validator.expected_queue_is_empty()) else $error("Finished sending but still expected data");
+
+        expectedEmpty = fd_validator.expected_queue_is_empty();
+        expectedQueueEmpty: assert (expectedEmpty) else $error("Finished sending but still expected data");
     endtask
 
 

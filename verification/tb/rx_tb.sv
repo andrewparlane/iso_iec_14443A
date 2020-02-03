@@ -84,6 +84,7 @@ module rx_tb;
         automatic bit [7:0]         data[$];
         automatic bit               bits[$];
         automatic PCDBitSequence    seqs[$];
+        automatic logic expected_queue_empty;
 
         // reset for 5 ticks
         rst_n <= 1'b0;
@@ -106,7 +107,8 @@ module rx_tb;
                  PCDBitSequence_Y};
         bfm.send_sequence_queue(seqs);
 
-        expectedQueueEmpty1: assert(fd_validator.expected_queue_is_empty()) else $fatal(1, "Finished transmitting but expected queue is not empty");
+        expected_queue_empty = fd_validator.expected_queue_is_empty();
+        expectedQueueEmpty1: assert(expected_queue_empty) else $fatal(1, "Finished transmitting but expected queue is not empty");
 
         // TODO: Increase test count to lots
         //       should also do this in all TBs
@@ -309,7 +311,9 @@ module rx_tb;
                 endcase
             end
 
-            expectedQueueEmpty2: assert(fd_validator.expected_queue_is_empty()) else $fatal(1, "Finished transmitting but expected queue is not empty");
+            expected_queue_empty = fd_validator.expected_queue_is_empty();
+            expectedQueueEmpty2: assert(expected_queue_empty) else $fatal(1, "Finished transmitting but expected queue is not empty");
+
         end
 
         repeat (5) @(posedge clk) begin end
