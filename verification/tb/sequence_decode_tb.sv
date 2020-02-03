@@ -210,6 +210,9 @@ module sequence_decode_tb;
     // Asserts
     // --------------------------------------------------------------
 
+    // synopsys doesn't like "disable iff (!rst_n)"
+    logic rst_for_asserts = !rst_n;
+
     // Check that the outputs are correct when in reset
     signalsInReset:
     assert property (
@@ -224,7 +227,7 @@ module sequence_decode_tb;
     seqValidOnGoingIdle:
     assert property (
         @(posedge clk)
-        disable iff (!rst_n)
+        disable iff (rst_for_asserts)
         ($rose(idle) && (seq != PCDBitSequence_ERROR)) |->
             ($rose(seq_valid) && seq == PCDBitSequence_Y))
         else $error("No valid sequence on DUT going idle");
@@ -243,7 +246,7 @@ module sequence_decode_tb;
     dutGoesNoneIdleDuringTransfer:
     assert property (
         @(posedge clk)
-        disable iff (!rst_n)
+        disable iff (rst_for_asserts)
         $rose(sending) |=>
             (sending throughout !idle [->1]))    // sending stays true at least until idle goes to 0
         else $error("DUT fails to go none idle during transmission");
@@ -252,7 +255,7 @@ module sequence_decode_tb;
     seqValidOnlyOneTick:
     assert property (
         @(posedge clk)
-        disable iff (!rst_n)
+        disable iff (rst_for_asserts)
         seq_valid |=> !seq_valid)
         else $error("seq_valid asserted for more than one tick");
 
