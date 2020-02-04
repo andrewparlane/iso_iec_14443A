@@ -91,7 +91,7 @@ COLOURISE = (set -o pipefail; $(1) | $(COLOURISE_SED_ALL))
 # ----------------------------------------------------------------------------------
 
 VLOGAN_ARGS	= -full64 +lint=all +warn=all -sverilog
-VCS_ARGS	= -full64 +lint=all,noSVA-DIU +warn=all -assert enable_diag -debug_acc+all
+VCS_ARGS	= -full64 +lint=all,noSVA-DIU +warn=all -assert enable_diag -debug_acc+all -ntb_opts check=all
 VSIM_ARGS	= -assert global_finish_maxfail=10 -cm assert +ntb_random_seed_automatic -ucli
 
 AN_DB_DIR	= $(ROOT_DIR)/$(WORK_DIR)/AN.DB
