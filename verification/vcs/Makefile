@@ -1,45 +1,79 @@
 # ----------------------------------------------------------------------------------
-# Tested with Synopsys VCS:
+# Tested with Synopsys VCS on micro0.fi.uba.ar:
 # 	vcs script version : O-2018.09
 #	Compiler version = VCS-MX O-2018.09-SP2_Full64
 #	VCS Build Date = Feb 28 2019 22:34:30
-# On micro0.fi.uba.ar
-# Make sure to have run ". /usr/synopsys2/synopsys_rc"
-# 	You may need to have copied it to your local dir first
-#	If you have errors with /usr/bin/ld unrecognised option -plugin
-#		Then comment out the HSPICE variables source line
-#	If you have other errors, make sure there's no /usr/synopsys references in
-#		your PATH / other environment vars. They should all be /usr/synopsys2
 # ----------------------------------------------------------------------------------
 
-# Remote server path
-# change this to allow syncing local changes to the remote server
-# Note there is no need to create this directory first nor to have the git repository
-# checked out. Simple run "make push_to_remote" and all the files required for simulation
-# with VCS will be pushed to the remote server.
-# Then you can run "make connect_to_remote" and use this makefile as normal
+# Prerequisites:
+#   Set up your environment on the machine you have vcs installed on
+#		This can be done using the /usr/synopsys2/synopsys_rc script (at least on micro0.fi.uba.ar)
+#		You may need to copy it to your user directory and chmod 755 it in order to gain execute perms.
+#		If you have errors with vcs along the lines of "/usr/bin/ld unrecognised option -plugin"
+#		then comment out the HSPICE source line in that script.
+#		You can add ". ~/synopsys_rc" to your .bashrc script if desired.
+# 	set the REMOTE_SERVER and REMOTE_PATH vars below
+#		If you want to edit the files on your local machine and run vcs on a server
+#		then you can use the push_to_remote and connect_to_remote rules to make life easier.
+#		REMOTE_SERVER is username@server.address
+#		REMOTE_PATH is where you want to push the files either /absolute/path/to/dest
+#		or ~/relative/path/from/home/dir.
+# 	set all the directory vars correctly
+#		ROOT_DIR should be a relative or absolute path to the top level repository dir
+#		SRC_DIR is the relative path from ROOT_DIR to the source files.
+#		PKG_DIR is the relative path from ROOT_DIR to a dir with packages in
+#		TB_SRC_DIR is the relative path from ROOT_DIR to the testbenches
+# 		VCS_DIR is the relative path from ROOT_DIR to the directory that contains this Makefile
+#		SRCS should be a list of all sources files (including testbenches). Packages should come first
+#		TBS should be a list of module names of testbenches. This is used to build the Makefile rules
+#	edit the _ARGS vars as required
+#		VLOGAN_ARGS
+#		VCS_ARGS
+#		SIMV_ARGS
+
+# Rules (where X is one of the values in $(TBS)):
+#	list_tbs:			prints a list of known testbenches
+#	analyse: 			analyse all source files using vlogan
+#	elaborate: 			elaborate all testbenches into _simv binaries
+# 	X_simv:				elaborate the X into the X_simv binary
+#	X:					run the X simulation (executes ./X_simv)
+#	clean:				deletes all generated files
+#	push_to_remote:		syncs local files to the remote server
+# 	connect_to_remote:	ssh to the remote server and cd to the vcs dir
+
+# Macros (not describing all of them, just the main ones):
+#	COLOURISE:			Applies a long sed script to the output of the passed command,
+#						which adds colours to the output of the various synopsys tools
+#	ANALYSE:			Runs vlogan to analyse the source files
+#	ELABORATE:			Runs vcs to elaborate the source files into _simv binaries
+#	RUN_SIM:			Executes the simulation (See command line args below)
+
+# Command line arguments:
+#	INTERACTIVE:		running "make INTERACTIVE=1 X" will cause VCS to start up and wait for
+#						user input in the UCLI. You can add breakpoints / step through, etc..
+
+# ----------------------------------------------------------------------------------
+# VARIABLES
+# ----------------------------------------------------------------------------------
+
 REMOTE_SERVER 	= user@server
 REMOTE_PATH		= ~/desired/destination
 
 # Directories
 ROOT_DIR		= ../..
+
 # relative to ROOT_DIR
 SRC_DIR			= iso14443a/hdl
 PKG_DIR			= $(SRC_DIR)/pkg
 TB_SRC_DIR		= verification/tb
 VCS_DIR			= verification/vcs
-WORK_DIR		= $(VCS_DIR)/work
 
 # src files
 SRCS	= $(wildcard $(ROOT_DIR)/$(PKG_DIR)/*.sv) \
 		  $(wildcard $(ROOT_DIR)/$(SRC_DIR)/*.sv) \
 		  $(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/*.sv)
 
-# List of testbenches, these should correspond with the top level modules
-# that you wish to simulate.
-# Makefile rules are automatically generated to simulate build and simulate them.
-# for example: make sequence_decode_tb
-# You can also run in interactive mode (none GUI) with: make INTERACTIVE=1 sequence_decode_tb
+# testbenches
 TBS		= sequence_decode_tb \
 		  frame_decode_tb \
 		  rx_tb
@@ -90,17 +124,24 @@ COLOURISE = (set -o pipefail; $(1) | $(COLOURISE_SED_ALL))
 # VCS macros
 # ----------------------------------------------------------------------------------
 
+# arguments to the various commands
 VLOGAN_ARGS	= -full64 +lint=all +warn=all -sverilog
 VCS_ARGS	= -full64 +lint=all,noSVA-DIU +warn=all -assert enable_diag -debug_acc+all -ntb_opts check=all
-VSIM_ARGS	= -assert global_finish_maxfail=10 -cm assert +ntb_random_seed_automatic -ucli
+SIMV_ARGS	= -assert global_finish_maxfail=10 -cm assert +ntb_random_seed_automatic -ucli
 
+# the work/AN.DB dir has it's timestamp compared to the .sv files to see if we need to
+# reanalyse. There may be a way to only reanalyse the necesarry files but it doesn't seem
+# necesarry since it's really quick as is.
+WORK_DIR	= $(VCS_DIR)/work
 AN_DB_DIR	= $(ROOT_DIR)/$(WORK_DIR)/AN.DB
 
+# The ANALYSE macro runs vlogan to analyse all the source files
 # Takes zero arguments
 define ANALYSE
 	$(call COLOURISE, vlogan $(VLOGAN_ARGS) $(SRCS))
 endef
 
+# The ELABORATE macro runs vcs to build the simv binary for the particular testbench
 # Takes one argument:
 #		1) The testbench module name to run
 define ELABORATE
@@ -109,32 +150,35 @@ define ELABORATE
 	$(call COLOURISE, vcs $(VCS_ARGS) work.$(TB_NAME) -o $(TB_NAME)_simv)
 endef
 
+# The RUN_SIM macro runs the simv binary produced by vcs.
 # Takes one argument:
 #		1) The testbench module name to run
 # Has different behaviour depending on if we set INTERACTIVE=1 or not
-
+# In interactive mode we don't colourise the output.
+# In batch mode we run the do.tcl script
 ifndef INTERACTIVE
+# batch mode
 define RUN_SIM
 	$(eval TB_NAME = $(call strip, $(1)))
 	echo -e "$(COLOUR_BLUE)Simulating $(TB_NAME)$(COLOUR_NONE)\n"
-	# batch mode,
-	#	run the do.tcl
-	$(call COLOURISE, ./$(TB_NAME)_simv $(VSIM_ARGS) -do do.tcl)
+	$(call COLOURISE, ./$(TB_NAME)_simv $(SIMV_ARGS) -do do.tcl)
 endef
 else
+# interactive mode
 define RUN_SIM
 	$(eval TB_NAME = $(call strip, $(1)))
 	echo -e "$(COLOUR_BLUE)Simulating $(TB_NAME)$(COLOUR_NONE)\n"
-	# interactive mode
-	# 	don't colourise,
-	./$(TB_NAME)_simv $(VSIM_ARGS)
+	./$(TB_NAME)_simv $(SIMV_ARGS)
 endef
 endif
+
+# ----------------------------------------------------------------------------------
+# Rules / targets
+# ----------------------------------------------------------------------------------
 
 # default rule is to analyse and elaborate all files / testbenches
 # elaborating all testbenches is not necesarry if you only want to run one simulation
 all: analyse elaborate
-
 .PHONY: all
 
 # Analyse files only if any of the sources have changed more recently than the AN.DB folder
@@ -154,26 +198,29 @@ $(patsubst %,%_simv,$(TBS)): $(AN_DB_DIR)
 analyse: $(AN_DB_DIR)
 elaborate: $(patsubst %,%_simv,$(TBS))
 
-.PHONY: analyse elaborate
-
-# ----------------------------------------------------------------------------------
-# Rules for working remotely
-# ----------------------------------------------------------------------------------
-
-push_to_remote:
-	# We push (overwriting all files) the src files, testbenches and the VCS dir.
-	# We delete any file on the server that doesn't exist locally
-	# except for: work/ csrc/ and *_simv*
-	# Which means we don't need to rebuild everything each time
-	cd $(ROOT_DIR) && rsync -rRv --delete --exclude $(VCS_DIR)/work/ --exclude $(VCS_DIR)/csrc/  --exclude $(VCS_DIR)/*_simv* $(SRC_DIR) $(TB_SRC_DIR) $(VCS_DIR) $(REMOTE_SERVER):$(REMOTE_PATH)
-
-connect_to_remote:
-	# ssh to the remote server and cd to the VCS dir
-	ssh -t $(REMOTE_SERVER) "cd $(REMOTE_PATH)/$(VCS_DIR); bash"
+# output TBS each on it's own line
+list_tbs:
+	@echo $(TBS) | sed -E 's/[ \t]+/\n/g'
 
 clean:
 	-@rm ???*_simv
 	-@rm -rf ???*_simv.daidir/
 	-@rm -rf $(WORK_DIR)
+	-@rm -rf csrc/
 
-.PHONY: clean
+.PHONY: analyse elaborate list_tbs clean
+
+# ----------------------------------------------------------------------------------
+# Rules for working remotely
+# ----------------------------------------------------------------------------------
+
+# We push (overwriting all files) the src files, testbenches and the VCS dir.
+# We delete any file on the server that doesn't exist locally
+# except for: work/ csrc/ and *_simv*
+# Which means we don't need to rebuild everything each time
+push_to_remote:
+	cd $(ROOT_DIR) && rsync -rRv --delete --exclude $(VCS_DIR)/work/ --exclude $(VCS_DIR)/csrc/  --exclude $(VCS_DIR)/*_simv* $(SRC_DIR) $(TB_SRC_DIR) $(VCS_DIR) $(REMOTE_SERVER):$(REMOTE_PATH)
+
+# ssh to the remote server and cd to the VCS dir
+connect_to_remote:
+	ssh -t $(REMOTE_SERVER) "cd $(REMOTE_PATH)/$(VCS_DIR); bash"
