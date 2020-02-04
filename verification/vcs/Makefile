@@ -156,9 +156,16 @@ elaborate: $(patsubst %,%_simv,$(TBS))
 
 .PHONY: analyse elaborate
 
+# ----------------------------------------------------------------------------------
 # Rules for working remotely
+# ----------------------------------------------------------------------------------
+
 push_to_remote:
-	cd $(ROOT_DIR) && rsync -rRv $(SRC_DIR) $(TB_SRC_DIR) $(VCS_DIR) $(REMOTE_SERVER)
+	# We push (overwriting all files) the src files, testbenches and the VCS dir.
+	# We delete any file on the server that doesn't exist locally
+	# except for: work/ csrc/ and *_simv*
+	# Which means we don't need to rebuild everything each time
+	cd $(ROOT_DIR) && rsync -rRv --delete --exclude $(VCS_DIR)/work/ --exclude $(VCS_DIR)/csrc/  --exclude $(VCS_DIR)/*_simv* $(SRC_DIR) $(TB_SRC_DIR) $(VCS_DIR) $(REMOTE_SERVER)
 
 clean:
 	-@rm ???*_simv
