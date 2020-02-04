@@ -147,7 +147,7 @@ $(patsubst %,%_simv,$(TBS)): $(AN_DB_DIR)
 	@$(call ELABORATE, $(subst _simv,,$@))
 
 # Simulation rules
-$(TBS): elaborate
+%: %_simv
 	@$(call RUN_SIM, $@)
 
 # PHONY rules
