@@ -18,6 +18,9 @@
 #		REMOTE_SERVER is username@server.address
 #		REMOTE_PATH is where you want to push the files either /absolute/path/to/dest
 #		or ~/relative/path/from/home/dir.
+#		If you wish to use the GUI (DVE) on the remote server then you must have the ability
+#		to launch X apps remotely via ssh -X, I'm not sure how this works with linux, but with
+#		cygwin follow: https://codeyarns.com/2018/04/01/how-to-use-cygwin-x-server-for-local-and-remote/
 # 	set all the directory vars correctly
 #		ROOT_DIR should be a relative or absolute path to the top level repository dir
 #		SRC_DIR is the relative path from ROOT_DIR to the source files.
@@ -51,6 +54,7 @@
 # Command line arguments:
 #	INTERACTIVE:		running "make INTERACTIVE=1 X" will cause VCS to start up and wait for
 #						user input in the UCLI. You can add breakpoints / step through, etc..
+#	GUI:				running "make GUI=1 X" will start VCS with the -gui flag, opening DVE
 
 # ----------------------------------------------------------------------------------
 # VARIABLES
@@ -128,6 +132,13 @@ COLOURISE = (set -o pipefail; $(1) | $(COLOURISE_SED_ALL))
 VLOGAN_ARGS	= -full64 +lint=all +warn=all -sverilog
 VCS_ARGS	= -full64 +lint=all,noSVA-DIU +warn=all -assert enable_diag -debug_acc+all -ntb_opts check=all
 SIMV_ARGS	= -assert global_finish_maxfail=10 -cm assert +ntb_random_seed_automatic -ucli
+
+ifdef GUI
+# if we want to use the GUI then add the -gui argument to SIMV_ARGS
+# and enforce interactive mode (don't run the do.tcl and don't colourise)
+	SIMV_ARGS 		+= -gui
+	INTERACTIVE 	= 1
+endif
 
 # the work/AN.DB dir has it's timestamp compared to the .sv files to see if we need to
 # reanalyse. There may be a way to only reanalyse the necesarry files but it doesn't seem
@@ -222,5 +233,6 @@ push_to_remote:
 	cd $(ROOT_DIR) && rsync -rRv --delete --exclude $(VCS_DIR)/work/ --exclude $(VCS_DIR)/csrc/  --exclude $(VCS_DIR)/*_simv* $(SRC_DIR) $(TB_SRC_DIR) $(VCS_DIR) $(REMOTE_SERVER):$(REMOTE_PATH)
 
 # ssh to the remote server and cd to the VCS dir
+# we use -Y so we can launch graphical apps
 connect_to_remote:
-	ssh -t $(REMOTE_SERVER) "cd $(REMOTE_PATH)/$(VCS_DIR); bash"
+	ssh -Yt $(REMOTE_SERVER) "cd $(REMOTE_PATH)/$(VCS_DIR); bash"
