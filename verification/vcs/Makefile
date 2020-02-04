@@ -17,9 +17,9 @@
 # Note there is no need to create this directory first nor to have the git repository
 # checked out. Simple run "make push_to_remote" and all the files required for simulation
 # with VCS will be pushed to the remote server.
-# Then you should SSH into the remote server, cd to verification/vcs/
-# and use this makefile as normal
-REMOTE_SERVER 	= user@server:~/desired/destination/
+# Then you can run "make connect_to_remote" and use this makefile as normal
+REMOTE_SERVER 	= user@server
+REMOTE_PATH		= ~/desired/destination
 
 # Directories
 ROOT_DIR		= ../..
@@ -165,7 +165,11 @@ push_to_remote:
 	# We delete any file on the server that doesn't exist locally
 	# except for: work/ csrc/ and *_simv*
 	# Which means we don't need to rebuild everything each time
-	cd $(ROOT_DIR) && rsync -rRv --delete --exclude $(VCS_DIR)/work/ --exclude $(VCS_DIR)/csrc/  --exclude $(VCS_DIR)/*_simv* $(SRC_DIR) $(TB_SRC_DIR) $(VCS_DIR) $(REMOTE_SERVER)
+	cd $(ROOT_DIR) && rsync -rRv --delete --exclude $(VCS_DIR)/work/ --exclude $(VCS_DIR)/csrc/  --exclude $(VCS_DIR)/*_simv* $(SRC_DIR) $(TB_SRC_DIR) $(VCS_DIR) $(REMOTE_SERVER):$(REMOTE_PATH)
+
+connect_to_remote:
+	# ssh to the remote server and cd to the VCS dir
+	ssh -t $(REMOTE_SERVER) "cd $(REMOTE_PATH)/$(VCS_DIR); bash"
 
 clean:
 	-@rm ???*_simv
