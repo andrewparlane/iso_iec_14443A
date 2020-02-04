@@ -80,7 +80,8 @@ SRCS	= $(wildcard $(ROOT_DIR)/$(PKG_DIR)/*.sv) \
 # testbenches
 TBS		= sequence_decode_tb \
 		  frame_decode_tb \
-		  rx_tb
+		  rx_tb \
+		  subcarrier_tb
 
 # ----------------------------------------------------------------------------------
 # colourization
