@@ -35,7 +35,7 @@ module rx_tb;
     logic           clk;
     logic           rst_n;
 
-    logic           pause_n;
+    logic           pause_n_synchronised;
 
     logic           soc;
     logic           eoc;
@@ -56,11 +56,24 @@ module rx_tb;
     // PICC -> PCD clock and comms generator
     // --------------------------------------------------------------
     logic bfm_sending;
+    logic pause_n;
     iso14443a_pcd_to_picc_comms_generator bfm
     (
         .clk     (clk),
         .pause_n (pause_n),
         .sending (bfm_sending)
+    );
+
+    // --------------------------------------------------------------
+    // Synchronise the pause_n signal
+    // --------------------------------------------------------------
+    // this is done in the top level module and passed to the rx component
+    // for synthesis
+    active_low_reset_synchroniser pause_n_synchroniser
+    (
+        .clk        (clk),
+        .rst_n_in   (pause_n),
+        .rst_n_out  (pause_n_synchronised)
     );
 
     // --------------------------------------------------------------
