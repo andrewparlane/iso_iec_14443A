@@ -45,6 +45,7 @@ module frame_decode_tb;
     logic           data_valid;
     logic           sequence_error;
     logic           parity_error;
+    logic           last_bit;
 
     // --------------------------------------------------------------
     // DUT

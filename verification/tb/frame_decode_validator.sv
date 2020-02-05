@@ -33,7 +33,11 @@ module frame_decode_validator
     input [2:0] data_bits,
     input       data_valid,
     input       sequence_error,
-    input       parity_error
+    input       parity_error,
+
+    // we only care about this after the frame is done, so we don't add it to the
+    // FrameDecodeEvent struct
+    input       last_bit
 );
 
     // has something happened this tick?
@@ -137,7 +141,8 @@ module frame_decode_validator
     // Some functions to construct events and add them to an expected queue
     // ========================================================================
 
-    FrameDecodeEvent expected[$];
+    FrameDecodeEvent    expected[$];
+    logic               expectedLastBit;
 
     function automatic void clear_expected_queue;
         expected.delete;
@@ -175,6 +180,11 @@ module frame_decode_validator
         e.data              = 8'hxx;
 
         expected.push_back(e);
+
+        // ignore the last_bit if there's been an error
+        if (err != ErrorType_NONE) begin
+            expectedLastBit = 1'bx;
+        end
     endfunction
 
     // A function to build an event struct for the EOC event
@@ -199,6 +209,9 @@ module frame_decode_validator
         e.data            = new_data;
 
         expected.push_back(e);
+
+        // the last_bit is the MSb of the data
+        expectedLastBit = data[bitLen-1];
     endfunction
 
     // Add events for receiving a series of full bytes of data
@@ -216,6 +229,11 @@ module frame_decode_validator
 
             expected.push_back(e);
         end
+
+        if (data.size() != 0) begin
+            // expected last bit is the parity bit of the last byte
+            expectedLastBit = bit'(($countones(data[$]) % 2) == 0);
+        end
     endfunction
 
     // Set up an event struct for an expected parity fail
@@ -230,6 +248,9 @@ module frame_decode_validator
         e.data              = 8'hxx;
 
         expected.push_back(e);
+
+        // don't check last_bit in case of errors
+        expectedLastBit     = 1'bx;
     endfunction
 
     // Set up an event struct for an expected sequenec error
@@ -244,6 +265,9 @@ module frame_decode_validator
         e.data              = 8'hxx;
 
         expected.push_back(e);
+
+        // don't check last_bit in case of errors
+        expectedLastBit     = 1'bx;
     endfunction
 
     // ========================================================================
@@ -282,6 +306,13 @@ module frame_decode_validator
                     assert (outputs ==? expectedEvent)  // ==? so we allow 'x in expectedEvent as a wildcard
                     else $error("Detected event is not as expected. Got %s, expected %s",
                                 err_str_actual, err_str_expected);
+
+                if (outputs.eoc) begin
+                    // check last_bit
+                    checkLastBit:
+                        assert (last_bit ==? expectedLastBit) // ==? so we allow 'x in expectedLastBit as a wildcard
+                        else $error("Last bit not as expected");
+                end
             end
         end
     end
@@ -343,5 +374,12 @@ module frame_decode_validator
         @(posedge clk)
         data_valid |=> !data_valid)
         else $error("data_valid asserted for more than one tick");
+
+    // last_bit can't change after eoc until after the next soc
+    lastBitStableBetweenFrames:
+    assert property (
+        @(posedge clk)
+        $rose(eoc) |=> $stable(last_bit) throughout soc[->1])
+        else $error("last_bit changed between frames");
 
 endmodule
