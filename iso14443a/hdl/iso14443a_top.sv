@@ -65,6 +65,7 @@ module iso14443a_top
     logic       data_valid;
     logic       sequence_error;
     logic       parity_error;
+    logic       last_bit;
 
     rx
     #(
@@ -82,7 +83,8 @@ module iso14443a_top
         .data_bits          (data_bits),
         .data_valid         (data_valid),
         .sequence_error     (sequence_error),
-        .parity_error       (parity_error)
+        .parity_error       (parity_error),
+        .last_bit           (last_bit)
     );
 
 endmodule
