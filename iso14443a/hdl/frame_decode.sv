@@ -43,7 +43,8 @@ module frame_decode
     output logic [2:0]                      data_bits,          // number of valid data bits in data. 0 means all 8 bits are present
     output logic                            data_valid,
     output logic                            sequence_error,
-    output logic                            parity_error
+    output logic                            parity_error,
+    output logic                            last_bit            // includes parity, but not EOC, used by the FDT
 );
 
     import ISO14443A_pkg::*;
@@ -77,6 +78,7 @@ module frame_decode
             next_bit_is_parity  <= 1'b0;
             idle                <= 1'b1;
             last_seq            <= PCDBitSequence_Y; // idle
+            last_bit            <= 1'b0;
         end
         else begin
             // these should only be asserted for one tick
@@ -138,6 +140,9 @@ module frame_decode
                         // we've at least received one bit of data
                         // even if it's a sequence error
                         data_received <= 1'b1;
+
+                        // note this as the last bit received for use in the FDT
+                        last_bit <= next_bit;
 
                         // Check for error
                         if (last_seq == PCDBitSequence_ERROR) begin
