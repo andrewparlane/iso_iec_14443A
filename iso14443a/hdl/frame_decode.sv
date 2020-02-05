@@ -54,7 +54,7 @@ module frame_decode
     logic           data_received;      // have we received anything yet? Used to prevent 0 bit frames
     logic           next_bit_is_parity; // after every 8 bits of data we expect a parity bit
     logic           expected_parity;    // what should the parity bit be
-    logic           error_detecetd;     // don't issue data after we detect an error
+    logic           error_detected;     // don't issue data after we detect an error
 
     // Note: we use last_seq everywhere instead of sd_seq because
     //       the EOC is logical '0' followed by Y. If we look at
@@ -104,7 +104,7 @@ module frame_decode
                         expected_parity     <= 1'b1;
                         next_bit_is_parity  <= 1'b0;
                         data_received       <= '0;
-                        error_detecetd      <= 1'b0;
+                        error_detected      <= 1'b0;
                     end
                 end
                 else begin
@@ -127,14 +127,14 @@ module frame_decode
                             sequence_error <= 1'b1;
                         end
 
-                        if (!next_bit_is_parity && data_received && !error_detecetd) begin
+                        if (!next_bit_is_parity && data_received && !error_detected) begin
                             // could be a broken byte frame, need to assert
                             // data_valid if data_bits != 0
                             data_valid <= data_bits != 0;
                         end
                     end
                     // if we've detected an error don't do anything just wait for EOC
-                    else if (!error_detecetd) begin
+                    else if (!error_detected) begin
                         // we've at least received one bit of data
                         // even if it's a sequence error
                         data_received <= 1'b1;
@@ -142,7 +142,7 @@ module frame_decode
                         // Check for error
                         if (last_seq == PCDBitSequence_ERROR) begin
                             sequence_error      <= 1'b1;
-                            error_detecetd      <= 1'b1;
+                            error_detected      <= 1'b1;
                             // clear this so we don't report parity error in EOC
                             next_bit_is_parity  <= 1'b0;
                         end
@@ -161,7 +161,7 @@ module frame_decode
                             else begin
                                 // parity error
                                 parity_error    <= 1'b1;
-                                error_detecetd  <= 1'b1;
+                                error_detected  <= 1'b1;
                             end
                         end
                         // otherwise it's just a data bit
