@@ -37,11 +37,11 @@ module rx
     // rst is our active low synchronised asynchronous reset signal
     input               rst_n,
 
-    // pause_n is an asynchronous input from the analogue block.
-    // It is essentially the digitized envelope of the carrier wave.
-    // When idle pause_n is a 1, when a pause is detected it's a 0.
-    // This signal is synchronised here before use
-    input               pause_n,
+    // pause_n_synchronised is the synchronised pause_n signal.
+    // since the clock stops during pause frames, we can only expect pause_n_synchronised
+    // to be asserted (0) for a couple of clock ticks.
+    // So we just look for rising edges (end of pause)
+    input               pause_n_synchronised,
 
     // Outputs
     output logic        soc,
@@ -55,25 +55,6 @@ module rx
 );
 
     import ISO14443A_pkg::*;
-
-    // The pause_n signal is asynchronous it can assert / deassert at any point
-    // during the clock cycle. Additionally the clock will not be running during
-    // a pause frame, and so pause_n <may> assert and deassert between rising
-    // clock edges.
-
-    // To handle this we pass it through an active low reset synchroniser.
-    // When pause_n goes low, both FFDs in the synchroniser are reset to 0.
-    // Once pause_n goes high, a 1 is shifted through both FFDs. So two clock ticks
-    // later we detect the rising edge, indicating the end of pause frame.
-
-    logic pause_n_synchronised;
-    active_low_reset_synchroniser pause_n_synchroniser
-    (
-        .clk        (clk),
-        .rst_n_in   (pause_n),
-        .rst_n_out  (pause_n_synchronised)
-    );
-
 
     // ========================================================================
     // The sequence_decode component
