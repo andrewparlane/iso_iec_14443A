@@ -50,7 +50,8 @@ module rx
     output logic [2:0]  data_bits,
     output logic        data_valid,
     output logic        sequence_error,
-    output logic        parity_error
+    output logic        parity_error,
+    output logic        last_bit            // includes parity, but not EOC, used by the FDT
 );
 
     import ISO14443A_pkg::*;
@@ -127,7 +128,8 @@ module rx
         .data_bits          (data_bits),
         .data_valid         (data_valid),
         .sequence_error     (sequence_error),
-        .parity_error       (parity_error)
+        .parity_error       (parity_error),
+        .last_bit           (last_bit)
     );
 
 endmodule
