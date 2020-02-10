@@ -39,30 +39,45 @@
 // take that into account. Additionally there is potential delays in the AFE.
 
 // The measured FDT time must be within the specified value and the specified value + 0.4µs
-// 0.4µs = 5.424 ticks. That's not a bad range.
-// TODO: Add asserts that verify this. Try to make the range smaller in the assert too.
-// The PCD should accept a response with a FDT tolerance of -1/fc to (+0.4µs + 1/fc).
-// so we have some more leeway.
+// 0.4µs = 5.424 ticks.
 
 module fdt
 #(
-    // This should be the number of time between the start of the rising edge of the analogue
-    // RF signal (see small circles in Figure 3 of ISO/IEC 14443-2:2016, I think the one
-    // labelled as 5, but the docs aren't clear), and the rising edge of the pause_n_synchronised
-    // signal, rounded to the nearest number of clock ticks.
-    // This is extra complicated because the clk stops during pauses.
+    // Timing adjust should consist of two parts:
+    //      parameter real PCD_PAUSE_N_TO_SYNCHRONISED_PS,
+    //      parameter real TRIGGER_TO_MODULATION_EDGE_PS
+    // specifically:
+    //      parameter int TIMING_ADJUST = $rtoi((PCD_PAUSE_N_TO_SYNCHRONISED_PS +
+    //                                           TRIGGER_TO_MODULATION_EDGE_PS) / CLOCK_PERIOD_PS);
+
+    // PCD_PAUSE_N_TO_SYNCHRONISED_PS: This should be the time in ps between the start of
+    // the rising edge of the analogue RF signal (see small circles in Figure 3 of
+    // ISO/IEC 14443-2:2016, I think the one labled as 5, but the docs aren't clear),
+    // and the rising edge of the pause_n_synchronised signal.
+    // There are three parts to this:
+    //      How long does it take from the analogue RF signal returning before the
+    //          digital signal (pause_n) deasserts.
+    //      When does the clock generator start providing a clock again?
+    //      How longe does it take for the synchroniser to deassert pause_n_synchronised.
+
+    // TRIGGER_TO_MODULATION_EDGE_PS: This should be the time in ps between the rising edge
+    // of the trigger output (of this module) and the load modulation activing.
+    // This is probably dominated by the Tx module, (one tick to see the trigger, and one tick
+    // to see the enable signal and assert the output data. But there will be a slight delay
+    // due to the output buffering and in the AFE before the load modulation circuit activates
+
+    // Note: We can NOT trigger early, but we have a fair bit of leeway to trigger late.
+    //       so choose the minimum times for the above values. For this same reason we use
+    //       the $rtoi() function to set TIMING_ADJUST. Since this truncates the real value
+    //       rather than rounding to the nearest value.
+    //       Remember that the our clock can be 180 degrees out of phase with the PCD's clock
+    //       depending on how long the pauses are and when the clock generator stops / starts
+    //       producing the clock. So we should check both options and pick the smallest.
+
     // TODO: We should run gate level simulations of the AFE + synchroniser.
-    //parameter int PCD_PAUSE_N_TO_SYNCHRONISED = 0,
+    // TODO: We should run gate level simulations of the output buffer + AFE
 
-    // This should be the time between the rising edge of the trigger output
-    // and the load modulation activing. This is probably dominated by the digital time
-    // in the Tx module. Might be worth doing a gate level simulation of the AFE for this too.
-    //parameter int TRIGGER_TO_MODULATION_EDGE = 0
-
-    // TIMING_ADJUST should be the sum of the above two commented out parameters
-    // using this instead of the two separate ones, so we don't get twice the error
-    // when rounding from time to ticks
-    parameter int TIMING_ADJUST = 0
+    parameter int TIMING_ADJUST
 )
 (
     // clk is our 13.56MHz input clock.
