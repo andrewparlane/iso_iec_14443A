@@ -49,6 +49,7 @@ module sequence_decode_tb;
     // --------------------------------------------------------------
     // PICC -> PCD clock and comms generator
     // --------------------------------------------------------------
+    logic pcd_pause_n;  // not used, just here so that .* works
     logic pause_n;
     logic sending;
     iso14443a_pcd_to_picc_comms_generator bfm (.*);

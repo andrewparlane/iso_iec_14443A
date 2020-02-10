@@ -59,9 +59,10 @@ module frame_decode_tb;
     // --------------------------------------------------------------
     iso14443a_pcd_to_picc_comms_generator bfm
     (
-        .clk     (clk),
-        .pause_n (),
-        .sending ()
+        .clk            (clk),
+        .pcd_pause_n    (),
+        .pause_n        (),
+        .sending        ()
     );
 
     // --------------------------------------------------------------
