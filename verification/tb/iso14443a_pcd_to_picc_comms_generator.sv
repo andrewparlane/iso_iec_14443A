@@ -46,9 +46,10 @@ module iso14443a_pcd_to_picc_comms_generator
     parameter CLOCK_FREQ_HZ = 13560000  // 13.56MHz
 )
 (
-    output logic clk,       // Note: the clk stops during pauses (see clock_stops_after_ps and clock_starts_after_ps)
-    output logic pause_n,   // Note: you can not rely on this to be synchronised to a clock edge
-    output logic sending    // Indicates that we are sending something
+    output logic clk,           // Note: the clk stops during pauses (see clock_stops_after_ps and clock_starts_after_ps)
+    output logic pcd_pause_n,   // Note: This is only for timing purposes (see loopback_test)
+    output logic pause_n,       // Note: you can not rely on this to be synchronised to a clock edge
+    output logic sending        // Indicates that we are sending something
 );
 
     import ISO14443A_pkg::*;
@@ -139,7 +140,6 @@ module iso14443a_pcd_to_picc_comms_generator
     // ------------------------------------------------------------------------
 
     // We set this to emulate the PCD sending a pause
-    logic pcd_pause_n;
     initial pcd_pause_n = 1'b1;
 
     // The PICC's pause_n signal asserts / deasserts some delay after the pcd_pause_n

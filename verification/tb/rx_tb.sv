@@ -59,9 +59,10 @@ module rx_tb;
     logic pause_n;
     iso14443a_pcd_to_picc_comms_generator bfm
     (
-        .clk     (clk),
-        .pause_n (pause_n),
-        .sending (bfm_sending)
+        .clk            (clk),
+        .pcd_pause_n    (),             // not used
+        .pause_n        (pause_n),
+        .sending        (bfm_sending)
     );
 
     // --------------------------------------------------------------
