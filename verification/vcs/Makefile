@@ -220,7 +220,7 @@ list_tbs:
 clean:
 	-@rm ???*_simv
 	-@rm -rf ???*_simv.daidir/
-	-@rm -rf $(WORK_DIR)
+	-@rm -rf $(ROOT_DIR)/$(WORK_DIR)
 	-@rm -rf csrc/
 
 .PHONY: analyse elaborate list_tbs clean
