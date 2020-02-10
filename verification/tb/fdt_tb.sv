@@ -38,26 +38,15 @@ module fdt_tb;
     logic   trigger;
 
     // --------------------------------------------------------------
-    // DUT
-    // --------------------------------------------------------------
-
-    localparam int TIMING_ADJUST = 13;
-
-    fdt
-    #(
-        .TIMING_ADJUST (TIMING_ADJUST)
-    )
-    dut (.*);
-
-    // --------------------------------------------------------------
     // Clock generator
     // --------------------------------------------------------------
 
-    // use a 100MHz clock here, it makes the timing calculations easier
-    // and doesn't affect the functionality
     // Calculate our clock period in ps
-    localparam CLOCK_FREQ_HZ = 100000000; // 100MHz
-    localparam CLOCK_PERIOD_PS = 1000000000000.0 / CLOCK_FREQ_HZ;
+    // Using 10MHz clock, so we can work with an integer period
+    // avoiding timing errors generated due to the simulator only having ps accuracy
+    // note: this won't be an issue in synthesis
+    localparam real CLOCK_FREQ_HZ    = 10000000.0; // 10MHz
+    localparam real CLOCK_PERIOD_PS  = 1000000000000.0 / CLOCK_FREQ_HZ;
     initial begin
         clk = 1'b0;
         forever begin
@@ -65,6 +54,27 @@ module fdt_tb;
             clk = ~clk;
         end
     end
+
+    // --------------------------------------------------------------
+    // DUT
+    // --------------------------------------------------------------
+
+    // Based on simulation the rising edge of pause_n_synchronised occurs
+    // 258,111ps after the rising edge of pcd_pause_n.
+    localparam real PCD_PAUSE_N_TO_SYNCHRONISED_PS = 258111.0;
+
+    // after fdt_trigger assert, the tx module sees it after 1 tick
+    // the en signal is seen after another tick. So the data changes after 2 ticks
+    localparam real TRIGGER_TO_MODULATION_EDGE_PS = CLOCK_PERIOD_PS * 2;
+
+    // $rtoi for truncation
+    localparam int TIMING_ADJUST = $rtoi((PCD_PAUSE_N_TO_SYNCHRONISED_PS +
+                                          TRIGGER_TO_MODULATION_EDGE_PS) / CLOCK_PERIOD_PS);
+    fdt
+    #(
+        .TIMING_ADJUST  (TIMING_ADJUST)
+    )
+    dut (.*);
 
     // --------------------------------------------------------------
     // Event detector
