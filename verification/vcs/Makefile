@@ -84,7 +84,8 @@ TBS		= sequence_decode_tb \
 		  subcarrier_tb \
 		  bit_encoder_tb \
 		  tx_tb \
-		  fdt_tb
+		  fdt_tb \
+		  loopback_test
 
 # ----------------------------------------------------------------------------------
 # colourization
