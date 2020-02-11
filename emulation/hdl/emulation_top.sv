@@ -25,7 +25,8 @@ module emulation_top
 (
     input                   CLOCK_50,
     input           [0:0]   KEY,
-    input           [0:0]   GPIO_0, // our pause input (active high)
+    input                   PAUSE,  // our pause input (active high)    - GPIO_0[0]
+    output logic            TX,     // our Tx output                    - GPIO_0[1]
     output logic    [8:0]   LEDG,
     output logic    [17:0]  LEDR,
     output logic    [6:0]   HEX4,
@@ -43,7 +44,9 @@ module emulation_top
 
     // GPIO_0[0] is pause
     logic pause_n;
-    assign pause_n = !GPIO_0[0];
+    assign pause_n = !PAUSE;
+
+    // GPIO_0[1] is TX
 
     // ========================================================================
     // PLLs and clock control
@@ -77,17 +80,17 @@ module emulation_top
     // ========================================================================
 
     logic pause_n_tmp;
-    logic pause_n_synchronised_13p56;
+    logic pause_n_synchronised_internal;
 
     // note: we use clk_13p56_tmp so that we don't get stuck when the clock is stopped
     always_ff @(posedge clk_13p56_tmp, negedge rst_n) begin
         if (!rst_n) begin
-            pause_n_tmp                 <= 1;
-            pause_n_synchronised_13p56  <= 1;
+            pause_n_tmp                     <= 1;
+            pause_n_synchronised_internal   <= 1;
         end
         else begin
-            pause_n_synchronised_13p56  <= pause_n_tmp;
-            pause_n_tmp                 <= pause_n;
+            pause_n_synchronised_internal   <= pause_n_tmp;
+            pause_n_tmp                     <= pause_n;
         end
     end
 
@@ -111,11 +114,11 @@ module emulation_top
             counter         <= 0;
         end
         else begin
-            // enable the clk when pause_n_synchronised_13p56 is high
+            // enable the clk when pause_n_synchronised_internal is high
             // disable it when it is low
-            clk_13p56_en <= pause_n_synchronised_13p56;
+            clk_13p56_en <= pause_n_synchronised_internal;
 
-            if (pause_n_synchronised_13p56 == 0) begin
+            if (pause_n_synchronised_internal == 0) begin
                 // in a pause, or there's no field available
                 if (counter == 255) begin
                     // counter maxed out
@@ -156,7 +159,6 @@ module emulation_top
     ); */
 
     logic iso14443_rst_n_synchronised;
-
     active_low_reset_synchroniser reset_synchroniser
     (
         .clk        (clk_13p56),
@@ -164,13 +166,29 @@ module emulation_top
         .rst_n_out  (iso14443_rst_n_synchronised)
     );
 
-    logic       soc;
-    logic       eoc;
-    logic [7:0] data;
-    logic [2:0] data_bits;
-    logic       data_valid;
-    logic       sequence_error;
-    logic       parity_error;
+    logic pause_n_synchronised;
+    active_low_reset_synchroniser pause_n_synchroniser
+    (
+        .clk        (clk_13p56),
+        .rst_n_in   (pause_n),
+        .rst_n_out  (pause_n_synchronised)
+    );
+
+    logic       rx_soc;
+    logic       rx_eoc;
+    logic [7:0] rx_data;
+    logic [2:0] rx_data_bits;
+    logic       rx_data_valid;
+    logic       rx_sequence_error;
+    logic       rx_parity_error;
+    logic       rx_last_bit;
+
+    logic       fdt_trigger;
+
+    logic [7:0] tx_data;
+    logic [2:0] tx_data_bits;
+    logic       tx_ready_to_send;
+    logic       tx_req;
 
     rx
     #(
@@ -178,18 +196,78 @@ module emulation_top
     )
     rx_inst
     (
-        .clk                (clk_13p56),
-        .rst_n              (iso14443_rst_n_synchronised),
-        .pause_n            (pause_n),
+        .clk                    (clk_13p56),
+        .rst_n                  (iso14443_rst_n_synchronised),
+        .pause_n_synchronised   (pause_n_synchronised),
 
-        .soc                (soc),
-        .eoc                (eoc),
-        .data               (data),
-        .data_bits          (data_bits),
-        .data_valid         (data_valid),
-        .sequence_error     (sequence_error),
-        .parity_error       (parity_error)
+        .soc                    (rx_soc),
+        .eoc                    (rx_eoc),
+        .data                   (rx_data),
+        .data_bits              (rx_data_bits),
+        .data_valid             (rx_data_valid),
+        .sequence_error         (rx_sequence_error),
+        .parity_error           (rx_parity_error),
+        .last_bit               (rx_last_bit)
     );
+
+    tx tx_inst
+    (
+        .clk                    (clk_13p56),
+        .rst_n                  (iso14443_rst_n_synchronised),
+        .fdt_trigger            (fdt_trigger),
+        .data                   (tx_data),
+        .data_bits              (tx_data_bits),
+        .ready_to_send          (tx_ready_to_send),
+        .req                    (tx_req),
+        .tx                     (TX)
+    );
+
+    // TIMING_ADJUST is not as important here as it is in the ASIC project.
+    // the reason for this is that here we don't care about collisions with other
+    // cards. So the exact offset between Rx and Tx isn't important.
+    localparam int TIMING_ADJUST = 0;
+
+    fdt
+    #(
+        .TIMING_ADJUST  (TIMING_ADJUST)
+    )
+    fdt_inst
+    (
+        .clk                    (clk_13p56),
+        .rst_n                  (iso14443_rst_n_synchronised),
+        .pause_n_synchronised   (pause_n_synchronised),
+        .last_rx_bit            (rx_last_bit),
+        .trigger                (fdt_trigger)
+    );
+
+    // loopback logic
+    // this is really basic, it waits for us to receive valid rx data
+    // then tells the tx module that we are ready to send that.
+    // Once that byte has been sent we stop sending more until the next frame.
+    // So it only loops back the last byte received per frame
+    // we don't check for SOC, EOC, errors, etc..
+    always @(posedge clk_13p56, negedge iso14443_rst_n_synchronised) begin
+        if (!iso14443_rst_n_synchronised) begin
+            tx_ready_to_send <= 1'b0;
+        end
+        else begin
+            // on rx_data_valid we set the tx data / bits and rts signals
+            if (rx_data_valid) begin
+                tx_data             <= rx_data;
+                tx_data_bits        <= rx_data_bits;
+                tx_ready_to_send    <= 1'b1;
+            end
+
+            // when the tx module asks for more data, deassert the rts signal
+            if (tx_req) begin
+                tx_ready_to_send    <= 1'b0;
+            end
+        end
+    end
+
+    // ========================================================================
+    // Debug output
+    // ========================================================================
 
     logic [7:0] lastData;
     logic [3:0] lastDataBits;
@@ -212,7 +290,7 @@ module emulation_top
             lastFrameSeenDataValid  <= 0;
         end
         else begin
-            if (soc) begin
+            if (rx_soc) begin
                 // seen SOC, clear flags
                 lastFrameDataBytes      <= 0;
                 lastFrameSeenEoc        <= 0;
@@ -224,7 +302,7 @@ module emulation_top
                 lastFrameSeenSoc        <= 1;
             end
 
-            if (eoc) begin
+            if (rx_eoc) begin
                 // seen EOC, clear SOC flag
                 lastFrameSeenSoc        <= 0;
 
@@ -232,26 +310,22 @@ module emulation_top
                 lastFrameSeenEoc        <= 1;
             end
 
-            if (parity_error) begin
+            if (rx_parity_error) begin
                 lastFrameSeenParity     <= 1;
             end
 
-            if (sequence_error) begin
+            if (rx_sequence_error) begin
                 lastFrameSeenSeqErr     <= 1;
             end
 
-            if (data_valid) begin
+            if (rx_data_valid) begin
                 lastFrameDataBytes      <= lastFrameDataBytes + 1'd1;
                 lastFrameSeenDataValid  <= 1;
-                lastData                <= data;
-                lastDataBits            <= (data_bits == 0) ? 4'd8 : data_bits;
+                lastData                <= rx_data;
+                lastDataBits            <= (rx_data_bits == 0) ? 4'd8 : rx_data_bits;
             end
         end
     end
-
-    // ========================================================================
-    // LEDs (active high)
-    // ========================================================================
 
     assign LEDG[0]  = !rst_n;
     assign LEDG[1] = iso14443_rst_n;
