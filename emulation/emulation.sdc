@@ -28,7 +28,8 @@ derive_pll_clocks -create_base_clocks
 
 # Cut asynch paths
 set_false_path -from [get_ports KEY[*]]
-set_false_path -from [get_ports GPIO_0[*]]
+set_false_path -from [get_ports PAUSE]
+set_false_path -to   [get_ports TX]
 set_false_path -to   [get_ports LEDG[*]]
 set_false_path -to   [get_ports LEDR[*]]
 set_false_path -to   [get_ports HEX4[*]]

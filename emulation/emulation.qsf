@@ -391,8 +391,10 @@ set_location_assignment PIN_AC23 -to SD_DAT[3]
 set_location_assignment PIN_T17 -to SD_WP_N
 set_location_assignment PIN_Y21 -to SD_CMD
 set_location_assignment PIN_AD25 -to SD_CLK
-set_location_assignment PIN_D25 -to GPIO_0[0]
-set_location_assignment PIN_J22 -to GPIO_0[1]
+#set_location_assignment PIN_D25 -to GPIO_0[0]
+#set_location_assignment PIN_J22 -to GPIO_0[1]
+set_location_assignment PIN_D25 -to PAUSE
+set_location_assignment PIN_J22 -to TX
 set_location_assignment PIN_E26 -to GPIO_0[2]
 set_location_assignment PIN_E25 -to GPIO_0[3]
 set_location_assignment PIN_F24 -to GPIO_0[4]
@@ -493,7 +495,10 @@ set_global_assignment -name ENABLE_SIGNALTAP OFF
 set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
 set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
 set_global_assignment -name STRATIX_DEVICE_IO_STANDARD "3.3-V LVTTL"
-set_global_assignment -name SLD_FILE "C:/Users/Andrew/Documents/masters/repositories/fiuba_thesis/emulation/stp1_auto_stripped.stp"
+set_global_assignment -name SYSTEMVERILOG_FILE ../iso14443a/hdl/tx.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../iso14443a/hdl/subcarrier.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../iso14443a/hdl/fdt.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../iso14443a/hdl/bit_encoder.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../iso14443a/hdl/pkg/iso14443a_pkg.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../iso14443a/hdl/active_low_reset_synchroniser.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../iso14443a/hdl/frame_decode.sv
