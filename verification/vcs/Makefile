@@ -85,7 +85,8 @@ TBS		= sequence_decode_tb \
 		  bit_encoder_tb \
 		  tx_tb \
 		  fdt_tb \
-		  loopback_test
+		  loopback_test \
+		  crc_a_tb
 
 # ----------------------------------------------------------------------------------
 # colourization
