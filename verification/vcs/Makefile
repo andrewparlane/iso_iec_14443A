@@ -78,6 +78,8 @@ SRCS	= $(wildcard $(ROOT_DIR)/$(PKG_DIR)/*.sv) \
 		  $(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/*.sv)
 
 # testbenches
+
+# This is used to generate the rules
 TBS		= sequence_decode_tb \
 		  frame_decode_tb \
 		  rx_tb \
@@ -86,7 +88,14 @@ TBS		= sequence_decode_tb \
 		  tx_tb \
 		  fdt_tb \
 		  loopback_test \
-		  crc_a_tb
+		  crc_a_tb \
+		  initialisation_tb
+
+# This is for TBs that need to do something custom, it's only used for list_tbs
+CUSTOM_TBS	= initialisation_tb_uid_single \
+			  initialisation_tb_uid_double \
+			  initialisation_tb_uid_triple \
+			  initialisation_tb_actual
 
 # ----------------------------------------------------------------------------------
 # colourization
@@ -193,6 +202,18 @@ endef
 endif
 
 # ----------------------------------------------------------------------------------
+# Misc macros
+# ----------------------------------------------------------------------------------
+
+# Genaretes a random number between min and max inclusive
+# Takes two arguments
+#	1) min
+#	2) max
+define RANDOM
+	$(shell echo $$(( ( RANDOM % ( $(2) - $(1) + 1 ) ) + $(1) )))
+endef
+
+# ----------------------------------------------------------------------------------
 # Rules / targets
 # ----------------------------------------------------------------------------------
 
@@ -218,9 +239,42 @@ $(patsubst %,%_simv,$(TBS)): $(AN_DB_DIR)
 analyse: $(AN_DB_DIR)
 elaborate: $(patsubst %,%_simv,$(TBS))
 
+# Rule to always force making a target
+.FORCE:
+.PHONY: .FORCE
+
+# TBs that override command line parameters
+
+# These always rebuild because we want to recompile with new parameters each time
+# we set UID_SIZE_CODE to 0,1,2 depending on single, double, triple.
+# we set UID_INPUT_BITS to a random number, such that the number of fixed bits is 1 - 4.
+# we set UID_FIXED to a random number between 0 and 15 (4 bits)
+initialisation_tb_uid_single_simv: $(AN_DB_DIR) .FORCE
+	@$(call ELABORATE, initialisation_tb, $@, -pvalue+initialisation_tb.UID_SIZE_CODE=0 -pvalue+initialisation_tb.UID_INPUT_BITS=$(call strip, $(call RANDOM, 28, 31)) -pvalue+initialisation_tb.UID_FIXED=$(call strip, $(call RANDOM, 0, 15)))
+
+initialisation_tb_uid_double_simv: $(AN_DB_DIR) .FORCE
+	@$(call ELABORATE, initialisation_tb, $@, -pvalue+initialisation_tb.UID_SIZE_CODE=1 -pvalue+initialisation_tb.UID_INPUT_BITS=$(call strip, $(call RANDOM, 52, 55)) -pvalue+initialisation_tb.UID_FIXED=$(call strip, $(call RANDOM, 0, 15)))
+
+initialisation_tb_uid_triple_simv: $(AN_DB_DIR) .FORCE
+	@$(call ELABORATE, initialisation_tb, $@, -pvalue+initialisation_tb.UID_SIZE_CODE=2 -pvalue+initialisation_tb.UID_INPUT_BITS=$(call strip, $(call RANDOM, 76, 79)) -pvalue+initialisation_tb.UID_FIXED=$(call strip, $(call RANDOM, 0, 15)))
+
+# This test should be run with the values we want to fabricate with
+# TODO: UPDATE THESE VALUES
+# We use a UIDSize_SINGLE in the form of: EF FE C7 0X
+# Where X is the variable part. So 4 bits variable, 28 bits fixed
+# Not sure how to pass a hex value to UID_FIXED, have to pass decimal
+# 0xEFFEC70 = 251653232
+UID_SIZE_CODE	= 0
+UID_INPUT_BITS 	= 4
+UID_FIXED		= 251653232
+
+# Don't need to rebuild this each time, as these values are fixed (should run make clean if we change them here)
+initialisation_tb_actual_simv: $(AN_DB_DIR)
+	@$(call ELABORATE, initialisation_tb, $@, -pvalue+initialisation_tb.UID_SIZE_CODE=$(UID_SIZE_CODE) -pvalue+initialisation_tb.UID_INPUT_BITS=$(UID_INPUT_BITS) -pvalue+initialisation_tb.UID_FIXED=$(UID_FIXED))
+
 # output TBS each on it's own line
 list_tbs:
-	@echo $(TBS) | sed -E 's/[ \t]+/\n/g'
+	@echo $(TBS) $(CUSTOM_TBS) | sed -E 's/[ \t]+/\n/g'
 
 clean:
 	-@rm ???*_simv
