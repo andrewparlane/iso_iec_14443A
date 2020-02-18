@@ -25,8 +25,10 @@
 
 package ISO14443A_pkg;
 
+    // ========================================================================
     // Bit sequences for PCD to PICC comms
-    // See ISO 14443-2:2016 section 8.1.3.1
+    // See ISO/IEC 14443-2:2016 section 8.1.3.1
+    // ========================================================================
     typedef enum
     {
         PCDBitSequence_ERROR,   // Invalid timings (or X -> Z)
