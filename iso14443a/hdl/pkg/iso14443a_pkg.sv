@@ -37,4 +37,105 @@ package ISO14443A_pkg;
         PCDBitSequence_Z        // pause frame at the start of bit time
     } PCDBitSequence;
 
+    // ========================================================================
+    // UID Sizes
+    // See ISO/IEC 14443-3:2016 section 6.5.4
+    // ========================================================================
+    typedef enum
+    {
+        UIDSize_SINGLE,
+        UIDSize_DOUBLE,
+        UIDSize_TRIPLE
+    } UIDSize;
+
+    function int get_uid_bits(UIDSize size);
+        case (size)
+            UIDSize_SINGLE: return  4 * 8;
+            UIDSize_DOUBLE: return  7 * 8;
+            UIDSize_TRIPLE: return 10 * 8;
+
+            // I wish there was a way for synthesis time asserts
+            // I'm adding something to the initialisation module
+            // to error if this returns 0 hopefully that'll catch any errors
+            default:        return  0;
+        endcase
+    endfunction
+
+    // see ISO/IEC 14443-3:2016 section 6.5.4
+    localparam bit [7:0]    CASCADE_TAG     = 8'h88;
+
+    // ========================================================================
+    // PCD -> PICC Messages
+    // ========================================================================
+
+    // short frames, see ISO/IEC 14443-3:2016 section 6.4.1
+    localparam bit [6:0]    REQA            = 7'h26;
+    localparam bit [6:0]    WUPA            = 7'h52;
+
+    // standard frames, see ISO/IEC 14443-3:2016 section 6.4.3
+    // Note: received LSByte first
+    localparam bit [15:0]   HLTA            = 16'h0050;    // 0x50, 0x00
+
+    // AC frames, see ISO/IEC 14443-3:2016 section 6.5.3.2
+    localparam bit [7:0]    SEL1            = 8'h93;
+    localparam bit [7:0]    SEL2            = 8'h95;
+    localparam bit [7:0]    SEL3            = 8'h97;
+
+    // ========================================================================
+    // PICC -> PCD Messages
+    // ========================================================================
+
+    // ATQA, see ISO/IEC 14443-3:2016 section 6.2.5.1
+    // I don't really understand the point of this message.
+    // If there are two tags a collision will occur unless they happen to be of
+    // the same UID size and use the same bit frame anticollision field.
+    // the bit frame anticollision field is arbitrary. We use bit 2.
+    // defined as a function so we can pass UID_SIZE in. Will still be constant
+    function bit [15:0] ATQA(UIDSize size);
+        case (size)
+            UIDSize_SINGLE: return 16'h0004;
+            UIDSize_DOUBLE: return 16'h0044;
+            default:        return 16'h0084;
+        endcase
+    endfunction
+
+    // SAK, see ISO/IEC 14443-3:2016 section 6.5.3.4
+    // there are two options here, UID complete and UID not complete.
+    // send the latter when we have received a SELECT for us, but it just
+    // finishes the cascade level and not the entire UID.
+    // We support ISO/IEC 14443-4, and so bit 5 is set when bit 2 is cleared
+    localparam bit [7:0] SAK_UID_COMPLETE       = 8'h20;
+    localparam bit [7:0] SAK_UID_NOT_COMPLETE   = 8'h04;
+
+    // ========================================================================
+    // Anticollision / select structs
+    // ========================================================================
+
+    // AC and SELECT commands are the same message.
+    // We call them AC if the PCD only sends part of it, and the PICC replies with the rest
+    // We call them SELECT if the PCD sends all of it + CRC
+    typedef struct packed
+    {
+        // must add up to 8 bits
+        logic       rsvd1;
+        logic [2:0] bytes;
+        logic       rsvd2;
+        logic [2:0] bits;
+    } NVB;
+
+    typedef struct packed
+    {
+        // must add up to 40 bits
+        logic [31:0] uid;
+        logic [7:0] bcc;
+    } UIDData;
+
+    typedef struct packed
+    {
+        // must add up to 56 bits
+        logic [7:0] cascadeLevel;
+        NVB         nvb;
+        UIDData     uid_data;
+    } AntiCollisionSelectCommand;
+
 endpackage
