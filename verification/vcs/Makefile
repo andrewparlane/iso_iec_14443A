@@ -160,11 +160,14 @@ endef
 
 # The ELABORATE macro runs vcs to build the simv binary for the particular testbench
 # Takes one argument:
-#		1) The testbench module name to run
+#		1) The testbench module to run
+#		2) Name of the output simv file
+#		3) List of additional VCS arguments, e.g. "-pvalue+WIDTH=32 -pvalue+FOO=BAR" without the quotes
 define ELABORATE
-	$(eval TB_NAME = $(call strip, $(1)))
-	echo -e "$(COLOUR_BLUE)elaborating $(TB_NAME)$(COLOUR_NONE)\n"
-	$(call COLOURISE, vcs $(VCS_ARGS) work.$(TB_NAME) -o $(TB_NAME)_simv)
+	$(eval TB_NAME  = $(call strip, $(1)))
+	$(eval OUT_NAME = $(call strip, $(2)))
+	echo -e "$(COLOUR_BLUE)elaborating $(TB_NAME) with arguments $(3) as $(OUT_NAME)$(COLOUR_NONE)\n"
+	$(call COLOURISE, vcs $(VCS_ARGS) work.$(TB_NAME) $(3) -o $(OUT_NAME))
 endef
 
 # The RUN_SIM macro runs the simv binary produced by vcs.
@@ -205,7 +208,7 @@ $(AN_DB_DIR): $(SRCS)
 
 # Elaborate rules, of the format sequence_decode_tb_simv:
 $(patsubst %,%_simv,$(TBS)): $(AN_DB_DIR)
-	@$(call ELABORATE, $(subst _simv,,$@))
+	@$(call ELABORATE, $(subst _simv,,$@), $@)
 
 # Simulation rules
 %: %_simv
