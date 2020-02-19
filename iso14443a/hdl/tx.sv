@@ -23,13 +23,10 @@
 
 `timescale 1ps/1ps
 
-// The sender sets data, data_bits and ready_to_send as soon as it is ready.
-// when the fdt_trigger fires if ready_to_send is set, we start sending out data_bits bits
-// plus a parity bit (There is no occasion when we don't want to transmit the parity bit).
-// Oncne we've started sending we assert req for one tick. The sender should then update
-// the data, data_bits and ready_to_send signals. If it has nothing more to send it can deassert
-// ready_to_send. We continue transmitting bits until we finish the current byte (or partial byte)
-// and ready_to_send is deasserted.
+// The user sets data and asserts send
+// when req asserts if there is more bits to send then
+// the data should be updated and send should remain asserted
+// If there's no more data to send then send should be deasserted
 
 module tx
 (
@@ -39,14 +36,9 @@ module tx
     // rst is our active low synchronised asynchronous reset signal
     input                   rst_n,
 
-    // input from the frame delay timer
-    // this triggers the send (if ready_to_send is set)
-    input                   fdt_trigger,
-
     // information about the data to send
-    input           [7:0]   data,
-    input           [2:0]   data_bits,      // 0 -> send 8 bits
-    input                   ready_to_send,  // there is data to send
+    input                   data,
+    input                   send,
 
     // request for more data
     output logic            req,
@@ -60,14 +52,11 @@ module tx
         State_IDLE,
         State_SOC,
         State_DATA,
-        State_PARITY,
         State_EOC
     } state;
 
     // state vars
-    logic [7:0] data_cached;
-    logic [2:0] bits_remaining;
-    logic       parity;
+    logic       data_cached;
 
     // signals from the bit_encoder
     logic       be_req;         // requesting the next bit
@@ -75,81 +64,45 @@ module tx
 
     always_ff @(posedge clk, negedge rst_n) begin
         if (!rst_n) begin
-            state <= State_IDLE;
-            req <= 1'b0;
+            state   <= State_IDLE;
+            req     <= 1'b0;
         end
         else begin
             // req should only ever be asserted one tick at a time
-            req <= 1'b0;
+            req     <= 1'b0;
 
             case (state)
                 State_IDLE: begin
                     // we're idle
-                    // wait for fdt_trigger
-                    if (fdt_trigger) begin
-                        // start if ready_to_send
-                        if (ready_to_send) begin
-                            // send the SOC
-                            state <= State_SOC;
+                    // wait for a send request
+                    if (send) begin
+                        // send the SOC
+                        state       <= State_SOC;
 
-                            // cache the current data
-                            bits_remaining  <= data_bits;
-                            data_cached     <= data;
-                        end
+                        // cache the current data
+                        data_cached <= data;
                     end
                 end
 
                 State_SOC: begin
                     // when the REQ comes in from the bit encoder then switch to the data state
+                    // and request more data
                     if (be_req) begin
                         state           <= State_DATA;
-                        // since data_bits == 0 implies sending 8 bits
-                        // we decrement here, which will underflow to 7
-                        // so we don't hit the == 0 in State_DATA
-                        bits_remaining  <= bits_remaining - 1'd1;
-
-                        parity <= 1'b1;
+                        req             <= 1'b1;
                     end
                 end
 
                 State_DATA: begin
-                    // when the REQ comes in from the bit encoder shift the data right by one
-                    // ignoring the MSb. Or go to the parity stage
+                    // when the REQ comes in if we still have more to send then cache the new data
+                    // and request more. Otherwise go to EOC
                     if (be_req) begin
-                        // currently sending data_cached[0]
-                        // update the parity bit
-                        parity <= parity ^ data_cached[0];
-
-                        if (bits_remaining == 0) begin
-                            state               <= State_PARITY;
-
-                            // nothing left for us to send, request more
-                            req                 <= 1'b1;
+                        if (send) begin
+                            data_cached <= data;
+                            req         <= 1'b1;
                         end
                         else begin
-                            data_cached[6:0]    <= data_cached[7:1];
-                            bits_remaining      <= bits_remaining - 1'd1;
-                        end
-                    end
-                end
-
-                State_PARITY: begin
-                    // wait for the bit encoder to request more data
-                    if (be_req) begin
-                        // is there new data?
-                        if (ready_to_send) begin
-                            // cache the new data
-                            data_cached     <= data;
-                            bits_remaining  <= data_bits - 1'd1;
-
-                            // go to the data state
-                            state           <= State_DATA;
-                            parity          <= 1'b1;
-                        end
-                        else begin
-                            // nothing else to send
-                            // wait for last_tick and then go idle
-                            state           <= State_EOC;
+                            state       <= State_EOC;
                         end
                     end
                 end
@@ -173,21 +126,10 @@ module tx
     logic en;
     assign en = (state != State_IDLE);
 
-    // The bit to send is either the SOC (logic 1)  see ISE/IEC 14443-2:2016 section 8.2.5.1
-    // the next bit of data (LSb first)             see ISE/IEC 14443-3:2016 section 6.2.3.1
-    // or the parity bit                            see ISE/IEC 14443-3:2016 section 6.2.3.1
+    // The bit to send is either the SOC (logic 1, see ISE/IEC 14443-2:2016 section 8.2.5.1)
+    // or the data
     logic bit_to_send;
-    always_comb begin
-        case (state)
-            State_SOC:      bit_to_send = 1'b1;
-            State_DATA:     bit_to_send = data_cached[0];
-            State_PARITY:   bit_to_send = parity;
-
-            //State_IDLE:
-            //State_EOC:
-            default:        bit_to_send = 1'b0;
-        endcase
-    end
+    assign bit_to_send = (state == State_SOC) ? 1'b1 : data_cached;
 
     // generate our subcarrier signal
     logic subcarrier;
