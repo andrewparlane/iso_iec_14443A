@@ -33,11 +33,8 @@ module tx_tb;
     logic       clk;
     logic       rst_n;
 
-    logic       fdt_trigger;
-
-    logic [7:0] data;
-    logic [2:0] data_bits;
-    logic       ready_to_send;
+    logic       data;
+    logic       send;
 
     logic       req;
 
@@ -69,44 +66,18 @@ module tx_tb;
     // Functions / Tasks
     // --------------------------------------------------------------
 
-    typedef struct
-    {
-        int         bits;
-        bit [7:0]   data;
-    } SendByteInfo;
-
     // our expected data
-    bit expected[$];
+    logic expected[$];
 
     // a flag to show when we expect data to be arriving
     logic sending;
 
     // convert the sendQueue to expected
-    task setup_expected_queue (SendByteInfo sq[$]);
-        automatic bit bq [$] = '{};
+    task setup_expected_queue (logic sq[$]);
+        automatic logic bq [$] = sq;
 
         // add the SOC bit
-        bq.push_back(1'b1);
-
-        // convert the SendByteInfo queue to a bit stream
-        foreach (sq[i]) begin
-            automatic bit [7:0] dataByte = sq[i].data;
-
-            // Data is expected LSb first
-            automatic int j;
-            for (j = 0; j < sq[i].bits; j++) begin
-                bq.push_back(dataByte[j]);
-            end
-
-            // clear unused bits for parity calculation purposes
-            // j = j to hide linter warning about for loop without initializer
-            for (j = j; j < 8; j++) begin
-                dataByte[j] = 1'b0;
-            end
-
-            // add the parity
-            bq.push_back(bit'(($countones(dataByte) % 2) == 0));
-        end
+        bq.push_front(1'b1);
 
         //foreach (bq[i]) $display("%b", bq[i]);
 
@@ -137,48 +108,27 @@ module tx_tb;
         repeat (256) expected.push_back(1'b0);
     endtask
 
-    task send_data (SendByteInfo sq[$]);
+    task send_data (logic sq[$]);
         // set up the expected queue
         setup_expected_queue(sq);
 
-        fork
+        foreach (sq[i]) begin
+            // set up the inputs
+            data = sq[i];
+            send = 1'b1;
 
-            // process 1 - fires the fdt trigger
-            begin
-                automatic int ticksBeforeFDT = $urandom_range(5, 100);
-                repeat (ticksBeforeFDT) @(posedge clk) begin end
-                fdt_trigger <= 1'b1;
-                @(posedge clk) begin end    // after 1 tick, state changes to State_SOC
-                fdt_trigger <= 1'b0;
-                @(posedge clk) begin end    // after 2 ticks enable is registered
-                                            // after 3 ticks data is on the wire
-                // we set sending here after 2 ticks
-                // because it takes one tick for the verification block to see it
-                sending     <= 1'b1;
-            end
+            // if this is the first bit, then we need to set sending when we expect the data to start
+            // being output
+            @(posedge clk)
+            sending <= 1'b1;
 
-            // process 2 - actually sends the data (waits for req and provides next bytes)
-            begin
-                foreach (sq[i]) begin
-                    // set up the inputs
-                    data                = sq[i].data;
-                    data_bits           = (sq[i].bits == 8) ? 3'd0 : 3'(sq[i].bits);
-                    ready_to_send       = 1'b1;
+            // wait for the next req, and align to the clock
+            wait (req) begin end
+            @(posedge clk) begin end
+        end
 
-                    // wait a tick so req isn't asserted still
-                    @(posedge clk)
-
-                    // wait for the next req, and align to the clock
-                    wait (req) begin end
-                    @(posedge clk) begin end
-                end
-
-                // nothing more to send, clear ready_to_send
-                ready_to_send = 1'b0;
-            end
-
-        // block until both processes finish
-        join
+        // nothing more to send, clear send
+        send = 1'b0;
 
         // the tx module doesn't tell us when it's done sending
         // so just wait until the expected queue is empty + a few ticks
@@ -209,10 +159,9 @@ module tx_tb;
     // --------------------------------------------------------------
 
     initial begin
-        automatic SendByteInfo sendQueue[$] = '{};
+        automatic logic sendQueue[$] = '{};
 
-        ready_to_send   <= 1'b0;
-        fdt_trigger     <= 1'b0;
+        send <= 1'b0;
 
         // reset for 5 ticks
         rst_n <= 1'b0;
@@ -222,71 +171,29 @@ module tx_tb;
 
         // Stuff to test
         //  0) SOC - done implicity by adding the SOC to the expected queue
-
-        //  1) nothing sends until fdt_trigger fires
-        data            <= 8'hA5;
-        data_bits       <= 3'd2;
-        ready_to_send   <= 1'b1;
-        fdt_trigger     <= 1'b0;
-        expected.delete;
-        repeat(512) expected.push_back(1'b0);   // output always 0 for 4 bit times
-        sending         <= 1'b1;
-        wait (expected.size() == 0) begin end
-        @(posedge clk) begin end
-        sending         <= 1'b0;
-
-        //  2) nothing sends if ready_to_send is low when fdt_trigger fires
-        ready_to_send   <= 1'b0;
+        //  1) nothing sends if send is low
+        send    <= 1'b0;
         expected.delete;
         repeat(512) expected.push_back(1'b0);   // output always 0 for 4 bit times
         repeat (5) @(posedge clk) begin end
-        fdt_trigger     <= 1'b1;
-        @(posedge clk) begin end
-        fdt_trigger     <= 1'b0;
-        sending         <= 1'b1;
+        sending <= 1'b1;
         wait (expected.size() == 0) begin end
         @(posedge clk) begin end
-        sending         <= 1'b0;
+        sending <= 1'b0;
 
-        //  3) parity is correct (number of 1s is odd)
-        //      - implicitly checked by adding parity bits to expected queue
-
-        //  4) correct number of bits are sent
+        //  2) correct number of bits are sent
         //      - implicity checked by adding all bits to the expected queue
         //        and by adding 2 bit times of idle to the end of the expected queue
 
-        // send every possible combination of 1-8 bits
-        for (int bits = 1; bits <= 8; bits++) begin
-            for (int dts = 0; dts <= ((2**bits)-1); dts++) begin
-                // randomize the none used bits, to make sure that doesn't affect things
-                automatic bit [7:0] d = 8'(($urandom() & ~((2**bits)-1)) | dts);
-                //$display("sending %d bits: %h", bits, d);
-                send_data ('{'{bits, d}});
+        for (int i = 0; i < 100; i++) begin
+            // add a random number of random bits to the sendQueue
+            automatic int bits_to_send = $urandom_range(1, 100);
+            $display("%d/100 - sending %d bits", i, bits_to_send);
+            for (int i = 0; i < bits_to_send; i++) begin
+                sendQueue.push_back(1'($urandom));
             end
+            send_data(sendQueue);
         end
-
-        //  5) multiple bytes send OK (don't have to be full bytes)
-
-        repeat (10000) begin
-            automatic int bytesToSend = $urandom_range(2, 10);
-            automatic SendByteInfo sq[$] = '{};
-            //$display("sending %d bytes", bytesToSend);
-
-            for (int i = 0; i < bytesToSend; i++) begin
-                automatic int bitsToSend = $urandom_range(1,8);
-                automatic bit [7:0] dataToSend = 8'($urandom());
-                //$display("  %d bits: %h", bitsToSend, dataToSend);
-
-                sq.push_back('{bitsToSend, dataToSend});
-            end
-
-            send_data(sq);
-        end
-
-        //  6) LSb sent first - implicit in that we add the data to the expected queue LSb first
-
-        // TODO: confirm my understanding of Tx behaviour is correct. How?
-        //       Maybe look at Fabricio's testbenches? and see if the bit streams match?
 
         repeat (5) @(posedge clk) begin end
         $stop;
