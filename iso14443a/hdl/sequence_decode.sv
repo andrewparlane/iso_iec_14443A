@@ -39,9 +39,11 @@ module sequence_decode
     input                                   pause_n_synchronised,
 
     // outputs
-    output ISO14443A_pkg::PCDBitSequence    seq,
-    output logic                            seq_valid,
-    output logic                            idle
+    output logic                            soc,            // start of comms
+    output logic                            eoc,            // end of comms
+    output logic                            data,           // data bit, only valid when data_valid asserted
+    output logic                            data_valid,
+    output logic                            error
 );
 
     import ISO14443A_pkg::*;
@@ -115,8 +117,7 @@ module sequence_decode
 
     // Note: In the case of an ERROR we wait until we've had 3 bit periods of time
     //       without any pauses and then issue a Y, one bit time later we'll issue
-    //       another Y and go idle. This is because the frame_decode module needs
-    //       to also go idle
+    //       another Y and go idle. This allows us to issue the EOC
 
     // TODO: Should I support various timings here?
     //       The received pause length depends on the PCD and our analogue implementation.
@@ -152,6 +153,12 @@ module sequence_decode
 
     // assuming a pause happens now, what would the next sequence be?
     PCDBitSequence seq_on_pause;
+
+    // the current detected sequence
+    PCDBitSequence seq;
+
+    // is seq valid (asserts for only one tick at a time)
+    logic seq_valid;
 
     // have we timed out yet?
     logic timed_out;
@@ -202,15 +209,19 @@ module sequence_decode
                     ((seq == PCDBitSequence_ERROR) && (counter == 9'd384));
     end
 
+    logic detected_soc;     // have we seen the SOC
+    logic idle;             // are we currently receiving sequences?
 
     always_ff @(posedge clk, negedge rst_n) begin
         if (!rst_n) begin
             idle            <= 1'b1;
             seq_valid       <= 1'b0;
+            detected_soc    <= 1'b0;
         end
         else begin
-            // this should only be asserted for one tick at a time
-            seq_valid <= 1'b0;
+            // these should only be asserted for one tick at a time
+            seq_valid       <= 1'b0;
+            detected_soc    <= 1'b0;
 
             if (idle) begin
                 // since we are idle then the first sequence we detect has to be Z
@@ -219,6 +230,7 @@ module sequence_decode
                 if (pause_detected) begin
                     seq             <= PCDBitSequence_Z;
                     seq_valid       <= 1'b1;
+                    detected_soc    <= 1'b1;
                     idle            <= 1'b0;
                     counter         <= 9'd1;   // reset the counter
                 end
@@ -251,6 +263,75 @@ module sequence_decode
                         if (seq == PCDBitSequence_Y) begin
                             // That's two Ys in a row, so we go idle now
                             idle <= 1'b1;
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    // ------------------------------------------------------------------------
+    // Turn the sequences into bits/SOC/EOC/error
+    // ------------------------------------------------------------------------
+
+    // cache the last sequence, so we can detect EOC
+    PCDBitSequence  prev;
+    logic           prev_is_soc;
+    logic           in_frame;
+
+    always @(posedge clk, negedge rst_n) begin
+        if (!rst_n) begin
+            soc         <= 1'b0;
+            eoc         <= 1'b0;
+            error       <= 1'b0;
+            data_valid  <= 1'b0;
+            in_frame    <= 1'b0;
+        end
+        else begin
+            // these should only assert for one tick
+            soc         <= 1'b0;
+            eoc         <= 1'b0;
+            error       <= 1'b0;
+            data_valid  <= 1'b0;
+
+            // only do something if we have a valid seq
+            if (seq_valid) begin
+                // cache the current seq
+                prev        <= seq;
+                prev_is_soc <= detected_soc;
+
+                if (detected_soc) begin
+                    // do nothing, as we use prev for all tests
+                    // so must wait for the next sequence
+                end
+                else begin
+                    if (prev_is_soc) begin
+                        // Issue our SOC and start the frame
+                        soc         <= 1'b1;
+                        in_frame    <= 1'b1;
+                    end
+                    else if (in_frame) begin
+                        // we emit nothing when we aren't in a frame
+                        if (((prev == PCDBitSequence_Y) || (prev == PCDBitSequence_Z)) &&
+                            (seq == PCDBitSequence_Y)) begin
+                            // it's the EOC if we have logic '0' followed by Y
+                            // See ISO/IEC 14443-2:2016 section 8.1.3.1
+                            // Issue the EOC and end the frame
+                            eoc         <= 1'b1;
+                            in_frame    <= 1'b0;
+                        end
+                        else if (prev == PCDBitSequence_ERROR) begin
+                            // there was a timing error
+                            // seq_valid doesn't go high again until we've timed out
+                            // so this can only happens once
+                            error       <= 1'b1;
+                        end
+                        else begin
+                            // we're not SOC, EOC or an error, and we're in a frame
+                            // emit the data bit
+                            data_valid  <= 1'b1;
+                            // PCDBitSequence_X -> 1, PCDBitSequence_Y -> 0, PCDBitSequence_Z -> 0
+                            data        <= (prev == PCDBitSequence_X);
                         end
                     end
                 end
