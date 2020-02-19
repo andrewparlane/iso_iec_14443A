@@ -51,15 +51,19 @@ module sequence_decode
     // and how we calculate the timing values
     // ------------------------------------------------------------------------
 
-    // when we have not seen a pause in more than two bit times, we go idle.
-    // and then the first pause frame after being idle is assumed to be at the
-    // start of the bit time. AKA sequence Z for start of comms.
+    // When we are idle, we assume the first pause we see is a PCDBitSequence_Z
+    // which is the start of comms (SOC) define in ISO/IEC 14443-2:2016 section 8.1.3.1.
+    // The end of comms (EOC) is defined in that same section as a logic '0' followed by a
+    // PCDBitSequence_Y. When we have not seen a pause in more than two bit times, we go idle.
+    // Any sequences received after EOC and before going idle are ignored. This is technically
+    // an error but we are unlikely to have produced valid data if this happens and so we can
+    // safely ignore them.
 
-    // We have a timer that counts the time between the rising edge of pause frames.
-    // From that we can determine the current sequence. Since the clock stops during
+    // We have a timer that counts the time between the rising edge of pause frames,
+    // from that we can determine the current sequence. Since the clock stops during
     // pause frames, things are a bit more complicated.
-    // Pause frames have according to ISO 14443-2A:2016 Table 4, have length between
-    // 6 and 41 clock ticks, but the analogue front end (AFE) will change these timings a bit.
+    // Pause frames according to ISO 14443-2A:2016 Table 4, have length between 6 and 41 clock
+    // ticks, but the analogue front end (AFE) will change these timings a bit.
     // Adittionally to get a 6 tick pause, the reader would have to be doing something pretty
     // horrendous.
 
