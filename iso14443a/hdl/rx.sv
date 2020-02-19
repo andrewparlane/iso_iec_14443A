@@ -24,11 +24,6 @@
 `timescale 1ps/1ps
 
 module rx
-#
-(
-    // Some components need slight tweaks to work for the emulator project
-    parameter bit EMULATOR_PROJECT = 0
-)
 (
     // clk is our 13.56MHz input clock. It is recovered from the carrier wave,
     // and as such stops during pause frames. It must not have any glitches.
@@ -65,11 +60,7 @@ module rx
     logic           sd_valid;
     logic           sd_idle;
 
-    sequence_decode
-    #(
-        .EMULATOR_PROJECT   (EMULATOR_PROJECT)
-    )
-    sd_inst
+    sequence_decode sd_inst
     (
         .clk                    (clk),
         .rst_n                  (rst_n),
