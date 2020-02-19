@@ -301,7 +301,8 @@ module iso14443a_pcd_to_picc_comms_generator
     // ------------------------------------------------------------------------
 
     // Generates a queue of sequences that do not contain X -> Z or Y -> Y sequences
-    // It may however contain a Z -> Y, which indicates an end of frame by frame_decode
+    // nor does it contain EOCs other than one at the end.
+    // It starts with Z (SOC) and ends in ZYY or XYY (EOC + IDLE)
     //
     // resulting sequence queue will be of length len or len+1
     // we could find a way of making it exactly len sequences long
@@ -316,29 +317,17 @@ module iso14443a_pcd_to_picc_comms_generator
         res.push_back(PCDBitSequence_Z);
         for (int i = 0; i < len - 2; i++) begin
             PCDBitSequence nextSeq;
+            PCDBitSequence allowed [$];
             // valid sequences depend on previous
             // in no case should we generate PCDBitSequence_ERROR
-            // Note: we could use std::randomize(nextSeq) with {nextSeq inside {...};};
-            //       but I don't have the modelsim license for that.
-            //       so we just repeat until we get a valid result
-            while (1) begin
-                case ($urandom_range(2))
-                    0: nextSeq = PCDBitSequence_X;
-                    1: nextSeq = PCDBitSequence_Y;
-                    2: nextSeq = PCDBitSequence_Z;
-                endcase
+            // X -> Z, Y -> Y, Z -> Y are not allowed
+            case (res[$])
+                PCDBitSequence_X: allowed = '{PCDBitSequence_X, PCDBitSequence_Y};
+                PCDBitSequence_Y: allowed = '{PCDBitSequence_X, PCDBitSequence_Z};
+                PCDBitSequence_Z: allowed = '{PCDBitSequence_X, PCDBitSequence_Z};
+            endcase
 
-                if (((res[$] == PCDBitSequence_X) && (nextSeq == PCDBitSequence_Z)) ||
-                    ((res[$] == PCDBitSequence_Y) && (nextSeq == PCDBitSequence_Y))) begin
-                    // invalid transition, try again
-                    continue;
-                end
-                else begin
-                    // we're good
-                    break;
-                end
-            end
-
+            std::randomize(nextSeq) with {nextSeq inside {allowed};};
             res.push_back(nextSeq);
         end
 

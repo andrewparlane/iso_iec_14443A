@@ -32,13 +32,15 @@ module sequence_decode_tb;
     // all named the same as in the DUT, so I can use .*
     // --------------------------------------------------------------
 
-    logic           clk;
-    logic           rst_n;
-    logic           pause_n_synchronised;
+    logic clk;
+    logic rst_n;
+    logic pause_n_synchronised;
 
-    PCDBitSequence  seq;
-    logic           seq_valid;
-    logic           idle;
+    logic soc;
+    logic eoc;
+    logic data;
+    logic data_valid;
+    logic error;
 
     // --------------------------------------------------------------
     // DUT
@@ -55,29 +57,49 @@ module sequence_decode_tb;
     iso14443a_pcd_to_picc_comms_generator bfm (.*);
 
     // connect pause_n_synchronised and pause_n
-    // TODO: Is this valid? I think for testbenches there's no need for it to be synchronised
-    //       plus we should run these same tests on the rx module where the pause_n signal
-    //       is synchronised
     assign pause_n_synchronised = pause_n;
 
     // --------------------------------------------------------------
     // Verify sequence is as expected
     // --------------------------------------------------------------
 
-    PCDBitSequence expected[$];
+    typedef struct packed
+    {
+        logic soc;
+        logic eoc;
+        logic data;
+        logic data_valid;
+        logic error;
+    } Results;
+
+    localparam Results EVENT_SOC    = '{1'b1, 1'b0, 1'bx, 1'b0, 1'b0};
+    localparam Results EVENT_EOC    = '{1'b0, 1'b1, 1'bx, 1'b0, 1'b0};
+    localparam Results EVENT_ERROR  = '{1'b0, 1'b0, 1'bx, 1'b0, 1'b1};
+    localparam Results EVENT_DATA_0 = '{1'b0, 1'b0, 1'b0, 1'b1, 1'b0};
+    localparam Results EVENT_DATA_1 = '{1'b0, 1'b0, 1'b1, 1'b1, 1'b0};
+
+    Results outputs;
+    assign outputs = '{soc, eoc, data, data_valid, error};
+
+    Results expected[$];
+
+    // has something happened this tick?
+    logic event_detected;
+    assign event_detected = soc | eoc | error | data_valid;
 
     always_ff @(posedge clk) begin
-        if (seq_valid) begin
-            gotSeqValidButNotExpected:
+        if (event_detected) begin
+            //$display("got event %p", outputs);
+
+            eventDectedButNoneExpected:
                 assert (expected.size != 0)
-                else $error("seq_valid but not expecting anything");
+                else $error("event detected but not expecting anything: %p", outputs);
 
-            if (expected.size != 0) begin
-                seqNotAsExpected:
-                    assert (seq == expected[0])
-                    else $error("got seq %s but expected %s", seq.name, expected[0].name);
-
-                void'(expected.pop_front);
+            if (expected.size != 0) begin: eventExpected
+                automatic Results e = expected.pop_front;
+                eventNotAsExpected:
+                    assert (outputs ==? e) // ==? so we allow 'x in e as a wildcard
+                    else $error("got event %p but expected %p", outputs, e);
             end
         end
     end
@@ -89,85 +111,107 @@ module sequence_decode_tb;
     // helper task that runs multiple tests
     // so we can repeatedly use them with different settings
     task run_tests;
-        PCDBitSequence seqs[$];
-        seqs.delete;    // apparently seqs is remembered over calls
+        automatic PCDBitSequence seqs[$] = '{};
 
-        // 1) We have 9 sequences combinitions to check
+        // 1) We have 10 sequences combinitions to check
         //    (ordered by when we test each)
-        //    Z -> Z
-        //    Z -> X
-        //    X -> X
-        //    X -> Y
-        //    Y -> Z
-        //    Z -> Y
-        //    Y -> X
-        //    Y -> Y    - IDLE
-        //    X -> Z    - INVALID   // we test this later
-        //$display("Running test 1");
-        seqs.push_back(PCDBitSequence_Z); // Start of Comms
-        seqs.push_back(PCDBitSequence_Z); // Z -> Z
-        seqs.push_back(PCDBitSequence_X); // Z -> X
-        seqs.push_back(PCDBitSequence_X); // X -> X
-        seqs.push_back(PCDBitSequence_Y); // X -> Y
-        seqs.push_back(PCDBitSequence_Z); // Y -> Z
-        seqs.push_back(PCDBitSequence_Y); // Z -> Y
-        seqs.push_back(PCDBitSequence_X); // Y -> X
-        seqs.push_back(PCDBitSequence_Y); // X -> Y - already tested but have to get back to Y to test idle
-        seqs.push_back(PCDBitSequence_Y); // Y -> Y - IDLE
-        expected = seqs;
-        bfm.send_sequence_queue(seqs);
-        wait(idle) begin end
+        //    IDLE -> Z     - SOC
+        //    Z    -> Z
+        //    Z    -> X
+        //    X    -> X
+        //    X    -> Y
+        //    Y    -> Z
+        //    Y    -> X
+        //    Y    -> Y     - EOC + IDLE
+        //    Z    -> Y     - EOC
+        //    X    -> Z     - INVALID (this is tested later
+        //$display("Running test 1a");
 
-        // 2) We also want to test the 4 combinations that have Y in the middle:
-        //    X -> Y -> X
-        //    X -> Y -> Z
-        //    Z -> Y -> X
-        //    Z -> Y -> Z
+        seqs = '{PCDBitSequence_Z,  // IDLE -> Z    SOC
+                 PCDBitSequence_Z,  // Z    -> Z    0
+                 PCDBitSequence_X,  // Z    -> X    1
+                 PCDBitSequence_X,  // X    -> X    1
+                 PCDBitSequence_Y,  // X    -> Y    0
+                 PCDBitSequence_Z,  // Y    -> Z    0
+                 PCDBitSequence_X,  //              1
+                 PCDBitSequence_Y,  //              0
+                 PCDBitSequence_X,  // Y    -> X    1
+                 PCDBitSequence_Y,  //              EOC
+                 PCDBitSequence_Y}; // Y    -> Y    EOC + IDLE
+
+        expected = '{EVENT_SOC,
+                     EVENT_DATA_0,
+                     EVENT_DATA_1,
+                     EVENT_DATA_1,
+                     EVENT_DATA_0,
+                     EVENT_DATA_0,
+                     EVENT_DATA_1,
+                     EVENT_DATA_0,
+                     EVENT_DATA_1,
+                     EVENT_EOC};
+
+        bfm.send_sequence_queue(seqs);
+        wait(expected.size == 0) begin end
+
+        // Test Z -> Y EOC
+        //$display("Running test 1b");
+        seqs = '{PCDBitSequence_Z,  //          SOC
+                 PCDBitSequence_X,  //          1
+                 PCDBitSequence_Y,  //          0
+                 PCDBitSequence_Z,  //          EOC
+                 PCDBitSequence_Y,  // Z -> Y   EOC
+                 PCDBitSequence_Y}; //          IDLE
+
+        expected = '{EVENT_SOC,
+                     EVENT_DATA_1,
+                     EVENT_DATA_0,
+                     EVENT_EOC};
+
+        bfm.send_sequence_queue(seqs);
+        wait(expected.size == 0) begin end
+
+        // 2) Generate a bunch of random queue of sequences (excludes error cases)
         //$display("Running test 2");
-        seqs.delete;
-        seqs.push_back(PCDBitSequence_Z);   // Start of comms
-        seqs.push_back(PCDBitSequence_Y);   // Z -> Y -> Z
-        seqs.push_back(PCDBitSequence_Z);
-        seqs.push_back(PCDBitSequence_Y);   // Z -> Y -> X
-        seqs.push_back(PCDBitSequence_X);
-        seqs.push_back(PCDBitSequence_Y);   // X -> Y -> X
-        seqs.push_back(PCDBitSequence_X);
-        seqs.push_back(PCDBitSequence_Y);   // X -> Y -> Z
-        seqs.push_back(PCDBitSequence_Z);
+        repeat (50) begin
+            seqs = bfm.generate_valid_sequence_queue(100);
+            expected = '{EVENT_SOC};
+            // starts at 1 because [0] is SOC,
+            // ends at size-3 because last two are YY
+            for (int i = 1; i < seqs.size-2; i++) begin
+                expected.push_back((seqs[i] == PCDBitSequence_X) ? EVENT_DATA_1 : EVENT_DATA_0);
+            end
+            if (seqs[$-2] == PCDBitSequence_Z) begin
+                // ends in ZYY, which is EOC + IDLE
+                void'(expected.pop_back);
+            end
+            expected.push_back(EVENT_EOC);
 
-        seqs.push_back(PCDBitSequence_Y);   // go idle
-        seqs.push_back(PCDBitSequence_Y);
+            // $display("sending: %p", seqs);
+            // $display("expecting: %p", expected);
 
-        expected = seqs;
-        bfm.send_sequence_queue(seqs);
-        wait(idle) begin end
+            bfm.send_sequence_queue(seqs);
+            wait(expected.size == 0) begin end
+        end
 
-        // 3) Generate a random queue of sequences (excludes error cases)
+        // 3) Test X -> Z error cases
         //$display("Running test 3");
-        seqs = bfm.generate_valid_sequence_queue(1000);
-        expected = seqs;
-        bfm.send_sequence_queue(seqs);
-        wait(idle) begin end
+        seqs = '{PCDBitSequence_Z,  // SOC
+                 PCDBitSequence_X,  // 1
+                 PCDBitSequence_Z,  // error
+                 PCDBitSequence_Z,  // ignored
+                 PCDBitSequence_X,  // ignored
+                 PCDBitSequence_Y,  // ignored
+                 PCDBitSequence_X,  // ignored
+                 PCDBitSequence_Y,  // EOC
+                 PCDBitSequence_Y}; // EOC
 
-        // 4) Test X -> Z error cases
-        //$display("Running test 4");
-        seqs.delete;
-        seqs.push_back(PCDBitSequence_Z);   // Start of Comms
-        seqs.push_back(PCDBitSequence_X);   // Z -> X
-        seqs.push_back(PCDBitSequence_Z);   // X -> Z (error)
-        seqs.push_back(PCDBitSequence_Z);   // misc
-        seqs.push_back(PCDBitSequence_Y);   // idle part 1
-        seqs.push_back(PCDBitSequence_Y);   // idle part 2
-
-        expected.delete;
-        expected.push_back(PCDBitSequence_Z);
-        expected.push_back(PCDBitSequence_X);
-        expected.push_back(PCDBitSequence_ERROR);
-        expected.push_back(PCDBitSequence_Y);
-        expected.push_back(PCDBitSequence_Y);
+        expected = '{EVENT_SOC,
+                     EVENT_DATA_1,
+                     EVENT_ERROR,
+                     EVENT_EOC};
 
         bfm.send_sequence_queue(seqs);
-        wait(idle) begin end
+        wait(expected.size == 0) begin end
     endtask
 
 
@@ -219,45 +263,35 @@ module sequence_decode_tb;
     assert property (
         @(posedge clk)
         !rst_n |->
-            (idle && !seq_valid))
+            (!soc && !eoc && !data_valid && !error))
             else $error("signals invalid in reset");
 
-    // check that we always produce a sequence on going idle
-    // and that it is a Y.
-    // The only exception is if we produced an PCDBitSequence_ERROR
-    seqValidOnGoingIdle:
+    // soc is only asserted for one tick at a time
+    socOnlyOneTick:
     assert property (
         @(posedge clk)
-        disable iff (rst_for_asserts)
-        ($rose(idle) && (seq != PCDBitSequence_ERROR)) |->
-            ($rose(seq_valid) && seq == PCDBitSequence_Y))
-        else $error("No valid sequence on DUT going idle");
+        soc |=> !soc)
+        else $error("soc asserted for more than one tick");
 
-    // check that after we go idle, there are no more expected sequences
-    // Except if we produced an PCDBitSequence_ERROR
-    // VCS doesn't like .size in an assert property
-    always @(posedge clk) begin
-        if ($rose(idle) && (seq != PCDBitSequence_ERROR)) begin
-            noMoreExpectedAfterGoingIdle:
-            assert (expected.size() == 0) else $error("DUT goes idle but more sequences expected");
-        end
-    end
-
-    // ensure that the DUT goes none idle when the BFM is transmitting
-    dutGoesNoneIdleDuringTransfer:
+    // eoc is only asserted for one tick at a time
+    eocOnlyOneTick:
     assert property (
         @(posedge clk)
-        disable iff (rst_for_asserts)
-        $rose(sending) |=>
-            (sending throughout !idle [->1]))    // sending stays true at least until idle goes to 0
-        else $error("DUT fails to go none idle during transmission");
+        eoc |=> !eoc)
+        else $error("eoc asserted for more than one tick");
 
-    // seqValid is only valid for one tick at a time
-    seqValidOnlyOneTick:
+    // error is only asserted for one tick at a time
+    errorOnlyOneTick:
     assert property (
         @(posedge clk)
-        disable iff (rst_for_asserts)
-        seq_valid |=> !seq_valid)
-        else $error("seq_valid asserted for more than one tick");
+        error |=> !error)
+        else $error("error asserted for more than one tick");
+
+    // data_valid is only asserted for one tick at a time
+    dataValidOnlyOneTick:
+    assert property (
+        @(posedge clk)
+        data_valid |=> !data_valid)
+        else $error("data_valid asserted for more than one tick");
 
 endmodule
