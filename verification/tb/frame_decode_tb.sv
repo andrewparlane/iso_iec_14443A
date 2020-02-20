@@ -35,16 +35,17 @@ module frame_decode_tb;
     logic           clk;
     logic           rst_n;
 
-    PCDBitSequence  sd_seq;
-    logic           sd_seq_valid;
+    logic           sd_soc;
+    logic           sd_eoc;
+    logic           sd_data;
+    logic           sd_data_valid;
+    logic           sd_error;
 
     logic           soc;
     logic           eoc;
-    logic [7:0]     data;
-    logic [2:0]     data_bits;
+    logic           data;
     logic           data_valid;
-    logic           sequence_error;
-    logic           parity_error;
+    logic           error;
     logic           last_bit;
 
     // --------------------------------------------------------------
@@ -75,17 +76,44 @@ module frame_decode_tb;
     // Task to send sequence queues
     // --------------------------------------------------------------
 
-    task send_sequence_queue (PCDBitSequence seqs[$]);
+    task send_frame (bit sq[$], int error_before_bit=-1);
         automatic logic expectedEmpty;
+        automatic logic errorSent = 1'b0;
 
-        foreach (seqs[i]) begin
-            repeat (5) @(posedge clk) begin end // sync to clock edge and delay between seqs
+        // SOC
+        sd_soc <= 1'd1;
+        @(posedge clk)
+        sd_soc <= 1'd0;
 
-            sd_seq          = seqs[i];
-            sd_seq_valid    = 1'b1;
-            @(posedge clk) begin end
-            sd_seq_valid    = 1'b0;
+        foreach (sq[i]) begin
+            repeat (5) @(posedge clk) begin end // sync to clock edge and delay between bits
+
+            if (error_before_bit == i) begin
+                sd_error    <= 1'b1;
+                @(posedge clk)
+                sd_error    <= 1'b0;
+                repeat (5) @(posedge clk) begin end
+
+                errorSent   = 1'b1;
+            end
+
+            sd_data         <= sq[i];
+            sd_data_valid   <= 1'b1;
+            @(posedge clk)
+            sd_data_valid   <= 1'b0;
         end
+
+        repeat (5) @(posedge clk) begin end
+
+        if ((error_before_bit != -1) && !errorSent) begin
+            // send the error on the EOC
+            sd_error    <= 1'b1;
+        end
+
+        sd_eoc      <= 1'b1;
+        @(posedge clk)
+        sd_eoc      <= 1'b0;
+        sd_error    <= 1'b0;
 
         repeat (5) @(posedge clk) begin end
 
@@ -99,11 +127,13 @@ module frame_decode_tb;
     // --------------------------------------------------------------
 
     initial begin
-        automatic bit [7:0]         data[$];
-        automatic bit               bits[$];
-        automatic PCDBitSequence    seqs[$];
+        automatic bit [7:0] data[$];
+        automatic bit       bits[$];
 
-        sd_seq_valid = 1'b0;
+        sd_soc          = 1'b0;
+        sd_eoc          = 1'b0;
+        sd_error        = 1'b0;
+        sd_data_valid   = 1'b0;
 
         // reset for 5 ticks
         rst_n <= 1'b0;
@@ -114,102 +144,88 @@ module frame_decode_tb;
         // 1) Test an 8 bit frame with parity bit OK
         //$display("Testing an 8 bit frame with parity bit OK");
         data = bfm.generate_byte_queue(1);
+        bits = bfm.convert_message_to_bit_queue(data, 8);
+
         fd_validator.clear_expected_queue;
         fd_validator.push_soc_event;
-        fd_validator.push_data_events(data);
-        fd_validator.push_eoc_full_byte_event(fd_validator.ErrorType_NONE);
+        fd_validator.push_data_events(bits);
+        fd_validator.push_eoc_event(1'b0);
 
-        bits = bfm.convert_message_to_bit_queue(data, 8);
         bits = bfm.add_parity_to_bit_queue(bits);
-        seqs = bfm.convert_bit_queue_to_sequence_queue(bits);
-
-        send_sequence_queue(seqs);
+        send_frame(bits);
 
         // 2) Test an 8 bit frame with parity FAIL
         //$display("Testing an 8 bit frame with parity FAIL");
         data = bfm.generate_byte_queue(1);
+        bits = bfm.convert_message_to_bit_queue(data, 8);
+
         fd_validator.clear_expected_queue;
         fd_validator.push_soc_event;
-        fd_validator.push_parity_fail_event;
-        fd_validator.push_eoc_full_byte_event(fd_validator.ErrorType_NONE);
+        fd_validator.push_data_events(bits);
+        fd_validator.push_error_event;
+        fd_validator.push_eoc_event(1'b0);
 
-        bits = bfm.convert_message_to_bit_queue(data, 8);
         bits = bfm.add_parity_to_bit_queue(bits);
         bits[$] = !bits[$]; // flip the parity bit
-        seqs = bfm.convert_bit_queue_to_sequence_queue(bits);
 
-        send_sequence_queue(seqs);
+        send_frame(bits);
 
         // 3) Test an 8 bit frame with parity missing
         //$display("Testing an 8 bit frame with parity bit missing");
         data = bfm.generate_byte_queue(1);
+        bits = bfm.convert_message_to_bit_queue(data, 8);
         fd_validator.clear_expected_queue;
         fd_validator.push_soc_event;
-        fd_validator.push_eoc_full_byte_event(fd_validator.ErrorType_PARITY);
+        fd_validator.push_data_events(bits);
+        fd_validator.push_eoc_event(1'b1);
 
-        bits = bfm.convert_message_to_bit_queue(data, 8);
         // don't add parity bit
-        seqs = bfm.convert_bit_queue_to_sequence_queue(bits);
 
-        send_sequence_queue(seqs);
+        send_frame(bits);
 
-        // 4) Test an 8 bit frame with sequence error in one location
-        // don't mess with SOC (idx 0) or EOC (idx 10, 11)
-        for (int i = 1; i <= 9; i++) begin
-            //$display("Testing an 8 bit frame with a sequence error at idx %d", i);
+        // 4) Test an 8 bit frame + parity with error in each location
+        //      before bit 0, bit 1, ... bit 8, bit 9, EOC
+
+        for (int i = 0; i < 10; i++) begin
+            //$display("Testing an 8 bit frame with an error at idx %d", i);
+
             data = bfm.generate_byte_queue(1);
+            bits = bfm.convert_message_to_bit_queue(data, 8);
+
             fd_validator.clear_expected_queue;
             fd_validator.push_soc_event;
-            fd_validator.push_sequence_error_event;
-            fd_validator.push_eoc_full_byte_event(fd_validator.ErrorType_NONE, 0);
+            if (i != 0) begin
+                fd_validator.push_data_events(bits[0:(i < 8) ? i-1 : 7]);
+            end
+            if (i != 9) begin
+                fd_validator.push_error_event;
+            end
+            fd_validator.push_eoc_event(i == 9);
 
-            bits = bfm.convert_message_to_bit_queue(data, 8);
             bits = bfm.add_parity_to_bit_queue(bits);
-            seqs = bfm.convert_bit_queue_to_sequence_queue(bits);
-            seqs[i] = PCDBitSequence_ERROR;
-
-            send_sequence_queue(seqs);
+            send_frame(bits, i);
         end
 
-        // 5a) Test a 0 bit frame (ZYY) (sequence error)
-        // note we add the extra Y so that the EOC is detected
-        // this is fine, since sequence_decode only goes idle after two Ys
-        //$display("Testing a 0 bit frame (ZYY) (sequence error)");
+        // 5) Test a 0 bit frame
+        //$display("Testing a 0 bit frame");
         fd_validator.clear_expected_queue;
         fd_validator.push_soc_event;
-        fd_validator.push_eoc_full_byte_event(fd_validator.ErrorType_SEQUENCE);
+        fd_validator.push_eoc_event(1'b1);
 
-        seqs = '{PCDBitSequence_Z,
-                 PCDBitSequence_Y,
-                 PCDBitSequence_Y};
-        send_sequence_queue(seqs);
-
-        // 5b) Test a 0 bit frame (ZZY) (sequence error)
-        //$display("Testing a 0 bit frame (ZZY) (sequence error)");
-        fd_validator.clear_expected_queue;
-        fd_validator.push_soc_event;
-        fd_validator.push_eoc_full_byte_event(fd_validator.ErrorType_SEQUENCE);
-
-        seqs = '{PCDBitSequence_Z,
-                 PCDBitSequence_Z,
-                 PCDBitSequence_Y};
-        send_sequence_queue(seqs);
+        send_frame('{});
 
         // 6) test 1 - 7 bit frames
         for (int bitLen = 1; bitLen <= 7; bitLen++) begin
             //$display("Testing a %d bit frame", bitLen);
             data = bfm.generate_byte_queue(1);
-            fd_validator.clear_expected_queue;
+            bits = bfm.convert_message_to_bit_queue(data, bitLen);
 
-            data = bfm.generate_byte_queue(1);
             fd_validator.clear_expected_queue;
             fd_validator.push_soc_event;
-            fd_validator.push_eoc_part_byte_event(bitLen, data[0]);
+            fd_validator.push_data_events(bits);
+            fd_validator.push_eoc_event(1'b0);
 
-            bits = bfm.convert_message_to_bit_queue(data, bitLen);
-            seqs = bfm.convert_bit_queue_to_sequence_queue(bits);
-
-            send_sequence_queue(seqs);
+            send_frame(bits);
         end
 
         // repeat these tests a bunch of times
@@ -218,31 +234,19 @@ module frame_decode_tb;
             automatic int       num_bits                = $urandom_range(1, 1000);
             automatic int       num_bytes               = int'($ceil(num_bits / 8.0));
             automatic int       num_bits_in_last_byte   = num_bits % 8;
-            automatic bit [7:0] last_byte;
 
             // 7) Test an N bit frame with parity OK
             //$display("Testing a %d bit frame with parity bits OK", num_bits);
             data = bfm.generate_byte_queue(num_bytes);
-
             bits = bfm.convert_message_to_bit_queue(data, num_bits_in_last_byte);
-            bits = bfm.add_parity_to_bit_queue(bits);
-            seqs = bfm.convert_bit_queue_to_sequence_queue(bits);
-
-            if (num_bits_in_last_byte != 0) begin
-                last_byte = data.pop_back;
-            end
 
             fd_validator.clear_expected_queue;
             fd_validator.push_soc_event;
-            fd_validator.push_data_events(data);
-            if (num_bits_in_last_byte == 0) begin
-                fd_validator.push_eoc_full_byte_event(fd_validator.ErrorType_NONE);
-            end
-            else begin
-                fd_validator.push_eoc_part_byte_event(num_bits_in_last_byte, last_byte);
-            end
+            fd_validator.push_data_events(bits);
+            fd_validator.push_eoc_event(1'b0);
 
-            send_sequence_queue(seqs);
+            bits = bfm.add_parity_to_bit_queue(bits);
+            send_frame(bits);
 
             // 8) Test an N bit frame with parity FAIL
             if (num_bits > 8) begin
@@ -251,69 +255,35 @@ module frame_decode_tb;
                 data = bfm.generate_byte_queue(num_bytes);
 
                 bits = bfm.convert_message_to_bit_queue(data, num_bits_in_last_byte);
-                bits = bfm.add_parity_to_bit_queue(bits);
-                bits[broken_parity_byte*9 + 8] = !bits[broken_parity_byte*9 + 8]; // break the parity bit
-                seqs = bfm.convert_bit_queue_to_sequence_queue(bits);
-
-                if (num_bits_in_last_byte != 0) begin
-                    last_byte = data.pop_back;
-                end
 
                 fd_validator.clear_expected_queue;
                 fd_validator.push_soc_event;
-                if (broken_parity_byte != 0) begin
-                    fd_validator.push_data_events(data[0:broken_parity_byte-1]);
-                end
-                fd_validator.push_parity_fail_event;
-                fd_validator.push_eoc_full_byte_event(fd_validator.ErrorType_NONE);
+                fd_validator.push_data_events(bits[0:broken_parity_byte*8 + 7]);
+                fd_validator.push_error_event;
+                fd_validator.push_eoc_event(1'b0);
 
-                send_sequence_queue(seqs);
+                bits = bfm.add_parity_to_bit_queue(bits);
+                bits[broken_parity_byte*9 + 8] = !bits[broken_parity_byte*9 + 8]; // break the parity bit
+                send_frame(bits);
             end
 
             // 9) Test an N byte frame with last parity missing
             num_bytes = $urandom_range(1, 100);
             //$display("Testing a %d byte frame with last parity missing", num_bytes);
             data = bfm.generate_byte_queue(num_bytes);
-
             bits = bfm.convert_message_to_bit_queue(data, 8);
-            bits = bfm.add_parity_to_bit_queue(bits);
-            void'(bits.pop_back);   // remove the last bit
-            seqs = bfm.convert_bit_queue_to_sequence_queue(bits);
 
-            // expecting parity error in last byte, so remove it
-            void'(data.pop_back);
+            // expecting parity error on EOC
             fd_validator.clear_expected_queue;
             fd_validator.push_soc_event;
-            fd_validator.push_data_events(data);
-            fd_validator.push_eoc_full_byte_event(fd_validator.ErrorType_PARITY);
+            fd_validator.push_data_events(bits);
+            fd_validator.push_eoc_event(1'b1);
 
-            send_sequence_queue(seqs);
+            bits = bfm.add_parity_to_bit_queue(bits);
+            void'(bits.pop_back);   // remove the last bit
+
+            send_frame(bits);
         end
-
-        // 10) Confirm data is received LSb first
-        //$display("Testing LSb first");
-        fd_validator.clear_expected_queue;
-        fd_validator.push_soc_event;
-        fd_validator.push_data_events('{8'h29});
-        fd_validator.push_eoc_full_byte_event(fd_validator.ErrorType_NONE);
-
-        // 8'h29 = 8'b00101001
-        // LSb first: 10010100 + parity 0
-
-        seqs = '{PCDBitSequence_Z,  // SOC
-                 PCDBitSequence_X,  // 1
-                 PCDBitSequence_Y,  // 0
-                 PCDBitSequence_Z,  // 0
-                 PCDBitSequence_X,  // 1
-                 PCDBitSequence_Y,  // 0
-                 PCDBitSequence_X,  // 1
-                 PCDBitSequence_Y,  // 0
-                 PCDBitSequence_Z,  // 0
-                 PCDBitSequence_Z,  // 0 (parity)
-                 PCDBitSequence_Z,  // EOC
-                 PCDBitSequence_Y}; // EOC
-
-        send_sequence_queue(seqs);
 
         repeat (5) @(posedge clk) begin end
         $stop;
