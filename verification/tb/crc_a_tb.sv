@@ -34,7 +34,7 @@ module crc_a_tb;
     logic           rst_n;
 
     logic           start;
-    logic [7:0]     data;
+    logic           data;
     logic           data_valid;
     logic [15:0]    crc;
 
@@ -63,6 +63,7 @@ module crc_a_tb;
 
     // I know of two ways to generate the CRC:
     //  1) using the algorithm in iso14443a_pcd_to_picc_comms_generator.v:calculate_crc()
+    //     which is based on the C code in ISO/IEC 14443-3:2016 Annex B.3
     //  2) using an LFSR with polynomial: x^16 + x^12 + x^5 + 1
     // I test the result of crc_a against both of these
 
@@ -102,26 +103,33 @@ module crc_a_tb;
 
         //$display("testCRC %p", dq);
 
+        // get the result from the method in the BFM
         bfm_res     = bfm.calculate_crc(dq);
         //$display("bfm_res: %h", bfm_res);
 
+        // get the result from the LFSR method
         lfsr_res    = calculate_crc_lfsr(bfm.convert_message_to_bit_queue(dq, 8));
         //$display("lfsr_res: %h", lfsr_res);
 
+        // get the result from the DUT
         @(posedge clk) begin end
 
         start       <= 1'b1;
+        data_valid  <= 1'b0;
         @(posedge clk) begin end
         start       <= 1'b0;
         @(posedge clk) begin end
 
         foreach (dq[i]) begin
-            //$display("passing arg %d (%h)", i, dq[i]);
-            data        <= dq[i];
-            data_valid  <= 1'b1;
-            @(posedge clk) begin end
-            data_valid  <= 1'b0;
-            @(posedge clk) begin end
+            automatic logic [7:0] d = dq[i];
+            for (int j = 0; j < 8; j++) begin // LSb first
+                //$display("passing byte %d, bit %d (%h)", i, j, dq[i][j]);
+                data        <= d[j];
+                data_valid  <= 1'b1;
+                @(posedge clk) begin end
+                data_valid  <= 1'b0;
+                @(posedge clk) begin end
+            end
         end
 
         crc_a_res   = crc;
