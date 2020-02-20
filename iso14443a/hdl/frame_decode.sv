@@ -27,172 +27,119 @@ module frame_decode
 (
     // clk is our 13.56MHz input clock. It is recovered from the carrier wave,
     // and as such stops during pause frames. It must not have any glitches.
-    input                                   clk,
+    input           clk,
 
     // rst is our active low synchronised asynchronous reset signal
-    input                                   rst_n,
+    input           rst_n,
 
     // inputs from sequence_decode
-    input ISO14443A_pkg::PCDBitSequence     sd_seq,
-    input                                   sd_seq_valid,
+    input           sd_soc,
+    input           sd_eoc,
+    input           sd_data,
+    input           sd_data_valid,
+    input           sd_error,
 
     // outputs
-    output logic                            soc,                // start of comms
-    output logic                            eoc,                // end of comms
-    output logic [7:0]                      data,
-    output logic [2:0]                      data_bits,          // number of valid data bits in data. 0 means all 8 bits are present
-    output logic                            data_valid,
-    output logic                            sequence_error,
-    output logic                            parity_error,
-    output logic                            last_bit            // includes parity, but not EOC, used by the FDT
+    output logic    soc,                // start of comms
+    output logic    eoc,                // end of comms
+    output logic    data,
+    output logic    data_valid,
+    output logic    error,
+    output logic    last_bit            // includes parity, but not EOC, used by the FDT
 );
 
-    import ISO14443A_pkg::*;
+    // pass through soc
+    // we don't pass eoc straight through, because we want to delay it one tick
+    // so it occurs at the same time as error if we are missing the parity bit
+    // some for data, we want it to be in sync with data_valid
+    assign soc  = sd_soc;
 
-    logic           idle;               // are we currently idle
-    PCDBitSequence  last_seq;           // last sequence received (so we can detect EOC)
-    logic           next_bit;           // decode the sequence to a bit
-    logic           data_received;      // have we received anything yet? Used to prevent 0 bit frames
-    logic           next_bit_is_parity; // after every 8 bits of data we expect a parity bit
-    logic           expected_parity;    // what should the parity bit be
-    logic           error_detected;     // don't issue data after we detect an error
-
-    // Note: we use last_seq everywhere instead of sd_seq because
-    //       the EOC is logical '0' followed by Y. If we look at
-    //       sd_seq then we see and interpret that logical '0' as a 0
-    //       and only detect EOC on the next sd_seq_valid.
-
-    // small bit of combinatory logic to determine what the next bit will be
-    // this is only true when sd_seq_valid is asserted.
-    // and it does not detect EOC or errors.
-    assign next_bit = (last_seq == PCDBitSequence_X);
+    logic       next_bit_is_parity; // after every 8 bits of data we expect a parity bit
+    logic       expected_parity;    // what should the parity bit be
+    logic       data_received;      // a 0 bit frame is an error
+    logic       error_detected;     // don't issue data after we detect an error
+    logic [2:0] bit_count;
 
     always_ff @(posedge clk, negedge rst_n) begin
         if (!rst_n) begin
-            soc                 <= 1'b0;
-            eoc                 <= 1'b0;
             data_valid          <= 1'b0;
-            parity_error        <= 1'b0;
-            sequence_error      <= 1'b0;
-
-            next_bit_is_parity  <= 1'b0;
-            idle                <= 1'b1;
-            last_seq            <= PCDBitSequence_Y; // idle
+            error               <= 1'b0;
+            eoc                 <= 1'b0;
             last_bit            <= 1'b0;
+            next_bit_is_parity  <= 1'b0;
         end
         else begin
             // these should only be asserted for one tick
-            soc             <= 1'b0;
-            eoc             <= 1'b0;
             data_valid      <= 1'b0;
-            parity_error    <= 1'b0;
-            sequence_error  <= 1'b0;
+            error           <= 1'b0;
+            eoc             <= 1'b0;
 
-            // nothing to do if !sd_seq_valid
-            if (sd_seq_valid) begin
-                last_seq <= sd_seq;
+            if (sd_soc) begin
+                // new frame
 
-                if (idle) begin
-                    // wait for PCDBitSequence_Z
-                    // we could get a PCDBitSequence_Y here
-                    // but that's just the idle state at the end of the last frame
-                    // so we ignore it.
+                // by the time we check bit_count we'll have just received our first bit
+                // so initialise it to 1
+                bit_count           <= 3'd1;
+                expected_parity     <= 1'b1;
+                next_bit_is_parity  <= 1'b0;
+                error_detected      <= 1'b0;
+                data_received       <= 1'b0;
+            end
 
-                    if (last_seq == PCDBitSequence_Z) begin
-                        // This is the start of comms
-                        soc                 <= 1'b1;
-                        data_bits           <= '0;
-                        idle                <= 1'b0;
-                        expected_parity     <= 1'b1;
+            if (sd_eoc) begin
+                // EOC
+                eoc <= 1'b1;
+
+                // we error if we were expecting a parity bit
+                // or if we have received no data
+                if (!error_detected &&
+                    (next_bit_is_parity || !data_received)) begin
+                    error           <= 1'b1;
+                    error_detected  <= 1'b1;
+                end
+            end
+
+            // once we've detected an error, do nothing until the next SOC (other than emit EOC)
+            if (!error_detected) begin
+                // valid data from the sequence_decode module
+                // it's either parity or actual data
+                if (sd_data_valid) begin
+                    data_received   <= 1'b1;
+                    last_bit        <= sd_data;
+
+                    if (next_bit_is_parity) begin
                         next_bit_is_parity  <= 1'b0;
-                        data_received       <= '0;
-                        error_detected      <= 1'b0;
+
+                        if (sd_data != expected_parity) begin
+                            // parity error
+                            error               <= 1'b1;
+                            error_detected      <= 1'b1;
+                        end
+
+                        // reset expected_parity for the next bit
+                        expected_parity     <= 1'b1;
+                    end
+                    else begin
+                        bit_count       <= bit_count + 1'd1;
+
+                        // not a parity bit, so pass it through
+                        data_valid      <= 1'b1;
+                        data            <= sd_data;
+
+                        // odd parity (expecting number of 1s to be odd)
+                        expected_parity <= expected_parity ^ sd_data;
+
+                        if (bit_count == 0) begin
+                            // received 8 bits, next bit is the parity bit
+                            next_bit_is_parity  <= 1'b1;
+                        end
                     end
                 end
-                else begin
 
-                    // Check for EOC
-                    if ((sd_seq == PCDBitSequence_Y) &&
-                        ((last_seq == PCDBitSequence_Y) || (last_seq == PCDBitSequence_Z))) begin
-                        eoc     <= 1'b1;
-                        idle    <= 1'b1;
-
-                        if (next_bit_is_parity) begin
-                            // this is an error
-                            // if you have 8 data bits you must have a parity bit
-                            parity_error <= 1'b1;
-                        end
-
-                        if (!data_received) begin
-                            // 0 byte frame, consists of sequences ZY
-                            // this is a sequence error
-                            sequence_error <= 1'b1;
-                        end
-
-                        if (!next_bit_is_parity && data_received && !error_detected) begin
-                            // could be a broken byte frame, need to assert
-                            // data_valid if data_bits != 0
-                            data_valid <= data_bits != 0;
-                        end
-                    end
-                    // if we've detected an error don't do anything just wait for EOC
-                    else if (!error_detected) begin
-                        // we've at least received one bit of data
-                        // even if it's a sequence error
-                        data_received <= 1'b1;
-
-                        // note this as the last bit received for use in the FDT
-                        last_bit <= next_bit;
-
-                        // Check for error
-                        if (last_seq == PCDBitSequence_ERROR) begin
-                            sequence_error      <= 1'b1;
-                            error_detected      <= 1'b1;
-                            // clear this so we don't report parity error in EOC
-                            next_bit_is_parity  <= 1'b0;
-                        end
-                        // Is it the parity bit?
-                        else if (next_bit_is_parity) begin
-                            next_bit_is_parity <= 1'b0;
-
-                            // next_bit is the received parity_bit
-                            // check it's correct
-                            if (expected_parity == next_bit) begin
-                                // all good
-                                data_bits       <= 3'd0; // represents 8 valid data bits, also ready for next byte
-                                data_valid      <= 1'b1;
-                                expected_parity <= 1'b1;
-                            end
-                            else begin
-                                // parity error
-                                parity_error    <= 1'b1;
-                                error_detected  <= 1'b1;
-                            end
-                        end
-                        // otherwise it's just a data bit
-                        else begin
-                            data_received   <= 1'b1;
-                            data[data_bits] <= next_bit;
-
-                            if (next_bit) begin
-                                // we got a 1 so flip the expected_parity bit
-                                expected_parity <= !expected_parity;
-                            end
-
-                            if (data_bits == 3'd7) begin
-                                // last data bit received
-                                next_bit_is_parity <= 1'b1;
-                            end
-
-                            data_bits <= data_bits + 1'd1;
-                            // TODO: is data[data_bits] allowed?
-                            //       is it optimal?
-                            //       I could do data[7] <= next_bit; and then shift it
-                            //       but if there's less than 8 bits we wouldn't end up with
-                            //       data aligned correctly. We could maybe run some extra
-                            //       shifting cycles after EOC before we report everything?
-                        end
-                    end
+                // error from the sequence_decode module
+                if (sd_error) begin
+                    error_detected  <= 1'b1;
+                    error           <= 1'b1;
                 end
             end
         end
