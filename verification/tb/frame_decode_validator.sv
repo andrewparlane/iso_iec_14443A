@@ -29,11 +29,9 @@ module frame_decode_validator
     // frame_decode / rx outputs
     input       soc,
     input       eoc,
-    input [7:0] data,
-    input [2:0] data_bits,
+    input       data,
     input       data_valid,
-    input       sequence_error,
-    input       parity_error,
+    input       error,
 
     // we only care about this after the frame is done, so we don't add it to the
     // FrameDecodeEvent struct
@@ -42,30 +40,27 @@ module frame_decode_validator
 
     // has something happened this tick?
     logic event_detected;
-    assign event_detected = soc | eoc | sequence_error | parity_error | data_valid;
+    assign event_detected = soc | eoc | error | data_valid;
 
     // A struct to combine the frame_decode / rx outputs
     typedef struct packed
     {
-        logic       soc;            // no other flags should be set
-        logic       eoc;            // data_valid may be set if data_bits != 0
-        logic       sequence_error; // no other flags should be set
-        logic       parity_error;   // no other flags should be set
-        logic       data_valid;     // eoc may be set if data_bits != 0;
-        logic [2:0] data_bits;      // number of valid data bits
-        logic [7:0] data;           // the data
+        logic soc;          // no other flags should be set
+        logic eoc;          // error can be set, but no others
+        logic error;        // eoc can be set, but no others
+        logic data_valid;   // no other flags should be set
+        logic data;         // the data
     } FrameDecodeEvent;
+
+    localparam FrameDecodeEvent EVENT_SOC       = '{1'b1, 1'b0, 1'b0, 1'b0, 1'bx};
+    localparam FrameDecodeEvent EVENT_EOC       = '{1'b0, 1'b1, 1'b0, 1'b0, 1'bx};
+    localparam FrameDecodeEvent EVENT_EOC_ERR   = '{1'b0, 1'b1, 1'b1, 1'b0, 1'bx};
+    localparam FrameDecodeEvent EVENT_ERROR     = '{1'b0, 1'b0, 1'b1, 1'b0, 1'bx};
+    localparam FrameDecodeEvent EVENT_DATA_0    = '{1'b0, 1'b0, 1'b0, 1'b1, 1'b0};
+    localparam FrameDecodeEvent EVENT_DATA_1    = '{1'b0, 1'b0, 1'b0, 1'b1, 1'b1};
 
     // helper type, so we can returne a FrameDecodeEvent queue from a function
     typedef FrameDecodeEvent FrameDecodeEventQueue [$];
-
-    // What kind of error if any do we expect
-    typedef enum
-    {
-        ErrorType_NONE,
-        ErrorType_PARITY,
-        ErrorType_SEQUENCE
-    } ErrorType;
 
     // Check that the event is valid
     // this is used to make sure the outputs are always valid
@@ -74,53 +69,29 @@ module frame_decode_validator
         automatic bit err = 1'b0;
 
         if (e.soc) begin
-            // eoc, sequence_error, parity_error, data_valid must not be set
-            // data_bits must be 0
-            if (e.eoc || e.sequence_error || e.parity_error || e.data_valid || e.data_bits != 0) begin
+            // no other flags can be set
+            if (e.eoc || e.error || e.data_valid) begin
                 err = 1'b1;
             end
         end
 
         if (e.eoc) begin
-            // soc must not be set
-            // data_valid can only be set if data_bits != 0
-            if (e.soc) begin
-                err = 1'b1;
-            end
-            if (e.data_valid && (e.data_bits == 0)) begin
+            // only error can be set
+            if (e.soc || e.data_valid) begin
                 err = 1'b1;
             end
         end
 
-        if (e.sequence_error) begin
-            // soc, parity_error, data_valid must not be set
-            // data_bits must be 0
-            if (e.soc || e.parity_error || e.data_valid) begin
-                err = 1'b1;
-            end
-        end
-
-        if (e.parity_error) begin
-            // soc, sequence_error, data_valid must not be set
-            // data_bits must be 0
-            if (e.soc || e.sequence_error || e.data_valid) begin
+        if (e.error) begin
+            // only eoc can be set
+            if (e.soc || e.data_valid) begin
                 err = 1'b1;
             end
         end
 
         if (e.data_valid) begin
-            // none of soc, sequence_error or parity_error may be set
-            if (e.soc || e.sequence_error || e.parity_error) begin
-                err = 1'b1;
-            end
-
-            // data bits must be none 0 if EOC is set
-            if (e.eoc && (e.data_bits == 0)) begin
-                err = 1'b1;
-            end
-
-            // otherwise data bits must be 0
-            if (!e.eoc && e.data_bits != 0) begin
+            // none of the other flags can be set
+            if (e.soc || e.eoc || e.error) begin
                 err = 1'b1;
             end
         end
@@ -128,14 +99,6 @@ module frame_decode_validator
         return !err;
     endfunction
 
-    // So we can print some debug info
-    function automatic string event_to_string (FrameDecodeEvent e);
-        automatic string res = "";
-        $sformat(res, "soc %b, eoc %b, sequence_error %b, parity_error %b, data_valid %b, data_bits %d, data %b",
-                 e.soc, e.eoc, e.sequence_error, e.parity_error,
-                 e.data_valid, e.data_bits, e.data);
-        return res;
-    endfunction
 
     // ========================================================================
     // Some functions to construct events and add them to an expected queue
@@ -154,117 +117,45 @@ module frame_decode_validator
 
     // A function to build an event struct for the SOC event
     function automatic void push_soc_event;
-        automatic FrameDecodeEvent e;
-        e.soc               = 1'b1;
-        e.eoc               = 1'b0;
-        e.sequence_error    = 1'b0;
-        e.parity_error      = 1'b0;
-        e.data_valid        = 1'b0;
-        e.data_bits         = 3'd0;
-        e.data              = 8'hxx;
-
-        expected.push_back(e);
+        expected.push_back(EVENT_SOC);
+        expectedLastBit = 1'bx; // start off with not checking the lastBit, unless we add data
     endfunction
 
     // A function to build an event struct for the EOC event
-    // when the last byte is a full byte (standard frame), no data is issued
-    // on the EOC event, there may however be an error.
-    function automatic void push_eoc_full_byte_event (ErrorType err, bit check_data_bits=1'b1);
-        automatic FrameDecodeEvent e;
-        e.soc               = 1'b0;
-        e.eoc               = 1'b1;
-        e.sequence_error    = (err == ErrorType_SEQUENCE);
-        e.parity_error      = (err == ErrorType_PARITY);
-        e.data_valid        = 1'b0;
-        e.data_bits         = check_data_bits ? 0 : 'x;
-        e.data              = 8'hxx;
-
-        expected.push_back(e);
+    function automatic void push_eoc_event (logic err);
+        expected.push_back(err ? EVENT_EOC_ERR : EVENT_EOC);
 
         // ignore the last_bit if there's been an error
-        if (err != ErrorType_NONE) begin
+        if (err) begin
             expectedLastBit = 1'bx;
         end
     endfunction
 
-    // A function to build an event struct for the EOC event
-    // When the last byte is not a full byte (short frame / anticollision frame)
-    // then the partial byte is issued on the EOC event
-    function automatic void push_eoc_part_byte_event (int bitLen, bit [7:0] data);
-        automatic FrameDecodeEvent  e;
-        automatic logic [7:0]       new_data;
-
-        // set the none used bits as x
-        new_data = data;
-        for (int i = 7; i >= bitLen; i--) begin
-            new_data[i] = 1'bx;
-        end
-
-        e.soc             = 1'b0;
-        e.eoc             = 1'b1;
-        e.sequence_error  = 1'b0;
-        e.parity_error    = 1'b0;
-        e.data_valid      = 1'b1;
-        e.data_bits       = bitLen;
-        e.data            = new_data;
-
-        expected.push_back(e);
-
-        // the last_bit is the MSb of the data
-        expectedLastBit = data[bitLen-1];
-    endfunction
-
     // Add events for receiving a series of full bytes of data
-    function automatic void push_data_events (bit [7:0] data[$]);
+    function automatic void push_data_events (bit data[$]);
 
         foreach (data[i]) begin
-            automatic FrameDecodeEvent e;
-            e.soc               = 1'b0;
-            e.eoc               = 1'b0;
-            e.sequence_error    = 1'b0;
-            e.parity_error      = 1'b0;
-            e.data_valid        = 1'b1;
-            e.data_bits         = 3'd0;
-            e.data              = data[i];
-
-            expected.push_back(e);
+            expected.push_back(data[i] ? EVENT_DATA_1 : EVENT_DATA_0);
         end
 
         if (data.size() != 0) begin
-            // expected last bit is the parity bit of the last byte
-            expectedLastBit = bit'(($countones(data[$]) % 2) == 0);
+            if ((data.size() % 8) == 0) begin
+                // expected last bit is the parity bit of the last byte
+                automatic bit [7:0] lastByte;
+                // unpacke the last byte of the queue into the bit vector
+                {>>{lastByte}} = data[($-7):$];
+                expectedLastBit = bit'(($countones(lastByte) % 2) == 0);
+            end
+            else begin
+                // partial byte, expected last bit is the last bit
+                expectedLastBit = data[$];
+            end
         end
     endfunction
 
-    // Set up an event struct for an expected parity fail
-    function automatic void push_parity_fail_event;
-        automatic FrameDecodeEvent e;
-        e.soc               = 1'b0;
-        e.eoc               = 1'b0;
-        e.sequence_error    = 1'b0;
-        e.parity_error      = 1'b1;
-        e.data_valid        = 1'b0;
-        e.data_bits         = 3'd0;
-        e.data              = 8'hxx;
-
-        expected.push_back(e);
-
-        // don't check last_bit in case of errors
-        expectedLastBit     = 1'bx;
-    endfunction
-
-    // Set up an event struct for an expected sequenec error
-    function automatic void push_sequence_error_event;
-        automatic FrameDecodeEvent e;
-        e.soc               = 1'b0;
-        e.eoc               = 1'b0;
-        e.sequence_error    = 1'b1;
-        e.parity_error      = 1'b0;
-        e.data_valid        = 1'b0;
-        e.data_bits         = 'hx;  // we don't know on which bit the error occured
-        e.data              = 8'hxx;
-
-        expected.push_back(e);
+    // Set up an event struct for an expected error
+    function automatic void push_error_event;
+        expected.push_back(EVENT_ERROR);
 
         // don't check last_bit in case of errors
         expectedLastBit     = 1'bx;
@@ -277,17 +168,17 @@ module frame_decode_validator
     // build a FrameDecodeEvent struct from the outputs
     FrameDecodeEvent outputs;
     always_comb begin
-        outputs.soc               = soc;
-        outputs.eoc               = eoc;
-        outputs.sequence_error    = sequence_error;
-        outputs.parity_error      = parity_error;
-        outputs.data_valid        = data_valid;
-        outputs.data_bits         = data_bits;
-        outputs.data              = data;
+        outputs.soc         = soc;
+        outputs.eoc         = eoc;
+        outputs.error       = error;
+        outputs.data_valid  = data_valid;
+        outputs.data        = data;
     end
 
     always_ff @(posedge clk) begin
         if (event_detected) begin
+            //$display("event detected %p", outputs);
+
             gotEventButNoneExpected:
                 assert (expected.size != 0)
                 else $error("event detected but not expecting anything");
@@ -295,8 +186,6 @@ module frame_decode_validator
             if (expected.size != 0) begin: expectedQueueNotEmpty
                 automatic FrameDecodeEvent expectedEvent = expected.pop_front;
                 automatic logic expected_event_valid = validate_event(expectedEvent);
-                automatic string err_str_actual = event_to_string(outputs);
-                automatic string err_str_expected = event_to_string(expectedEvent);
 
                 expectedEventValid:
                     assert (expected_event_valid)
@@ -304,8 +193,8 @@ module frame_decode_validator
 
                 eventNotAsExpected:
                     assert (outputs ==? expectedEvent)  // ==? so we allow 'x in expectedEvent as a wildcard
-                    else $error("Detected event is not as expected. Got %s, expected %s",
-                                err_str_actual, err_str_expected);
+                    else $error("Detected event is not as expected. Got %p, expected %p",
+                                outputs, expectedEvent);
 
                 if (outputs.eoc) begin
                     // check last_bit
@@ -327,8 +216,8 @@ module frame_decode_validator
         @(posedge clk)
         !rst_n |->
             (!soc && !eoc &&
-             !parity_error && !sequence_error &&
-             !data_valid && !event_detected))
+             !error && !data_valid &&
+             !event_detected))
         else $error("Outputs not as expected whilst in reset");
 
     // Check that the outputs are always valid
@@ -354,19 +243,12 @@ module frame_decode_validator
         eoc |=> !eoc)
         else $error("eoc asserted for more than one tick");
 
-    // sequence_error is only valid for one tick at a time
-    sequenceErrorOnlyOneTick:
+    // error is only valid for one tick at a time
+    errorOnlyOneTick:
     assert property (
         @(posedge clk)
-        sequence_error |=> !sequence_error)
-        else $error("sequence_error asserted for more than one tick");
-
-    // parity_error is only valid for one tick at a time
-    parityErrorOnlyOneTick:
-    assert property (
-        @(posedge clk)
-        parity_error |=> !parity_error)
-        else $error("parity_error asserted for more than one tick");
+        error |=> !error)
+        else $error("error asserted for more than one tick");
 
     // data_valid is only valid for one tick at a time
     dataValidOnlyOneTick:
@@ -379,7 +261,7 @@ module frame_decode_validator
     lastBitStableBetweenFrames:
     assert property (
         @(posedge clk)
-        $rose(eoc) |=> $stable(last_bit) throughout soc[->1])
+        $rose(eoc) |-> $stable(last_bit) throughout soc[->1])
         else $error("last_bit changed between frames");
 
 endmodule
