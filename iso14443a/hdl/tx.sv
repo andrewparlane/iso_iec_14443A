@@ -23,10 +23,10 @@
 
 `timescale 1ps/1ps
 
-// The user sets data and asserts send
+// The user sets data and asserts valid
 // when req asserts if there is more bits to send then
-// the data should be updated and send should remain asserted
-// If there's no more data to send then send should be deasserted
+// the data should be updated and valid should remain asserted
+// If there's no more data to send then valid should be deasserted
 
 module tx
 (
@@ -38,7 +38,7 @@ module tx
 
     // information about the data to send
     input                   data,
-    input                   send,
+    input                   valid,
 
     // request for more data
     output logic            req,
@@ -74,8 +74,8 @@ module tx
             case (state)
                 State_IDLE: begin
                     // we're idle
-                    // wait for a send request
-                    if (send) begin
+                    // wait for data to go valid
+                    if (valid) begin
                         // send the SOC
                         state       <= State_SOC;
 
@@ -94,10 +94,10 @@ module tx
                 end
 
                 State_DATA: begin
-                    // when the REQ comes in if we still have more to send then cache the new data
-                    // and request more. Otherwise go to EOC
+                    // when the REQ comes in if we still have more to send (data is valid)
+                    // then cache the new data and request more. Otherwise go to EOC
                     if (be_req) begin
-                        if (send) begin
+                        if (valid) begin
                             data_cached <= data;
                             req         <= 1'b1;
                         end
