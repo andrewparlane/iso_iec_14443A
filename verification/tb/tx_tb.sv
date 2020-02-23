@@ -34,7 +34,7 @@ module tx_tb;
     logic       rst_n;
 
     logic       data;
-    logic       send;
+    logic       valid;
 
     logic       req;
 
@@ -115,7 +115,7 @@ module tx_tb;
         foreach (sq[i]) begin
             // set up the inputs
             data = sq[i];
-            send = 1'b1;
+            valid = 1'b1;
 
             // if this is the first bit, then we need to set sending when we expect the data to start
             // being output
@@ -127,8 +127,8 @@ module tx_tb;
             @(posedge clk) begin end
         end
 
-        // nothing more to send, clear send
-        send = 1'b0;
+        // nothing more to send, clear valid
+        valid = 1'b0;
 
         // the tx module doesn't tell us when it's done sending
         // so just wait until the expected queue is empty + a few ticks
@@ -161,7 +161,7 @@ module tx_tb;
     initial begin
         automatic logic sendQueue[$] = '{};
 
-        send <= 1'b0;
+        valid <= 1'b0;
 
         // reset for 5 ticks
         rst_n <= 1'b0;
@@ -172,7 +172,7 @@ module tx_tb;
         // Stuff to test
         //  0) SOC - done implicity by adding the SOC to the expected queue
         //  1) nothing sends if send is low
-        send    <= 1'b0;
+        valid    <= 1'b0;
         expected.delete;
         repeat(512) expected.push_back(1'b0);   // output always 0 for 4 bit times
         repeat (5) @(posedge clk) begin end
