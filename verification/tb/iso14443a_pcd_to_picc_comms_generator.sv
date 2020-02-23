@@ -410,18 +410,20 @@ module iso14443a_pcd_to_picc_comms_generator
         return seqs;
     endfunction
 
-    function bit_queue add_parity_to_bit_queue (bit bits[$]);
+    function bit_queue add_parity_to_bit_queue (bit bits[$], int first_parity_after_bits=8);
         // create a new bit queue with the parity bits in
-        bit_queue new_bits;
-        int bit_count;
-        bit parity;
+        automatic bit_queue new_bits    = '{};
+        automatic int bit_count         = 0;
+        automatic bit parity            = 1'b1;
+        automatic int parity_after_bits = first_parity_after_bits;
+
+        if (parity_after_bits == 0) begin
+            parity_after_bits = 8;
+        end
 
         // see ISO/IEC 14443-3:2016 section 6.2.3.2.1
         // parity is set so that the number of 1s is odd in each byte
 
-        new_bits = {};
-        bit_count = 0;
-        parity = 1'b1;
         foreach (bits[i]) begin
             new_bits.push_back(bits[i]);
 
@@ -430,10 +432,11 @@ module iso14443a_pcd_to_picc_comms_generator
             end
 
             bit_count++;
-            if (bit_count == 8) begin
+            if (bit_count == parity_after_bits) begin
                 bit_count = 0;
                 new_bits.push_back(parity);
-                parity = 1'b1;
+                parity              = 1'b1;
+                parity_after_bits   = 8;
             end
         end
 
