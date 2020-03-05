@@ -74,6 +74,9 @@ VCS_DIR			= verification/vcs
 
 # src files
 SRCS	= $(wildcard $(ROOT_DIR)/$(PKG_DIR)/*.sv) \
+		  $(wildcard $(ROOT_DIR)/$(SRC_DIR)/interfaces/*.sv) \
+		  $(wildcard $(ROOT_DIR)/$(SRC_DIR)/iso14443_2a/*.sv) \
+		  $(wildcard $(ROOT_DIR)/$(SRC_DIR)/iso14443_3a/*.sv) \
 		  $(wildcard $(ROOT_DIR)/$(SRC_DIR)/*.sv) \
 		  $(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/*.sv)
 
