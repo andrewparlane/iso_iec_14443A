@@ -38,12 +38,8 @@ module sequence_decode
     // So we just look for rising edges (end of pause)
     input                                   pause_n_synchronised,
 
-    // outputs
-    output logic                            soc,            // start of comms
-    output logic                            eoc,            // end of comms
-    output logic                            data,           // data bit, only valid when data_valid asserted
-    output logic                            data_valid,
-    output logic                            error
+    // outputs (BY_BYTE must be 0)
+    rx_interface.out_bit                    out_iface
 );
 
     import ISO14443A_pkg::*;
@@ -281,18 +277,18 @@ module sequence_decode
 
     always @(posedge clk, negedge rst_n) begin
         if (!rst_n) begin
-            soc         <= 1'b0;
-            eoc         <= 1'b0;
-            error       <= 1'b0;
-            data_valid  <= 1'b0;
-            in_frame    <= 1'b0;
+            out_iface.soc           <= 1'b0;
+            out_iface.eoc           <= 1'b0;
+            out_iface.error         <= 1'b0;
+            out_iface.data_valid    <= 1'b0;
+            in_frame                <= 1'b0;
         end
         else begin
             // these should only assert for one tick
-            soc         <= 1'b0;
-            eoc         <= 1'b0;
-            error       <= 1'b0;
-            data_valid  <= 1'b0;
+            out_iface.soc           <= 1'b0;
+            out_iface.eoc           <= 1'b0;
+            out_iface.error         <= 1'b0;
+            out_iface.data_valid    <= 1'b0;
 
             // only do something if we have a valid seq
             if (seq_valid) begin
@@ -307,8 +303,8 @@ module sequence_decode
                 else begin
                     if (prev_is_soc) begin
                         // Issue our SOC and start the frame
-                        soc         <= 1'b1;
-                        in_frame    <= 1'b1;
+                        out_iface.soc           <= 1'b1;
+                        in_frame                <= 1'b1;
                     end
                     else if (in_frame) begin
                         // we emit nothing when we aren't in a frame
@@ -317,21 +313,21 @@ module sequence_decode
                             // it's the EOC if we have logic '0' followed by Y
                             // See ISO/IEC 14443-2:2016 section 8.1.3.1
                             // Issue the EOC and end the frame
-                            eoc         <= 1'b1;
-                            in_frame    <= 1'b0;
+                            out_iface.eoc           <= 1'b1;
+                            in_frame                <= 1'b0;
                         end
                         else if (prev == PCDBitSequence_ERROR) begin
                             // there was a timing error
                             // seq_valid doesn't go high again until we've timed out
                             // so this can only happens once
-                            error       <= 1'b1;
+                            out_iface.error         <= 1'b1;
                         end
                         else begin
                             // we're not SOC, EOC or an error, and we're in a frame
                             // emit the data bit
-                            data_valid  <= 1'b1;
+                            out_iface.data_valid    <= 1'b1;
                             // PCDBitSequence_X -> 1, PCDBitSequence_Y -> 0, PCDBitSequence_Z -> 0
-                            data        <= (prev == PCDBitSequence_X);
+                            out_iface.data          <= (prev == PCDBitSequence_X);
                         end
                     end
                 end
