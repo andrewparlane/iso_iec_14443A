@@ -36,11 +36,7 @@ module sequence_decode_tb;
     logic rst_n;
     logic pause_n_synchronised;
 
-    logic soc;
-    logic eoc;
-    logic data;
-    logic data_valid;
-    logic error;
+    rx_interface #(.BY_BYTE(0)) out_iface (.*);
 
     // --------------------------------------------------------------
     // DUT
@@ -60,49 +56,14 @@ module sequence_decode_tb;
     assign pause_n_synchronised = pause_n;
 
     // --------------------------------------------------------------
-    // Verify sequence is as expected
+    // The sink for the out_iface
     // --------------------------------------------------------------
 
-    typedef struct packed
-    {
-        logic soc;
-        logic eoc;
-        logic data;
-        logic data_valid;
-        logic error;
-    } Results;
-
-    localparam Results EVENT_SOC    = '{1'b1, 1'b0, 1'bx, 1'b0, 1'b0};
-    localparam Results EVENT_EOC    = '{1'b0, 1'b1, 1'bx, 1'b0, 1'b0};
-    localparam Results EVENT_ERROR  = '{1'b0, 1'b0, 1'bx, 1'b0, 1'b1};
-    localparam Results EVENT_DATA_0 = '{1'b0, 1'b0, 1'b0, 1'b1, 1'b0};
-    localparam Results EVENT_DATA_1 = '{1'b0, 1'b0, 1'b1, 1'b1, 1'b0};
-
-    Results outputs;
-    assign outputs = '{soc, eoc, data, data_valid, error};
-
-    Results expected[$];
-
-    // has something happened this tick?
-    logic event_detected;
-    assign event_detected = soc | eoc | error | data_valid;
-
-    always_ff @(posedge clk) begin
-        if (event_detected) begin
-            //$display("got event %p", outputs);
-
-            eventDectedButNoneExpected:
-                assert (expected.size != 0)
-                else $error("event detected but not expecting anything: %p", outputs);
-
-            if (expected.size != 0) begin: eventExpected
-                automatic Results e = expected.pop_front;
-                eventNotAsExpected:
-                    assert (outputs ==? e) // ==? so we allow 'x in e as a wildcard
-                    else $error("got event %p but expected %p", outputs, e);
-            end
-        end
-    end
+    rx_interface_sink sink
+    (
+        .clk    (clk),
+        .iface  (out_iface)
+    );
 
     // --------------------------------------------------------------
     // Test stimulus
@@ -139,19 +100,11 @@ module sequence_decode_tb;
                  PCDBitSequence_Y,  //              EOC
                  PCDBitSequence_Y}; // Y    -> Y    EOC + IDLE
 
-        expected = '{EVENT_SOC,
-                     EVENT_DATA_0,
-                     EVENT_DATA_1,
-                     EVENT_DATA_1,
-                     EVENT_DATA_0,
-                     EVENT_DATA_0,
-                     EVENT_DATA_1,
-                     EVENT_DATA_0,
-                     EVENT_DATA_1,
-                     EVENT_EOC};
+        sink.clear_expected_queue;
+        sink.build_valid_frame_expected_queue('{1'b0, 1'b1, 1'b1, 1'b0, 1'b0, 1'b1, 1'b0, 1'b1});
 
         bfm.send_sequence_queue(seqs);
-        wait(expected.size == 0) begin end
+        sink.wait_for_expected_empty(seqs.size * 128 * 2);
 
         // Test Z -> Y EOC
         //$display("Running test 1b");
@@ -162,35 +115,36 @@ module sequence_decode_tb;
                  PCDBitSequence_Y,  // Z -> Y   EOC
                  PCDBitSequence_Y}; //          IDLE
 
-        expected = '{EVENT_SOC,
-                     EVENT_DATA_1,
-                     EVENT_DATA_0,
-                     EVENT_EOC};
+        sink.clear_expected_queue;
+        sink.build_valid_frame_expected_queue('{1'b1, 1'b0});
 
         bfm.send_sequence_queue(seqs);
-        wait(expected.size == 0) begin end
+        sink.wait_for_expected_empty(seqs.size * 128 * 2);
 
         // 2) Generate a bunch of random queue of sequences (excludes error cases)
         //$display("Running test 2");
         repeat (50) begin
+            automatic bit bq[$];
             seqs = bfm.generate_valid_sequence_queue(100);
-            expected = '{EVENT_SOC};
+
             // starts at 1 because [0] is SOC,
             // ends at size-3 because last two are YY
             for (int i = 1; i < seqs.size-2; i++) begin
-                expected.push_back((seqs[i] == PCDBitSequence_X) ? EVENT_DATA_1 : EVENT_DATA_0);
+                bq.push_back(seqs[i] == PCDBitSequence_X);
             end
             if (seqs[$-2] == PCDBitSequence_Z) begin
                 // ends in ZYY, which is EOC + IDLE
-                void'(expected.pop_back);
+                void'(bq.pop_back);
             end
-            expected.push_back(EVENT_EOC);
+
+            sink.clear_expected_queue;
+            sink.build_valid_frame_expected_queue(bq);
 
             // $display("sending: %p", seqs);
             // $display("expecting: %p", expected);
 
             bfm.send_sequence_queue(seqs);
-            wait(expected.size == 0) begin end
+            sink.wait_for_expected_empty(seqs.size * 128 * 2);
         end
 
         // 3) Test X -> Z error cases
@@ -205,13 +159,14 @@ module sequence_decode_tb;
                  PCDBitSequence_Y,  // EOC
                  PCDBitSequence_Y}; // EOC
 
-        expected = '{EVENT_SOC,
-                     EVENT_DATA_1,
-                     EVENT_ERROR,
-                     EVENT_EOC};
+        sink.clear_expected_queue;
+        sink.add_expected_soc_event;
+        sink.add_expected_data_events('{1'b1});
+        sink.add_expected_error_event;
+        sink.add_expected_eoc_full_byte_event(1'b0);
 
         bfm.send_sequence_queue(seqs);
-        wait(expected.size == 0) begin end
+        sink.wait_for_expected_empty(seqs.size * 128 * 2);
     endtask
 
 
@@ -254,44 +209,6 @@ module sequence_decode_tb;
     // --------------------------------------------------------------
     // Asserts
     // --------------------------------------------------------------
-
-    // synopsys doesn't like "disable iff (!rst_n)"
-    logic rst_for_asserts = !rst_n;
-
-    // Check that the outputs are correct when in reset
-    signalsInReset:
-    assert property (
-        @(posedge clk)
-        !rst_n |->
-            (!soc && !eoc && !data_valid && !error))
-            else $error("signals invalid in reset");
-
-    // soc is only asserted for one tick at a time
-    socOnlyOneTick:
-    assert property (
-        @(posedge clk)
-        soc |=> !soc)
-        else $error("soc asserted for more than one tick");
-
-    // eoc is only asserted for one tick at a time
-    eocOnlyOneTick:
-    assert property (
-        @(posedge clk)
-        eoc |=> !eoc)
-        else $error("eoc asserted for more than one tick");
-
-    // error is only asserted for one tick at a time
-    errorOnlyOneTick:
-    assert property (
-        @(posedge clk)
-        error |=> !error)
-        else $error("error asserted for more than one tick");
-
-    // data_valid is only asserted for one tick at a time
-    dataValidOnlyOneTick:
-    assert property (
-        @(posedge clk)
-        data_valid |=> !data_valid)
-        else $error("data_valid asserted for more than one tick");
+    // all asserts are in the sink and the rx_interface
 
 endmodule
