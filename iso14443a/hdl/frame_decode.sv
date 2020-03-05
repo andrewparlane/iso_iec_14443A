@@ -1,6 +1,6 @@
 /***********************************************************************
         File: frame_decode.sv
- Description: Turns PCDBitSequences into SOC, EOC, and data bytes
+ Description: Check and remove parity bits
       Author: Andrew Parlane
 **********************************************************************/
 
@@ -27,32 +27,24 @@ module frame_decode
 (
     // clk is our 13.56MHz input clock. It is recovered from the carrier wave,
     // and as such stops during pause frames. It must not have any glitches.
-    input           clk,
+    input                   clk,
 
     // rst is our active low synchronised asynchronous reset signal
-    input           rst_n,
+    input                   rst_n,
 
-    // inputs from sequence_decode
-    input           sd_soc,
-    input           sd_eoc,
-    input           sd_data,
-    input           sd_data_valid,
-    input           sd_error,
+    // from 14443_2a
+    rx_interface.in_bit     in_iface,
 
     // outputs
-    output logic    soc,                // start of comms
-    output logic    eoc,                // end of comms
-    output logic    data,
-    output logic    data_valid,
-    output logic    error,
-    output logic    last_bit            // includes parity, but not EOC, used by the FDT
+    rx_interface.out_bit    out_iface,
+    output logic            last_bit    // includes parity, but not EOC, used by the FDT
 );
 
     // pass through soc
     // we don't pass eoc straight through, because we want to delay it one tick
     // so it occurs at the same time as error if we are missing the parity bit
     // some for data, we want it to be in sync with data_valid
-    assign soc  = sd_soc;
+    assign out_iface.soc = in_iface.soc;
 
     logic       next_bit_is_parity; // after every 8 bits of data we expect a parity bit
     logic       expected_parity;    // what should the parity bit be
@@ -62,19 +54,19 @@ module frame_decode
 
     always_ff @(posedge clk, negedge rst_n) begin
         if (!rst_n) begin
-            data_valid          <= 1'b0;
-            error               <= 1'b0;
-            eoc                 <= 1'b0;
-            last_bit            <= 1'b0;
-            next_bit_is_parity  <= 1'b0;
+            out_iface.data_valid    <= 1'b0;
+            out_iface.error         <= 1'b0;
+            out_iface.eoc           <= 1'b0;
+            last_bit                <= 1'b0;
+            next_bit_is_parity      <= 1'b0;
         end
         else begin
             // these should only be asserted for one tick
-            data_valid      <= 1'b0;
-            error           <= 1'b0;
-            eoc             <= 1'b0;
+            out_iface.data_valid    <= 1'b0;
+            out_iface.error         <= 1'b0;
+            out_iface.eoc           <= 1'b0;
 
-            if (sd_soc) begin
+            if (in_iface.soc) begin
                 // new frame
 
                 // by the time we check bit_count we'll have just received our first bit
@@ -86,15 +78,15 @@ module frame_decode
                 data_received       <= 1'b0;
             end
 
-            if (sd_eoc) begin
+            if (in_iface.eoc) begin
                 // EOC
-                eoc <= 1'b1;
+                out_iface.eoc <= 1'b1;
 
                 // we error if we were expecting a parity bit
                 // or if we have received no data
                 if (!error_detected &&
                     (next_bit_is_parity || !data_received)) begin
-                    error           <= 1'b1;
+                    out_iface.error <= 1'b1;
                     error_detected  <= 1'b1;
                 end
             end
@@ -103,31 +95,31 @@ module frame_decode
             if (!error_detected) begin
                 // valid data from the sequence_decode module
                 // it's either parity or actual data
-                if (sd_data_valid) begin
+                if (in_iface.data_valid) begin
                     data_received   <= 1'b1;
-                    last_bit        <= sd_data;
+                    last_bit        <= in_iface.data;
 
                     if (next_bit_is_parity) begin
                         next_bit_is_parity  <= 1'b0;
 
-                        if (sd_data != expected_parity) begin
+                        if (in_iface.data != expected_parity) begin
                             // parity error
-                            error               <= 1'b1;
-                            error_detected      <= 1'b1;
+                            out_iface.error <= 1'b1;
+                            error_detected  <= 1'b1;
                         end
 
                         // reset expected_parity for the next bit
                         expected_parity     <= 1'b1;
                     end
                     else begin
-                        bit_count       <= bit_count + 1'd1;
+                        bit_count               <= bit_count + 1'd1;
 
                         // not a parity bit, so pass it through
-                        data_valid      <= 1'b1;
-                        data            <= sd_data;
+                        out_iface.data_valid    <= 1'b1;
+                        out_iface.data          <= in_iface.data;
 
                         // odd parity (expecting number of 1s to be odd)
-                        expected_parity <= expected_parity ^ sd_data;
+                        expected_parity <= expected_parity ^ in_iface.data;
 
                         if (bit_count == 0) begin
                             // received 8 bits, next bit is the parity bit
@@ -137,9 +129,9 @@ module frame_decode
                 end
 
                 // error from the sequence_decode module
-                if (sd_error) begin
+                if (in_iface.error) begin
                     error_detected  <= 1'b1;
-                    error           <= 1'b1;
+                    out_iface.error <= 1'b1;
                 end
             end
         end
