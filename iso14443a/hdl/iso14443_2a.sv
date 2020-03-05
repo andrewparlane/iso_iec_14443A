@@ -31,33 +31,29 @@ module iso14443_2a
 (
     // clk is our 13.56MHz input clock. It is recovered from the carrier wave,
     // and as such stops during pause frames. It must not have any glitches.
-    input           clk,
+    input                   clk,
 
     // rst is our active low synchronised asynchronous reset signal
-    input           rst_n,
+    input                   rst_n,
 
     // pause_n_synchronised is the synchronised pause_n signal.
     // since the clock stops during pause frames, we can only expect pause_n_synchronised
     // to be asserted (0) for a couple of clock ticks.
     // So we just look for rising edges (end of pause)
-    input           pause_n_synchronised,
+    input                   pause_n_synchronised,
 
-    // outputs
-    output logic    rx_soc,         // start of comms
-    output logic    rx_eoc,         // end of comms
-    output logic    rx_data,        // data bit, only valid when data_valid asserted
-    output logic    rx_data_valid,
-    output logic    rx_error,
+    // to 14443_3a (BY_BYTE must be 0)
+    rx_interface.out_bit    out_iface,
 
     // data to send
-    input           tx_data,
-    input           tx_send,
+    input                   tx_data,
+    input                   tx_send,
 
     // request for more data
-    output logic    tx_req,
+    output logic            tx_req,
 
     // tx_out is the manchester encoded data AND'ed with the subcarrier
-    output logic    tx_out
+    output logic            tx_out
 );
 
     sequence_decode sd_inst
@@ -67,11 +63,7 @@ module iso14443_2a
 
         .pause_n_synchronised   (pause_n_synchronised),
 
-        .rx_soc                 (rx_soc),
-        .rx_eoc                 (rx_eoc),
-        .rx_data                (rx_data),
-        .rx_data_valid          (rx_data_valid),
-        .rx_error               (rx_error)
+        .out_iface              (out_iface)
     );
 
     tx tx_inst
