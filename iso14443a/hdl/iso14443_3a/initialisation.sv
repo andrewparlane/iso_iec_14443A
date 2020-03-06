@@ -314,8 +314,10 @@ module initialisation
                                       (ac_sel_msg.nvb.bits  == rx_data_bits)                    &&
                                       (ac_sel_msg.nvb.bytes == rx_count); */
 
+    // CRC is checked where we use is_SELECT
+    // since otherwise we are is_AC_SELECT and is_AC_SELECT_for_us
+    // but not is_SELECT which means we respond with our AC reply instead of erroring
     assign is_SELECT                = is_AC_SELECT                  &&
-                                      rx_crc_ok                     &&
                                       (ac_sel_msg.nvb.bits == 0)    &&
                                       (ac_sel_msg.nvb.bytes == 7);
 
@@ -408,13 +410,19 @@ module initialisation
                         // for all other messages return to idle
                         if (is_AC_SELECT && is_AC_SELECT_for_us) begin
                             if (is_SELECT) begin
-                                if (is_final_cascade_level) begin
-                                    next_state = State_ACTIVE;
+                                if (rx_crc_ok) begin
+                                    if (is_final_cascade_level) begin
+                                        next_state = State_ACTIVE;
+                                    end
+                                    else begin
+                                        next_cascade_level = next_cascade_level + 1'd1;
+                                    end
+                                    reply = Reply_SAK;
                                 end
                                 else begin
-                                    next_cascade_level = next_cascade_level + 1'd1;
+                                    // CRC fail is an error
+                                    next_state = State_IDLE;
                                 end
-                                reply = Reply_SAK;
                             end
                             else begin
                                 reply = Reply_AC;
