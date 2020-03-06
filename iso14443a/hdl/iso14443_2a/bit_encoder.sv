@@ -31,17 +31,15 @@ module bit_encoder
     // rst_n is our active low synchronised asynchronous reset signal
     input               rst_n,
 
-    // the bit to encode
-    input               data,
-
     // are we generating output?
     input               en,
 
+    // data to encode
+    // we ignore data_valid here and just assume it's valid if we are enabled
+    tx_interface.in_bit in_iface,
+
     // output data
     output logic        encoded_data,
-
-    // request next bit
-    output logic        req,
 
     // end of bit time
     output logic        last_tick
@@ -64,7 +62,7 @@ module bit_encoder
                     //  0: low for the first half, high for the second
                     //  1: high for the first half, low for the second
                     // first tick, set encoded_data to the first half of the bit period
-                    encoded_data <= data;
+                    encoded_data <= in_iface.data;
                 end
                 else if (count == 64) begin
                     // half way through the bit period, so invert encoded_data
@@ -83,6 +81,6 @@ module bit_encoder
     // request more data when we are halfway through the bit period
     // we could do this at anytime but this should reuse the == 64 comparitor
     // that we already have
-    assign req = (count == 64);
+    assign in_iface.req = (count == 64);
 
 endmodule
