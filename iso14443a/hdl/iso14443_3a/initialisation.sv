@@ -54,12 +54,7 @@ module initialisation
     input [UID_INPUT_BITS-1:0]  uid_variable,
 
     // Receive signals
-    input                       rx_soc,
-    input                       rx_eoc,
-    input           [7:0]       rx_data,
-    input           [2:0]       rx_data_bits,
-    input                       rx_data_valid,
-    input                       rx_error,
+    rx_interface.in_byte        rx_iface,
     input                       rx_crc_ok,
 
     // From the iso14443-4 block
@@ -198,15 +193,15 @@ module initialisation
         endcase
 
         // now compare it with the received data (depending on how many bits we received)
-        case (rx_data_bits)
-            1: rx_matches_uid_data_byte = (uid_data_byte[0:0] == rx_data[0:0]);
-            2: rx_matches_uid_data_byte = (uid_data_byte[1:0] == rx_data[1:0]);
-            3: rx_matches_uid_data_byte = (uid_data_byte[2:0] == rx_data[2:0]);
-            4: rx_matches_uid_data_byte = (uid_data_byte[3:0] == rx_data[3:0]);
-            5: rx_matches_uid_data_byte = (uid_data_byte[4:0] == rx_data[4:0]);
-            6: rx_matches_uid_data_byte = (uid_data_byte[5:0] == rx_data[5:0]);
-            7: rx_matches_uid_data_byte = (uid_data_byte[6:0] == rx_data[6:0]);
-            0: rx_matches_uid_data_byte = (uid_data_byte[7:0] == rx_data[7:0]);
+        case (rx_iface.data_bits)
+            1: rx_matches_uid_data_byte = (uid_data_byte[0:0] == rx_iface.data[0:0]);
+            2: rx_matches_uid_data_byte = (uid_data_byte[1:0] == rx_iface.data[1:0]);
+            3: rx_matches_uid_data_byte = (uid_data_byte[2:0] == rx_iface.data[2:0]);
+            4: rx_matches_uid_data_byte = (uid_data_byte[3:0] == rx_iface.data[3:0]);
+            5: rx_matches_uid_data_byte = (uid_data_byte[4:0] == rx_iface.data[4:0]);
+            6: rx_matches_uid_data_byte = (uid_data_byte[5:0] == rx_iface.data[5:0]);
+            7: rx_matches_uid_data_byte = (uid_data_byte[6:0] == rx_iface.data[6:0]);
+            0: rx_matches_uid_data_byte = (uid_data_byte[7:0] == rx_iface.data[7:0]);
         endcase
     end
 
@@ -225,7 +220,7 @@ module initialisation
             // But we have to assume that the rx module produces valid signals, and that
             // the Rx testbench will catch any problems.
 
-            if (rx_soc) begin
+            if (rx_iface.soc) begin
                 // start of a new message
                 rx_count            <= '0;
                 rx_error_flag       <= 1'b0;
@@ -235,23 +230,23 @@ module initialisation
                 is_AC_SELECT_for_us <= 1'b1;
             end
 
-            if (rx_eoc) begin
+            if (rx_iface.eoc) begin
                 // we use this rather than rx_eoc directly,
-                // because for partial packets the rx_data_valid assserts
+                // because for partial packets the rx_iface.data_valid assserts
                 // at the same time, and so our rx_buffer won't be correct
                 // until the next tick.
                 pkt_received    <= 1'b1;
             end
 
-            if (rx_error) begin
+            if (rx_iface.error) begin
                 rx_error_flag   <= 1'b1;
             end
 
-            if (rx_data_valid) begin
+            if (rx_iface.data_valid) begin
                 if (rx_count != $bits(rx_count)'(RX_BUFF_LEN)) begin
-                    rx_buffer[rx_count]     <= rx_data;
+                    rx_buffer[rx_count]     <= rx_iface.data;
 
-                    if (!rx_eoc) begin
+                    if (!rx_iface.eoc) begin
                         // don't count partial bytes. This makes our rx_count and rx_data_bits
                         // match the AC/SELECT message's NVB
                         rx_count <= rx_count + 1'd1;
