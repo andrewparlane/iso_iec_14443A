@@ -712,8 +712,8 @@ module initialisation_tb
         rst_n <= 1'b1;
         repeat (5) @(posedge clk) begin end
 
-        // repeat 100 times with different UIDs
-        repeat (100) begin
+        // repeat 10 times with different UIDs
+        repeat (10) begin
             // TODO: Add a parameter to let me instead test all possible variable_uid values
             //       For when running initialisation_tb_actual with UID_INPUT_BITS being small
 
