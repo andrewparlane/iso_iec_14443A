@@ -74,12 +74,7 @@ module initialisation_tb
     logic [UID_INPUT_BITS-1:0]  uid_variable;
 
     // Receive signals
-    logic                       rx_soc;
-    logic                       rx_eoc;
-    logic [7:0]                 rx_data;
-    logic [2:0]                 rx_data_bits;
-    logic                       rx_data_valid;
-    logic                       rx_error;
+    rx_interface #(.BY_BYTE(1)) rx_iface (.*);
     logic                       rx_crc_ok;
 
     // From the iso14443-4 block
@@ -104,6 +99,16 @@ module initialisation_tb
         .UID_FIXED      (UID_FIXED)
     )
     dut (.*);
+
+    // --------------------------------------------------------------
+    // The source for the in_iface
+    // --------------------------------------------------------------
+
+    rx_interface_source source
+    (
+        .clk    (clk),
+        .iface  (rx_iface)
+    );
 
     // --------------------------------------------------------------
     // UID
@@ -196,77 +201,18 @@ module initialisation_tb
 
     task send_frame (logic [7:0] dq[$], int bits_in_last_byte, logic add_crc, int error_in_byte = -1);
         automatic logic [15:0] crc = bfm.calculate_crc(dq);
-        automatic int loopLimit;
-        automatic int i;
-        automatic bit sent_error = 1'b0;
 
-        if (bits_in_last_byte == 0) begin
-            bits_in_last_byte = 8;
-        end
+        rx_crc_ok <= 1'b0;
 
         if (add_crc) begin
             dq.push_back(crc[7:0]);
             dq.push_back(crc[15:8]);
         end
 
-        rx_soc          <= 1'b0;
-        rx_eoc          <= 1'b0;
-        rx_data_bits    <= '0;      // 8 bits
-        rx_data_valid   <= 1'b0;
-        rx_error        <= 1'b0;
-        rx_crc_ok       <= 1'b0;
-
-        // sync to clock
-        @(posedge clk) begin end
-
-        // SOC
-        rx_soc <= 1'b1;
-        @(posedge clk) begin end
-        rx_soc <= 1'b0;
-        @(posedge clk) begin end
-
-        // DATA
-        loopLimit = dq.size;
-        if (bits_in_last_byte != 8) begin
-            loopLimit--;
-        end
-        for (i = 0; i < loopLimit; i++) begin
-            rx_data         <= dq[i];
-            if (error_in_byte == i) begin
-                rx_error        <= 1'b1;
-                sent_error      = 1'b1;
-            end
-            else if (!sent_error) begin
-                rx_data_valid   <= 1'b1;
-            end
-            @(posedge clk) begin end
-            rx_error        <= 1'b0;
-            rx_data_valid   <= 1'b0;
-            @(posedge clk) begin end
-        end
-
-        // partial byte
-        if (bits_in_last_byte != 8) begin
-            rx_data         <= dq[$];
-            if (error_in_byte == i) begin
-                rx_error        <= 1'b1;
-                sent_error       = 1'b1;
-            end
-            else if (!sent_error) begin
-                rx_data_valid   <= 1'b1;
-            end
-            rx_data_bits    <= 3'(bits_in_last_byte);
-        end
-
-        // EOC
-        rx_eoc              <= 1'b1;
-        @(posedge clk) begin end
-        rx_eoc              <= 1'b0;
-        rx_data_valid       <= 1'b0;
-        rx_error            <= 1'b0;
+        source.send_frame(dq, bits_in_last_byte, error_in_byte);
 
         // CRC
-        if (add_crc && !sent_error) begin
+        if (add_crc && (error_in_byte == -1)) begin
             rx_crc_ok       <= 1'b1;
             @(posedge clk) begin end
             rx_crc_ok       <= 1'b0;
@@ -750,10 +696,10 @@ module initialisation_tb
     // --------------------------------------------------------------
 
     initial begin
-        rx_soc                  <= 1'b0;
-        rx_eoc                  <= 1'b0;
-        rx_data_valid           <= 1'b0;
-        rx_error                <= 1'b0;
+        rx_iface.soc            <= 1'b0;
+        rx_iface.eoc            <= 1'b0;
+        rx_iface.data_valid     <= 1'b0;
+        rx_iface.error          <= 1'b0;
         iso14443_4_deselect     <= 1'b0;
         tx_req                  <= 1'b0;
 
@@ -1101,14 +1047,14 @@ module initialisation_tb
     rtsStaysLowUntilNextEOC:
     assert property (
         @(posedge clk)
-        $fell(tx_ready_to_send) |=> !tx_ready_to_send throughout rx_eoc[->1])
+        $fell(tx_ready_to_send) |=> !tx_ready_to_send throughout rx_iface.eoc[->1])
         else $error("Tx RTS asserted when not expected");
 
     // rts should be low during Rx
     rtsStaysLowDuringRx:
     assert property (
         @(posedge clk)
-        $rose(rx_soc) |=> !tx_ready_to_send throughout rx_eoc[->1])
+        $rose(rx_iface.soc) |=> !tx_ready_to_send throughout rx_iface.eoc[->1])
         else $error("Tx RTS asserted during Rx");
 
 endmodule
