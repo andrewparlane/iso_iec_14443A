@@ -32,17 +32,27 @@ module bit_encoder_tb;
 
     logic clk;
     logic rst_n;
-    logic data;
     logic en;
     logic encoded_data;
-    logic req;
     logic last_tick;
+
+    tx_interface #(.BY_BYTE(0)) in_iface(.*);
 
     // --------------------------------------------------------------
     // DUT
     // --------------------------------------------------------------
 
     bit_encoder dut (.*);
+
+    // --------------------------------------------------------------
+    // The source for the in_iface
+    // --------------------------------------------------------------
+
+    tx_interface_source source
+    (
+        .clk    (clk),
+        .iface  (in_iface)
+    );
 
     // --------------------------------------------------------------
     // Clock generator
@@ -62,8 +72,8 @@ module bit_encoder_tb;
     // --------------------------------------------------------------
     // Functions / Tasks
     // --------------------------------------------------------------
-    bit expected [$];
-    task send_bit_queue (bit bq[$]);
+    logic expected [$];
+    task send_data (logic bq[$]);
         // set up the expected queue
         expected.delete;
         foreach (bq[i]) begin
@@ -74,25 +84,9 @@ module bit_encoder_tb;
         // sync to the clk
         @(posedge clk) begin end
 
-        // ready the initial bit and start it going
-        data    <= bq.pop_front;
-        en      <= 1'b1;
-
-        // wait for the req and sync to the clk edge
-        wait (req) begin end
-        @(posedge clk) begin end
-
-        while (bq.size) begin
-            // set the next bit of data
-            data <= bq.pop_front;
-
-            // wait one more tick so we don't hit req straight away
-            @(posedge clk) begin end
-
-            // wait for the req and sync to the clk edge
-            wait (req) begin end
-            @(posedge clk) begin end
-        end
+        // set enable and send the data
+        en <= 1'b1;
+        source.send_frame(bq);
 
         // wait for the last tick and sync to the clk edge
         wait (last_tick) begin end
@@ -112,7 +106,7 @@ module bit_encoder_tb;
     // --------------------------------------------------------------
     always_ff @(posedge clk) begin: expectedBlock
         if ($past(en)) begin: isEnabled
-            automatic bit e = expected.pop_front;
+            automatic logic e = expected.pop_front;
             dataAsExpected:
             assert (encoded_data == e) else $error("Expected %b got %b", e, encoded_data);
         end
@@ -123,8 +117,8 @@ module bit_encoder_tb;
     // --------------------------------------------------------------
 
     initial begin
-        en      <= 1'b0;
-        data    <= 1'b0;
+        en <= 1'b0;
+        source.initialise;
 
         // reset for 5 ticks
         rst_n <= 1'b0;
@@ -133,27 +127,27 @@ module bit_encoder_tb;
         repeat (5) @(posedge clk) begin end
 
         // test just a single bit: 0
-        send_bit_queue('{1'b0});
+        send_data('{1'b0});
         repeat (5) @(posedge clk) begin end
 
         // test just a single bit: 1
-        send_bit_queue('{1'b1});
+        send_data('{1'b1});
         repeat (5) @(posedge clk) begin end
 
         // test two bits: 00
-        send_bit_queue('{1'b0, 1'b0});
+        send_data('{1'b0, 1'b0});
         repeat (5) @(posedge clk) begin end
 
         // test two bits: 10
-        send_bit_queue('{1'b1, 1'b0});
+        send_data('{1'b1, 1'b0});
         repeat (5) @(posedge clk) begin end
 
         // lots of tests of several bits
         repeat (1000) begin
             automatic int num_bits = $urandom_range(1,10);
-            automatic bit bq [$] = '{};
-            repeat (num_bits) bq.push_back(bit'($urandom_range(1)));
-            send_bit_queue(bq);
+            automatic logic bq [$] = '{};
+            repeat (num_bits) bq.push_back($urandom_range(1));
+            send_data(bq);
             repeat (5) @(posedge clk) begin end
         end
 
@@ -167,20 +161,14 @@ module bit_encoder_tb;
     inReset:
     assert property (
         @(posedge clk)
-        !rst_n |-> (!req && !last_tick))
+        !rst_n |-> (!in_iface.req && !last_tick))
         else $error("signals not as expecetd in reset");
 
     notEnabled:
     assert property (
         @(posedge clk)
-        !en |=> (!req && !last_tick))
+        !en |=> (!in_iface.req && !last_tick && !$isunknown(encoded_data)))
         else $error("signals not as expecetd when not enabled");
-
-    reqOneShot:
-    assert property (
-        @(posedge clk)
-        $rose(req) |=> $fell(req))
-        else $error("req was asserted for more than one tick");
 
     lastTickOneShot:
     assert property (
@@ -196,7 +184,7 @@ module bit_encoder_tb;
     assert property (
         @(posedge clk)
         disable iff (not_enabled)
-        req |=> (!req[*127] ##1 req))
+        in_iface.req |=> (!in_iface.req[*127] ##1 in_iface.req))
         else $error("req doesn't pulse every 128 ticks");
 
     bitPeriod2:
@@ -209,7 +197,7 @@ module bit_encoder_tb;
     reqBeforeLastTick:
     assert property (
         @(posedge clk)
-        $rose(en) |-> !last_tick throughout req[->1])
+        $rose(en) |-> !last_tick throughout in_iface.req[->1])
         else $error("last_tick asserted before req");
 
 endmodule
