@@ -227,12 +227,13 @@ module initialisation_tb
         send_frame ('{8'h52}, 7, 0);
     endtask
 
-    task send_hlta;
-        send_frame ('{8'h50, 8'h00}, 8, 1);
+    task send_hlta (logic add_crc=1'b1);
+        // we have add_crc so we can disable it to mimic a CRC fail
+        send_frame ('{8'h50, 8'h00}, 8, add_crc);
     endtask
 
     int last_sent_uid_bits;
-    task send_ac_select (int level, int uid_bits, logic [31:0] uid);
+    task send_ac_select (int level, int uid_bits, logic [31:0] uid, logic add_crc_if_select=1'b1);
         // the AC/SELECT message is: sel, nvb, uid0, uid1, uid2, uid3, bcc
 
         automatic logic [7:0]   dq[$];
@@ -274,7 +275,7 @@ module initialisation_tb
 
         // send it
         //$display("sending AC/SELECT %p, bits_in_last_byte %d, add_crc %b", dq, bits_in_last_byte, (uid_bits == 32));
-        send_frame (dq, bits_in_last_byte, (uid_bits == 32));
+        send_frame (dq, bits_in_last_byte, add_crc_if_select && (uid_bits == 32));
     endtask
 
     task send_random;
@@ -1025,6 +1026,59 @@ module initialisation_tb
                         end
                     end
                 end
+            end
+
+            // --------------------------------------------------------------------
+            // Test CRC errors
+            // --------------------------------------------------------------------
+            // only two messages use CRCs, HLTA and SELECT
+            // CRC fail is counted as a transmission error and should return us to HALT / IDLE
+
+            $display("Testing SELECT with CRC error");
+            repeat (10) begin
+                // SELECT is only valid in State_READY or State_READY_STAR
+                automatic State states [$] = '{State_READY, State_READY_STAR};
+                automatic State start_state;
+
+                std::randomize(start_state) with {start_state inside {states};};
+                go_to_state(start_state);
+
+                // valid select but without the CRC
+                send_ac_select (0, 32, sel_uid_level[0], 1'b0);
+
+                check_no_reply;
+
+                // confirm we're in IDLE / HALT
+                check_state((start_state == State_READY) ? State_IDLE : State_HALT);
+            end
+
+            $display("Testing HLTA with CRC error");
+            repeat (100) begin
+                // HLTA can be sent from any state other than PROTOCOL
+                // (although in READY and IDLE we go to IDLE)
+                // It's a bit silly that HLTA requires a CRC.
+                // Since it does not respond in either case and
+                // CRC fail counts as an error, which always does the same
+                // as what a valid HLTA would have done in that case.
+                // except in State_ACTIVE where we return to IDLE for an error
+                // and go to HALT with a valid HLTA.
+                automatic State states [$] = '{State_IDLE, State_READY,      State_ACTIVE,
+                                               State_HALT, State_READY_STAR, State_ACTIVE_STAR};
+                automatic State start_state;
+
+                std::randomize(start_state) with {start_state inside {states};};
+                go_to_state(start_state);
+                $display("starting in state %s", start_state.name);
+
+                // valid select but without the CRC
+                send_hlta(1'b0);
+
+                check_no_reply;
+
+                // confirm we're in IDLE / HALT
+                check_state(((start_state == State_IDLE) ||
+                             (start_state == State_READY) ||
+                             (start_state == State_ACTIVE)) ? State_IDLE : State_HALT);
             end
         end
 
