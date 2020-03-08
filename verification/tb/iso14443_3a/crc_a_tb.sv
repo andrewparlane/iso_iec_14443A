@@ -35,7 +35,7 @@ module crc_a_tb;
 
     logic           start;
     logic           data;
-    logic           data_valid;
+    logic           sample;
     logic [15:0]    crc;
 
     // --------------------------------------------------------------
@@ -115,7 +115,7 @@ module crc_a_tb;
         @(posedge clk) begin end
 
         start       <= 1'b1;
-        data_valid  <= 1'b0;
+        sample      <= 1'b0;
         @(posedge clk) begin end
         start       <= 1'b0;
         @(posedge clk) begin end
@@ -125,9 +125,9 @@ module crc_a_tb;
             for (int j = 0; j < 8; j++) begin // LSb first
                 //$display("passing byte %d, bit %d (%h)", i, j, dq[i][j]);
                 data        <= d[j];
-                data_valid  <= 1'b1;
+                sample      <= 1'b1;
                 @(posedge clk) begin end
-                data_valid  <= 1'b0;
+                sample      <= 1'b0;
                 @(posedge clk) begin end
             end
         end
@@ -152,7 +152,7 @@ module crc_a_tb;
         automatic logic [15:0] crc_a_res;
 
         start       <= 1'b0;
-        data_valid  <= 1'b0;
+        sample      <= 1'b0;
 
         // reset for 5 ticks
         rst_n <= 1'b0;
