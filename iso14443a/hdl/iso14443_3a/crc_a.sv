@@ -33,7 +33,7 @@ module crc_a
 
     input               start,          // starts calculating a new CRC
     input               data,
-    input               data_valid,     // sample data?
+    input               sample,         // sample data?
 
     // For Rx:
     //      Pass all data in including the received CRC. The received CRC is valid,
@@ -59,7 +59,7 @@ module crc_a
             if (start) begin
                 lfsr <= INIT;
             end
-            else if (data_valid) begin
+            else if (sample) begin
                 // shift everything right by one
                 for (int i = 1; i <= 15; i++) begin
                     lfsr[i] <= lfsr[i-1];
