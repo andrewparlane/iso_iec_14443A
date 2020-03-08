@@ -73,29 +73,29 @@ TB_SRC_DIR		= verification/tb
 VCS_DIR			= verification/vcs
 
 # src files
-SRCS	= $(wildcard $(ROOT_DIR)/$(PKG_DIR)/*.sv) 				\
-		  $(wildcard $(ROOT_DIR)/$(SRC_DIR)/interfaces/*.sv) 	\
-		  $(wildcard $(ROOT_DIR)/$(SRC_DIR)/iso14443_2a/*.sv) 	\
-		  $(wildcard $(ROOT_DIR)/$(SRC_DIR)/iso14443_3a/*.sv) 	\
-		  $(wildcard $(ROOT_DIR)/$(SRC_DIR)/*.sv) 				\
-		  $(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/*.sv) 			\
-		  $(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/bfms/*.sv) 		\
-		  $(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/iso14443_2a*.sv) \
-		  $(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/iso14443_3a*.sv)
+SRCS	= $(wildcard $(ROOT_DIR)/$(PKG_DIR)/*.sv) 					\
+		  $(wildcard $(ROOT_DIR)/$(SRC_DIR)/interfaces/*.sv) 		\
+		  $(wildcard $(ROOT_DIR)/$(SRC_DIR)/iso14443_2a/*.sv) 		\
+		  $(wildcard $(ROOT_DIR)/$(SRC_DIR)/iso14443_3a/*.sv) 		\
+		  $(wildcard $(ROOT_DIR)/$(SRC_DIR)/*.sv) 					\
+		  $(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/*.sv) 				\
+		  $(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/bfms/*.sv) 			\
+		  $(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/iso14443_2a/*.sv) 	\
+		  $(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/iso14443_3a/*.sv)
 
 # testbenches
 
 # This is used to generate the rules
-TBS		= sequence_decode_tb \
-		  frame_decode_tb \
-		  rx_tb \
-		  subcarrier_tb \
-		  bit_encoder_tb \
-		  tx_tb \
-		  fdt_tb \
-		  loopback_test \
-		  crc_a_tb \
-		  initialisation_tb
+TBS		= sequence_decode_tb 	\
+		  subcarrier_tb 		\
+		  bit_encoder_tb 		\
+		  tx_tb 				\
+		  frame_decode_tb 		\
+		  fdt_tb 				\
+		  frame_encode_tb		\
+		  crc_a_tb 				\
+		  initialisation_tb 	\
+		  loopback_test
 
 # This is for TBs that need to do something custom, it's only used for list_tbs
 CUSTOM_TBS	= initialisation_tb_uid_single \
