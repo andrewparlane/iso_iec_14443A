@@ -33,19 +33,26 @@ module tx_tb;
     logic       clk;
     logic       rst_n;
 
-    logic       data;
-    logic       valid;
-
-    logic       req;
+    tx_interface #(.BY_BYTE(0)) in_iface(.*);
 
     // the Tx output signal is the manchester encoded data AND'ed with the subcarrier
-    logic       tx;
+    logic       tx_out;
 
     // --------------------------------------------------------------
     // DUT
     // --------------------------------------------------------------
 
     tx dut (.*);
+
+    // --------------------------------------------------------------
+    // The source for the in_iface
+    // --------------------------------------------------------------
+
+    tx_interface_source source
+    (
+        .clk    (clk),
+        .iface  (in_iface)
+    );
 
     // --------------------------------------------------------------
     // Clock generator
@@ -90,6 +97,8 @@ module tx_tb;
         //  1: -> repeat 4 times {8*1s, 8*0s}, 64*0s
 
         expected.delete;
+        // it takes 3 ticks to start sending data, so we expect 3 0s to start
+        repeat (3) expected.push_back(1'b0);
         foreach (bq[i]) begin
             if (bq[i] == 0) begin
                 repeat (64) expected.push_back(1'b0);
@@ -103,32 +112,25 @@ module tx_tb;
             end
         end
 
+        //$display("expected %p", expected);
+
         // add two full bit times of unloaded state
         // this confirms nothing extra gets sent out
         repeat (256) expected.push_back(1'b0);
     endtask
 
     task send_data (logic sq[$]);
+        //$display("sending %p", sq);
+
         // set up the expected queue
         setup_expected_queue(sq);
 
-        foreach (sq[i]) begin
-            // set up the inputs
-            data = sq[i];
-            valid = 1'b1;
+        // sync to clk edge
+        @(posedge clk) begin end
 
-            // if this is the first bit, then we need to set sending when we expect the data to start
-            // being output
-            @(posedge clk)
-            sending <= 1'b1;
-
-            // wait for the next req, and align to the clock
-            wait (req) begin end
-            @(posedge clk) begin end
-        end
-
-        // nothing more to send, clear valid
-        valid = 1'b0;
+        // send it
+        sending <= 1'b1;
+        source.send_frame(sq);
 
         // the tx module doesn't tell us when it's done sending
         // so just wait until the expected queue is empty + a few ticks
@@ -149,8 +151,9 @@ module tx_tb;
     always_ff @(posedge clk) begin: verificationBlock
         if ((expected.size() != 0) && sending) begin: checkingBlock
             automatic bit e = expected.pop_front;
+            //$display("got %b", tx_out);
             dataAsExpected:
-            assert (tx == e) else $error("Expected %b got %b", e, tx);
+            assert (tx_out == e) else $error("Expected %b got %b", e, tx_out);
         end
     end
 
@@ -161,7 +164,8 @@ module tx_tb;
     initial begin
         automatic logic sendQueue[$] = '{};
 
-        valid <= 1'b0;
+        sending <= 1'b0;
+        source.initialise;
 
         // reset for 5 ticks
         rst_n <= 1'b0;
@@ -172,7 +176,7 @@ module tx_tb;
         // Stuff to test
         //  0) SOC - done implicity by adding the SOC to the expected queue
         //  1) nothing sends if send is low
-        valid    <= 1'b0;
+        in_iface.data_valid <= 1'b0;
         expected.delete;
         repeat(512) expected.push_back(1'b0);   // output always 0 for 4 bit times
         repeat (5) @(posedge clk) begin end
@@ -180,6 +184,8 @@ module tx_tb;
         wait (expected.size() == 0) begin end
         @(posedge clk) begin end
         sending <= 1'b0;
+
+        repeat (5) @(posedge clk) begin end
 
         //  2) correct number of bits are sent
         //      - implicity checked by adding all bits to the expected queue
@@ -193,6 +199,8 @@ module tx_tb;
                 sendQueue.push_back(1'($urandom));
             end
             send_data(sendQueue);
+
+            repeat (5) @(posedge clk) begin end
         end
 
         repeat (5) @(posedge clk) begin end
@@ -206,7 +214,7 @@ module tx_tb;
     inReset:
     assert property (
         @(posedge clk)
-        !rst_n |-> (!req && !tx))
-        else $error("subcarrier should be low in reset");
+        !rst_n |-> !tx_out)
+        else $error("tx_out should be low in reset");
 
 endmodule
