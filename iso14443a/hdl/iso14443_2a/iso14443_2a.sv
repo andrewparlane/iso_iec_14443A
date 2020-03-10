@@ -43,14 +43,8 @@ module iso14443_2a
     input                   pause_n_synchronised,
 
     // to 14443_3a (BY_BYTE must be 0)
-    rx_interface.out_bit    out_iface,
-
-    // data to send
-    input                   tx_data,
-    input                   tx_send,
-
-    // request for more data
-    output logic            tx_req,
+    rx_interface.out_bit    rx_iface,
+    tx_interface.in_bit     tx_iface,
 
     // tx_out is the manchester encoded data AND'ed with the subcarrier
     output logic            tx_out
@@ -63,7 +57,7 @@ module iso14443_2a
 
         .pause_n_synchronised   (pause_n_synchronised),
 
-        .out_iface              (out_iface)
+        .out_iface              (rx_iface)
     );
 
     tx tx_inst
@@ -71,9 +65,7 @@ module iso14443_2a
         .clk                    (clk),
         .rst_n                  (rst_n),
 
-        .data                   (tx_data),
-        .send                   (tx_send),
-        .req                    (tx_req),
+        .in_iface               (tx_iface),
 
         .tx_out                 (tx_out)
     );
