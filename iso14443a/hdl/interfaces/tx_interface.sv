@@ -27,7 +27,7 @@ interface tx_interface
 #(
     // are we a bit by bit interface (ie after the serialiser) or a byte by byte interface (ie. before).
     // When we are by byte we use the data_bits signal to indicate partial bytes
-    parameter bit BY_BYTE = 0
+    parameter logic BY_BYTE = 0
 )
 (
     input clk,
