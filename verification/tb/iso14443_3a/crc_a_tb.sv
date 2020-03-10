@@ -67,7 +67,7 @@ module crc_a_tb;
     //  2) using an LFSR with polynomial: x^16 + x^12 + x^5 + 1
     // I test the result of crc_a against both of these
 
-    function logic [15:0] calculate_crc_lfsr (bit bq[$]);
+    function logic [15:0] calculate_crc_lfsr (logic bq[$]);
         // note 0:15 not 15:0
         automatic logic [0:15] lfsr = 16'h6363;
 
@@ -97,7 +97,7 @@ module crc_a_tb;
         return lfsr;
     endfunction
 
-    task testCRC (input bit [7:0] dq[$], output logic [15:0] crc_a_res);
+    task testCRC (input logic [7:0] dq[$], output logic [15:0] crc_a_res);
         automatic logic [15:0] lfsr_res;
         automatic logic [15:0] bfm_res;
 
@@ -148,8 +148,8 @@ module crc_a_tb;
     // --------------------------------------------------------------
 
     initial begin: testStimulus
-        automatic bit [7:0] generatedData [$];
-        automatic logic [15:0] crc_a_res;
+        automatic logic [7:0]   generatedData [$];
+        automatic logic [15:0]  crc_a_res;
 
         start       <= 1'b0;
         sample      <= 1'b0;

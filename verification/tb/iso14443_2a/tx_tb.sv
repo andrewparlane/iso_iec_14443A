@@ -150,7 +150,7 @@ module tx_tb;
 
     always_ff @(posedge clk) begin: verificationBlock
         if ((expected.size() != 0) && sending) begin: checkingBlock
-            automatic bit e = expected.pop_front;
+            automatic logic e = expected.pop_front;
             //$display("got %b", tx_out);
             dataAsExpected:
             assert (tx_out == e) else $error("Expected %b got %b", e, tx_out);

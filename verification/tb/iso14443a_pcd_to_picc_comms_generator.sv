@@ -293,8 +293,8 @@ module iso14443a_pcd_to_picc_comms_generator
     // Helper types (so we can return arrays from functions
     // ------------------------------------------------------------------------
     typedef PCDBitSequence  PCDBitSequenceQueue [$];
-    typedef bit             bit_queue           [$];
-    typedef bit [7:0]       byte_queue          [$];
+    typedef logic           bit_queue           [$];
+    typedef logic [7:0]     byte_queue          [$];
 
     // ------------------------------------------------------------------------
     // external helper functions
@@ -365,7 +365,7 @@ module iso14443a_pcd_to_picc_comms_generator
         return res;
     endfunction
 
-    function PCDBitSequenceQueue convert_bit_queue_to_sequence_queue (bit bits[$]);
+    function PCDBitSequenceQueue convert_bit_queue_to_sequence_queue (logic bits[$]);
         // build up a PCDBitSequence queue
         PCDBitSequence seqs[$];
         seqs.delete;
@@ -410,12 +410,12 @@ module iso14443a_pcd_to_picc_comms_generator
         return seqs;
     endfunction
 
-    function bit_queue add_parity_to_bit_queue (bit bits[$], int first_parity_after_bits=8);
+    function bit_queue add_parity_to_bit_queue (logic bits[$], int first_parity_after_bits=8);
         // create a new bit queue with the parity bits in
-        automatic bit_queue new_bits    = '{};
-        automatic int bit_count         = 0;
-        automatic bit parity            = 1'b1;
-        automatic int parity_after_bits = first_parity_after_bits;
+        automatic       bit_queue new_bits  = '{};
+        automatic int   bit_count           = 0;
+        automatic logic parity              = 1'b1;
+        automatic int   parity_after_bits   = first_parity_after_bits;
 
         if (parity_after_bits == 0) begin
             parity_after_bits = 8;
@@ -443,7 +443,7 @@ module iso14443a_pcd_to_picc_comms_generator
         return new_bits;
     endfunction
 
-    function bit_queue convert_message_to_bit_queue (bit [7:0] data [$], int bits_in_last_byte);
+    function bit_queue convert_message_to_bit_queue (logic [7:0] data [$], int bits_in_last_byte);
         // build a bit queue
         bit_queue bits;
         int last_byte;
@@ -469,7 +469,7 @@ module iso14443a_pcd_to_picc_comms_generator
         return bits;
     endfunction
 
-    function logic [15:0] calculate_crc (bit [7:0] data[$]);
+    function logic [15:0] calculate_crc (logic [7:0] data[$]);
         logic [15:0] crc;
         crc = 16'h6363;
 
@@ -496,7 +496,7 @@ module iso14443a_pcd_to_picc_comms_generator
         crcTest2: assert (testCRC2 == 16'hCF26) else $fatal(1, "calculate_crc test 2 failed");
     end
 
-    function byte_queue add_crc_to_message (bit [7:0] data [$]);
+    function byte_queue add_crc_to_message (logic [7:0] data [$]);
         logic [15:0] crc;
 
         // calculate the CRC
@@ -536,7 +536,7 @@ module iso14443a_pcd_to_picc_comms_generator
     endtask
 
     // Sends just the bits in the queue. It does not add parity bits in.
-    task send_bit_queue_no_parity (bit bits[$]);
+    task send_bit_queue_no_parity (logic bits[$]);
         PCDBitSequence seqs[$];
         seqs = convert_bit_queue_to_sequence_queue(bits);
 
@@ -545,7 +545,7 @@ module iso14443a_pcd_to_picc_comms_generator
     endtask
 
     // sends the bits in the queue plus the parity bits
-    task send_bit_queue_with_parity (bit bits[$]);
+    task send_bit_queue_with_parity (logic bits[$]);
         // add the parity bits to the queue
         bits = add_parity_to_bit_queue(bits);
 
@@ -560,9 +560,9 @@ module iso14443a_pcd_to_picc_comms_generator
     // then it's a short frame
     // Note: parity bits are auto inserted after every full byte
     //       CRC is not auto inserted
-    task send_message_no_crc (bit [7:0] data [$], int bits_in_last_byte);
+    task send_message_no_crc (logic [7:0] data [$], int bits_in_last_byte);
         // build a bit queue
-        bit bits[$];
+        logic bits[$];
         bits = convert_message_to_bit_queue(data, bits_in_last_byte);
 
         // do it
@@ -570,7 +570,7 @@ module iso14443a_pcd_to_picc_comms_generator
     endtask
 
     // Messages with CRCs have to be a whole number of bytes long
-    task send_message_with_crc (bit [7:0] data [$]);
+    task send_message_with_crc (logic [7:0] data [$]);
         data = add_crc_to_message(data);
 
         // send the message
