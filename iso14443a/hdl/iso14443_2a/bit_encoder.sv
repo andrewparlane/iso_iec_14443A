@@ -50,7 +50,8 @@ module bit_encoder
 
     always_ff @(posedge clk, negedge rst_n) begin
         if (!rst_n) begin
-            count   <= '0;
+            count           <= '0;
+            encoded_data    <= 1'b0;
         end
         else begin
             if (en) begin
