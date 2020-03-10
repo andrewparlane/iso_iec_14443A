@@ -27,7 +27,7 @@ interface rx_interface
 #(
     // are we a bit by bit interface (ie before the deserialiser) or a byte by byte interface (ie. after).
     // When we are by byte we use the data_bits signal to indicate partial bytes
-    parameter bit BY_BYTE = 0
+    parameter logic BY_BYTE = 0
 )
 (
     input clk,
@@ -86,8 +86,8 @@ interface rx_interface
     // ------------------------------------------------------------------------
     // only for use in testbenches
 
-    function bit validate;
-        automatic bit err = 1'b0;
+    function logic validate;
+        automatic logic err = 1'b0;
 
         //$display("validating");
 

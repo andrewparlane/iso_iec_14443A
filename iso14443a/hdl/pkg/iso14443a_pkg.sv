@@ -62,24 +62,24 @@ package ISO14443A_pkg;
     endfunction
 
     // see ISO/IEC 14443-3:2016 section 6.5.4
-    localparam bit [7:0]    CASCADE_TAG     = 8'h88;
+    localparam logic [7:0]  CASCADE_TAG     = 8'h88;
 
     // ========================================================================
     // PCD -> PICC Messages
     // ========================================================================
 
     // short frames, see ISO/IEC 14443-3:2016 section 6.4.1
-    localparam bit [6:0]    REQA            = 7'h26;
-    localparam bit [6:0]    WUPA            = 7'h52;
+    localparam logic [6:0]  REQA            = 7'h26;
+    localparam logic [6:0]  WUPA            = 7'h52;
 
     // standard frames, see ISO/IEC 14443-3:2016 section 6.4.3
     // Note: received LSByte first
-    localparam bit [15:0]   HLTA            = 16'h0050;    // 0x50, 0x00
+    localparam logic [15:0] HLTA            = 16'h0050;    // 0x50, 0x00
 
     // AC frames, see ISO/IEC 14443-3:2016 section 6.5.3.2
-    localparam bit [7:0]    SEL1            = 8'h93;
-    localparam bit [7:0]    SEL2            = 8'h95;
-    localparam bit [7:0]    SEL3            = 8'h97;
+    localparam logic [7:0]  SEL1            = 8'h93;
+    localparam logic [7:0]  SEL2            = 8'h95;
+    localparam logic [7:0]  SEL3            = 8'h97;
 
     // ========================================================================
     // PICC -> PCD Messages
@@ -91,7 +91,7 @@ package ISO14443A_pkg;
     // the same UID size and use the same bit frame anticollision field.
     // the bit frame anticollision field is arbitrary. We use bit 2.
     // defined as a function so we can pass UID_SIZE in. Will still be constant
-    function bit [15:0] ATQA(UIDSize size);
+    function logic [15:0] ATQA(UIDSize size);
         case (size)
             UIDSize_SINGLE: return 16'h0004;
             UIDSize_DOUBLE: return 16'h0044;
@@ -104,8 +104,8 @@ package ISO14443A_pkg;
     // send the latter when we have received a SELECT for us, but it just
     // finishes the cascade level and not the entire UID.
     // We support ISO/IEC 14443-4, and so bit 5 is set when bit 2 is cleared
-    localparam bit [7:0] SAK_UID_COMPLETE       = 8'h20;
-    localparam bit [7:0] SAK_UID_NOT_COMPLETE   = 8'h04;
+    localparam logic [7:0] SAK_UID_COMPLETE     = 8'h20;
+    localparam logic [7:0] SAK_UID_NOT_COMPLETE = 8'h04;
 
     // ========================================================================
     // Anticollision / select structs
