@@ -36,15 +36,11 @@ module tx
     // rst is our active low synchronised asynchronous reset signal
     input                   rst_n,
 
-    // information about the data to send
-    input                   data,
-    input                   valid,
-
-    // request for more data
-    output logic            req,
+    // data to send
+    tx_interface.in_bit     in_iface,
 
     // the Tx output signal is the manchester encoded data AND'ed with the subcarrier
-    output logic            tx
+    output logic            tx_out
 );
 
     enum
@@ -55,62 +51,45 @@ module tx
         State_EOC
     } state;
 
-    // state vars
-    logic       data_cached;
-
     // signals from the bit_encoder
-    logic       be_req;         // requesting the next bit
     logic       be_last_tick;   // the last tick of the bit period
 
     always_ff @(posedge clk, negedge rst_n) begin
         if (!rst_n) begin
-            state   <= State_IDLE;
-            req     <= 1'b0;
+            state           <= State_IDLE;
+            in_iface.req    <= 1'b0;
         end
         else begin
             // req should only ever be asserted one tick at a time
-            req     <= 1'b0;
+            in_iface.req    <= 1'b0;
 
             case (state)
                 State_IDLE: begin
                     // we're idle
                     // wait for data to go valid
-                    if (valid) begin
+                    if (in_iface.data_valid) begin
                         // send the SOC
                         state       <= State_SOC;
-
-                        // cache the current data
-                        data_cached <= data;
                     end
                 end
 
                 State_SOC: begin
                     // when the REQ comes in from the bit encoder then switch to the data state
-                    // and request more data
-                    if (be_req) begin
+                    // which starts sending the first bit of data
+                    if (be_iface.req) begin
                         state           <= State_DATA;
-                        req             <= 1'b1;
                     end
                 end
 
                 State_DATA: begin
                     // when the REQ comes in if we still have more to send (data is valid)
                     // then cache the new data and request more. Otherwise go to EOC
-                    if (be_req) begin
-                        if (valid) begin
-                            data_cached <= data;
-                            req         <= 1'b1;
-                        end
-                        else begin
-                            state       <= State_EOC;
+                    if (be_iface.req) begin
+                        if (in_iface.data_valid) begin
+                            in_iface.req    <= 1'b1;
                         end
                     end
-                end
-
-                State_EOC: begin
-                    // just wait for us to be at the end of the bit time and then disable
-                    // the subcarrier and bit_encoder
-                    if (be_last_tick) begin
+                    else if (be_last_tick && !in_iface.data_valid) begin
                         state <= State_IDLE;
                     end
                 end
@@ -129,7 +108,7 @@ module tx
     // The bit to send is either the SOC (logic 1, see ISE/IEC 14443-2:2016 section 8.2.5.1)
     // or the data
     logic bit_to_send;
-    assign bit_to_send = (state == State_SOC) ? 1'b1 : data_cached;
+    assign bit_to_send = (state == State_SOC) ? 1'b1 : in_iface.data;
 
     // generate our subcarrier signal
     logic subcarrier;
@@ -141,16 +120,20 @@ module tx
         .subcarrier (subcarrier)
     );
 
+    tx_interface #(.BY_BYTE(0)) be_iface (.*);
+    assign be_iface.data        = bit_to_send;
+    assign be_iface.data_valid  = in_iface.data_valid && (state != State_IDLE);
+    // TODO: Check data_valid is optimised out
+
     // convert the bit to manchester encoding over 128 ticks
     logic encoded_data;
     bit_encoder bc_inst
     (
         .clk            (clk),
         .rst_n          (rst_n),
-        .data           (bit_to_send),
         .en             (en),
+        .in_iface       (be_iface),
         .encoded_data   (encoded_data),
-        .req            (be_req),
         .last_tick      (be_last_tick)
     );
 
