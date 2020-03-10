@@ -138,6 +138,14 @@ module tx
     );
 
     // the data we actually send is the AND of the subcarrier with the manchester encoded data
-    assign tx = subcarrier & encoded_data;
+    // We register the output to prevent glitches reaching the load modulator
+    always_ff @(posedge clk, negedge rst_n) begin
+        if (!rst_n) begin
+            tx_out <= 1'b0;
+        end
+        else begin
+            tx_out <= subcarrier & encoded_data;
+        end
+    end
 
 endmodule
