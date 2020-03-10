@@ -64,7 +64,7 @@ module subcarrier
                 // so we default to unloaded (0) when not enabled and then as soon
                 // as en asserts we toggle the subcarrier high.
                 if (count == 0) begin
-                    subcarrier = !subcarrier;
+                    subcarrier <= !subcarrier;
                 end
             end
             else begin
