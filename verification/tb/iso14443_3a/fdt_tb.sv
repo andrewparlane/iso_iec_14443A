@@ -103,7 +103,7 @@ module fdt_tb;
     // Test stimulus
     // --------------------------------------------------------------
 
-    task timeout (output bit timedout);
+    task timeout (output logic timedout);
         timedout <= 1'b0;
         fork
             // process 1, wait for the trigger
@@ -129,7 +129,7 @@ module fdt_tb;
     endtask
 
     initial begin: testStimulus
-        automatic bit timedout;
+        automatic logic timedout;
         pause_n_synchronised <= 1'b1;
 
         // reset for 5 ticks

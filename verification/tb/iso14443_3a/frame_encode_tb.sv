@@ -72,9 +72,9 @@ module frame_encode_tb;
     // --------------------------------------------------------------
 
     // our expected data
-    bit expected[$];
+    logic expected[$];
 
-    task send_data (bit sq[$]);
+    task send_data (logic sq[$]);
         // sync to clock edge
         @(posedge clk)
 
@@ -173,7 +173,7 @@ module frame_encode_tb;
             //$display("got: %b", out_data);
 
             if ((expected.size() != 0)) begin: checkingBlock
-                automatic bit e = expected.pop_front;
+                automatic logic e = expected.pop_front;
                 dataAsExpected:
                 assert (out_data == e) else $error("Expected %b got %b", e, out_data);
             end
@@ -185,8 +185,8 @@ module frame_encode_tb;
     // --------------------------------------------------------------
 
     initial begin
-        automatic bit [7:0] data[$];
-        automatic bit       bits[$];
+        automatic logic [7:0]   data[$];
+        automatic logic         bits[$];
 
         fdt_trigger <= 1'b0;
         in_valid    <= 1'b0;

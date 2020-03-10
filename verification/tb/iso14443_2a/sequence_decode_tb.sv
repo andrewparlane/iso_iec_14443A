@@ -124,7 +124,7 @@ module sequence_decode_tb;
         // 2) Generate a bunch of random queue of sequences (excludes error cases)
         //$display("Running test 2");
         repeat (50) begin
-            automatic bit bq[$];
+            automatic logic bq[$];
             seqs = bfm.generate_valid_sequence_queue(100);
 
             // starts at 1 because [0] is SOC,

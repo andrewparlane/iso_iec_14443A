@@ -84,8 +84,8 @@ module frame_decode_tb;
     logic check_last_bit;
 
     initial begin
-        automatic bit [7:0] data[$];
-        automatic bit       bits[$];
+        automatic logic [7:0]   data[$];
+        automatic logic         bits[$];
 
         source.initialise;
 

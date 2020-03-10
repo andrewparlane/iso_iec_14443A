@@ -37,9 +37,9 @@ module rx_interface_source
     endfunction
 
     // sends out a frame, with an optional error
-    task send_frame (bit [iface.DATA_WIDTH-1:0] sq[$], int bits_in_last_byte=0, int error_before_bit=-1);
+    task send_frame (logic [iface.DATA_WIDTH-1:0] sq[$], int bits_in_last_byte=0, int error_before_bit=-1);
         automatic logic                         errorSent = 1'b0;
-        automatic bit [iface.DATA_WIDTH-1:0]    last_byte;
+        automatic logic [iface.DATA_WIDTH-1:0]  last_byte;
 
         // bits_in_last_byte == 0 and == 8 are sort of the same thing
         // we allow both to be used here

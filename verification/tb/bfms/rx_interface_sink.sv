@@ -68,7 +68,7 @@ module rx_interface_sink
         expected.delete;
     endfunction
 
-    function automatic bit expected_queue_is_empty;
+    function automatic logic expected_queue_is_empty;
         return expected.size == 0;
     endfunction
 
@@ -89,7 +89,7 @@ module rx_interface_sink
     // when the last byte is a full byte (standard frame), no data is issued
     // on the EOC event, there may however be an error.
     // This should always be used when iface.BY_BYTE == 0
-    function automatic void add_expected_eoc_full_byte_event (bit err);
+    function automatic void add_expected_eoc_full_byte_event (logic err);
         automatic RxEvent e;
         e.soc               = 1'b0;
         e.eoc               = 1'b1;
@@ -105,7 +105,7 @@ module rx_interface_sink
     // When the last byte is not a full byte (short frame / anticollision frame)
     // then the partial byte is issued on the EOC event
     // Only for use when iface.BY_BYTE == 1
-    function automatic void add_expected_eoc_part_byte_event (int bitLen, bit [iface.DATA_WIDTH-1:0] data);
+    function automatic void add_expected_eoc_part_byte_event (int bitLen, logic [iface.DATA_WIDTH-1:0] data);
         automatic RxEvent                       e;
         automatic logic [iface.DATA_WIDTH-1:0]  new_data;
 
@@ -126,7 +126,7 @@ module rx_interface_sink
     endfunction
 
     // Add events for receiving a series of full bytes of data
-    function automatic void add_expected_data_events (bit [iface.DATA_WIDTH-1:0] data[$]);
+    function automatic void add_expected_data_events (logic [iface.DATA_WIDTH-1:0] data[$]);
 
         foreach (data[i]) begin
             automatic RxEvent e;
@@ -154,7 +154,7 @@ module rx_interface_sink
         expected.push_back(e);
     endfunction
 
-    function automatic void build_valid_frame_expected_queue (bit [iface.DATA_WIDTH-1:0] data[$]);
+    function automatic void build_valid_frame_expected_queue (logic [iface.DATA_WIDTH-1:0] data[$]);
         clear_expected_queue;
         add_expected_soc_event;
         add_expected_data_events(data);

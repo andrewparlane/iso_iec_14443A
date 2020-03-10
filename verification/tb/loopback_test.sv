@@ -226,7 +226,7 @@ module loopback_test;
     const logic [127:0] TX_PATTERN_1    = {{4{8'hFF, 8'h00}}, 64'b0};
     const logic [127:0] TX_PATTERN_IDLE = {128'b0};
 
-    bit expected [$];
+    logic expected [$];
 
     initial begin: txVerification
         forever begin: foreverTx
@@ -275,7 +275,7 @@ module loopback_test;
                         else $error("Received data from the Tx module, but not expecting anything");
 
                     if (expected.size()) begin: somethingExpected
-                        automatic bit e = expected.pop_front;
+                        automatic logic e = expected.pop_front;
 
                         asExpected:
                         assert (e == actual) else $error("Got %b expecting %b", actual, e);
@@ -343,8 +343,8 @@ module loopback_test;
     // --------------------------------------------------------------
 
     initial begin: testStimulus
-        automatic bit [7:0]         data[$];
-        automatic bit               bits[$];
+        automatic logic [7:0]   data[$];
+        automatic logic         bits[$];
 
         // reset for 5 ticks
         rst_n <= 1'b0;
@@ -372,7 +372,7 @@ module loopback_test;
             // So we need to add the parity bit to the expected data queue manually, since
             // the bfm.add_parity_to_bit_queue only adds a parity bit after every 8 bits of data.
             if (bits_in_last_byte != 0) begin
-                automatic bit parity = 1'b1;
+                automatic logic parity = 1'b1;
                 for (int i = 0; i < bits_in_last_byte; i++) begin
                     parity = parity ^ data[$][i];
                 end
