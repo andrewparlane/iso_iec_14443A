@@ -69,16 +69,19 @@ module frame_encode_tb;
     );
 
     // --------------------------------------------------------------
-    // PICC -> PCD clock and comms generator
+    // Clock generator
     // --------------------------------------------------------------
-    // used to generate the clock and data, but not to send it
-    iso14443a_pcd_to_picc_comms_generator bfm
-    (
-        .clk            (clk),
-        .pcd_pause_n    (),
-        .pause_n        (),
-        .sending        ()
-    );
+
+    // Calculate our clock period in ps
+    localparam CLOCK_FREQ_HZ = 13560000; // 13.56MHz
+    localparam CLOCK_PERIOD_PS = 1000000000000.0 / CLOCK_FREQ_HZ;
+    initial begin
+        clk = 1'b0;
+        forever begin
+            #(int'(CLOCK_PERIOD_PS/2))
+            clk = ~clk;
+        end
+    end
 
     // --------------------------------------------------------------
     // Functions / Tasks
@@ -165,17 +168,17 @@ module frame_encode_tb;
 
         // send 8 bits of data, no crc
         $display("Testing sending 8 bits");
-        data = bfm.generate_byte_queue(1);
-        bits = bfm.convert_message_to_bit_queue(data, 8);
-        temp = bfm.add_parity_to_bit_queue(bits);
+        data = frame_generator_pkg::generate_byte_queue(1);
+        bits = frame_generator_pkg::convert_message_to_bit_queue(data, 8);
+        temp = frame_generator_pkg::add_parity_to_bit_queue(bits);
         sink.set_expected_queue(temp);
         send_data(bits);
 
         // send 1 - 8 bits of data, no crc
         for (int i = 1; i <= 8; i++) begin
             $display("Testing sending %d bits", i);
-            bits = bfm.generate_bit_queue(i);
-            temp = bfm.add_parity_to_bit_queue(bits, i);
+            bits = frame_generator_pkg::generate_bit_queue(i);
+            temp = frame_generator_pkg::add_parity_to_bit_queue(bits, i);
             sink.set_expected_queue(temp);
 
             bits_in_first_byte = 3'(i);
@@ -191,8 +194,8 @@ module frame_encode_tb;
 
             //$display("sending %d bits, %d in first byte", bitsToSend, bits_in_first_byte);
 
-            bits = bfm.generate_bit_queue(bitsToSend);
-            temp = bfm.add_parity_to_bit_queue(bits, bits_in_first_byte);
+            bits = frame_generator_pkg::generate_bit_queue(bitsToSend);
+            temp = frame_generator_pkg::add_parity_to_bit_queue(bits, bits_in_first_byte);
             sink.set_expected_queue(temp);
 
             send_data(bits);
@@ -205,17 +208,17 @@ module frame_encode_tb;
         append_crc          = 1'b1;
         repeat (10000) begin
             automatic int bytes_to_send = $urandom_range(1, 10);
-            data    = bfm.generate_byte_queue(bytes_to_send);
-            crc     = bfm.calculate_crc(data);
+            data    = frame_generator_pkg::generate_byte_queue(bytes_to_send);
+            crc     = frame_generator_pkg::calculate_crc(data);
 
             // bit queue to send
-            bits    = bfm.convert_message_to_bit_queue(data, 8);
+            bits    = frame_generator_pkg::convert_message_to_bit_queue(data, 8);
 
             // expected
             data.push_back(crc[7:0]);
             data.push_back(crc[15:8]);
-            temp = bfm.convert_message_to_bit_queue(data, 8);
-            temp = bfm.add_parity_to_bit_queue(temp);
+            temp = frame_generator_pkg::convert_message_to_bit_queue(data, 8);
+            temp = frame_generator_pkg::add_parity_to_bit_queue(temp);
             sink.set_expected_queue(temp);
 
             send_data(bits);

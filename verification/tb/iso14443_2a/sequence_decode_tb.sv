@@ -45,12 +45,12 @@ module sequence_decode_tb;
     sequence_decode dut (.*);
 
     // --------------------------------------------------------------
-    // PICC -> PCD clock and comms generator
+    // The source for the clock and pause_n signal
     // --------------------------------------------------------------
     logic pcd_pause_n;  // not used, just here so that .* works
     logic pause_n;
     logic sending;
-    iso14443a_pcd_to_picc_comms_generator bfm (.*);
+    pause_n_and_clock_source pause_n_source (.*);
 
     // connect pause_n_synchronised and pause_n
     assign pause_n_synchronised = pause_n;
@@ -59,7 +59,7 @@ module sequence_decode_tb;
     // The sink for the out_iface
     // --------------------------------------------------------------
 
-    rx_interface_sink sink
+    rx_interface_sink rx_sink
     (
         .clk    (clk),
         .iface  (out_iface)
@@ -100,11 +100,11 @@ module sequence_decode_tb;
                  PCDBitSequence_Y,  //              EOC
                  PCDBitSequence_Y}; // Y    -> Y    EOC + IDLE
 
-        sink.clear_expected_queue;
-        sink.build_valid_frame_expected_queue('{1'b0, 1'b1, 1'b1, 1'b0, 1'b0, 1'b1, 1'b0, 1'b1});
+        rx_sink.clear_expected_queue;
+        rx_sink.build_valid_frame_expected_queue('{1'b0, 1'b1, 1'b1, 1'b0, 1'b0, 1'b1, 1'b0, 1'b1});
 
-        bfm.send_sequence_queue(seqs);
-        sink.wait_for_expected_empty(seqs.size * 128 * 2);
+        pause_n_source.send_sequence_queue(seqs);
+        rx_sink.wait_for_expected_empty(seqs.size * 128 * 2);
 
         // Test Z -> Y EOC
         //$display("Running test 1b");
@@ -115,17 +115,17 @@ module sequence_decode_tb;
                  PCDBitSequence_Y,  // Z -> Y   EOC
                  PCDBitSequence_Y}; //          IDLE
 
-        sink.clear_expected_queue;
-        sink.build_valid_frame_expected_queue('{1'b1, 1'b0});
+        rx_sink.clear_expected_queue;
+        rx_sink.build_valid_frame_expected_queue('{1'b1, 1'b0});
 
-        bfm.send_sequence_queue(seqs);
-        sink.wait_for_expected_empty(seqs.size * 128 * 2);
+        pause_n_source.send_sequence_queue(seqs);
+        rx_sink.wait_for_expected_empty(seqs.size * 128 * 2);
 
         // 2) Generate a bunch of random queue of sequences (excludes error cases)
         //$display("Running test 2");
         repeat (50) begin
             automatic logic bq[$];
-            seqs = bfm.generate_valid_sequence_queue(100);
+            seqs = frame_generator_pkg::generate_valid_sequence_queue(100);
 
             // starts at 1 because [0] is SOC,
             // ends at size-3 because last two are YY
@@ -137,14 +137,14 @@ module sequence_decode_tb;
                 void'(bq.pop_back);
             end
 
-            sink.clear_expected_queue;
-            sink.build_valid_frame_expected_queue(bq);
+            rx_sink.clear_expected_queue;
+            rx_sink.build_valid_frame_expected_queue(bq);
 
             // $display("sending: %p", seqs);
             // $display("expecting: %p", expected);
 
-            bfm.send_sequence_queue(seqs);
-            sink.wait_for_expected_empty(seqs.size * 128 * 2);
+            pause_n_source.send_sequence_queue(seqs);
+            rx_sink.wait_for_expected_empty(seqs.size * 128 * 2);
         end
 
         // 3) Test X -> Z error cases
@@ -159,19 +159,19 @@ module sequence_decode_tb;
                  PCDBitSequence_Y,  // EOC
                  PCDBitSequence_Y}; // EOC
 
-        sink.clear_expected_queue;
-        sink.add_expected_soc_event;
-        sink.add_expected_data_events('{1'b1});
-        sink.add_expected_error_event;
-        sink.add_expected_eoc_full_byte_event(1'b0);
+        rx_sink.clear_expected_queue;
+        rx_sink.add_expected_soc_event;
+        rx_sink.add_expected_data_events('{1'b1});
+        rx_sink.add_expected_error_event;
+        rx_sink.add_expected_eoc_full_byte_event(1'b0);
 
-        bfm.send_sequence_queue(seqs);
-        sink.wait_for_expected_empty(seqs.size * 128 * 2);
+        pause_n_source.send_sequence_queue(seqs);
+        rx_sink.wait_for_expected_empty(seqs.size * 128 * 2);
     endtask
 
 
     initial begin
-        //bfm.set_sequence_timings(4, 12, 6, 0);
+        //pause_n_source.set_sequence_timings(4, 12, 6, 0);
 
         // reset for 5 ticks
         rst_n <= 1'b0;
@@ -194,10 +194,10 @@ module sequence_decode_tb;
         // check that this works even if it's slightly off for some reason.
 
         for (int bit_len = 126; bit_len <= 130; bit_len++) begin
-            bfm.set_bit_length(bit_len);
+            pause_n_source.set_bit_length(bit_len);
             for (int pause_len = 14; pause_len <= 50; pause_len++) begin
                 $display("Testing with bit_len = %d, pause_len = %d", bit_len, pause_len);
-                bfm.set_pause_length(pause_len);
+                pause_n_source.set_pause_length(pause_len);
                 run_tests;
             end
         end
