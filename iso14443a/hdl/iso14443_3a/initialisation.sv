@@ -62,10 +62,8 @@ module initialisation
     input                       iso14443_4_deselect,
 
     // Transmit signals
-    input                       tx_req,
-    output logic    [7:0]       tx_data,
-    output logic    [2:0]       tx_data_bits,
-    output logic                tx_ready_to_send,
+    tx_interface.out_byte       tx_iface,
+    output logic [2:0]          tx_bits_in_first_byte,
     output logic                tx_append_crc
 );
 
@@ -487,22 +485,23 @@ module initialisation
     logic [2:0]     tx_count_minus_1;
     logic [2:0]     tx_bytes_to_shift;
     logic [2:0]     tx_bits_to_shift;
+    logic           tx_set_valid_when_shifted;
 
     // Our ATQA response
     localparam logic [15:0] ATQA_REPLY = ATQA(UID_SIZE);
 
-    assign tx_data = tx_buffer[0];
+    assign tx_iface.data = tx_buffer[0];
 
     always_ff @(posedge clk, negedge rst_n) begin
         if (!rst_n) begin
-            tx_ready_to_send    <= 1'b0;
-            tx_bytes_to_shift   <= '0;
-            tx_bits_to_shift    <= '0;
+            tx_iface.data_valid         <= 1'b0;
+            tx_bytes_to_shift           <= '0;
+            tx_bits_to_shift            <= '0;
+            tx_set_valid_when_shifted   <= 1'b0;
         end
         else begin
-            // tx_ready_to_send is cleared when the tx_req asserts
-            // and we are out of stuff to send
-            // it gets set when reply is not Reply_NONE
+            // tx_iface.data_valid is cleared when the tx_iface.req asserts and we are out of
+            // stuff to send. tx_iface.data_valid gets set when reply is not Reply_NONE
 
             // deal with byte and bit shifting as part of the AC reply (see Reply_AC below)
             if (tx_bytes_to_shift) begin
@@ -517,9 +516,14 @@ module initialisation
                 // shift tx_buffer[0] right by 1
                 tx_buffer[0][6:0] <= tx_buffer[0][7:1];
             end
+            else if (tx_set_valid_when_shifted) begin
+                // nothing more to shift, set RTS
+                tx_set_valid_when_shifted   <= 1'b0;
+                tx_iface.data_valid         <= 1'b1;
+            end
 
             // Deal with the Tx module requesting more data
-            if (tx_req) begin
+            if (tx_iface.req) begin
                 // anything more to send?
                 if (tx_count_minus_1) begin
                     // yes, decrement tx_count_minus_1
@@ -527,7 +531,7 @@ module initialisation
 
                     // all transfers from the PICC are 8 bits wide
                     // except the first of the AC reply
-                    tx_data_bits        <= 3'd0; // 0 -> 8 bits
+                    tx_iface.data_bits  <= 3'd0; // 0 -> 8 bits
 
                     // shift tx_buffer
                     for (int i = 0; i < (TX_BUFF_LEN - 1); i++) begin
@@ -536,7 +540,7 @@ module initialisation
                 end
                 else begin
                     // nope
-                    tx_ready_to_send <= 1'b0;
+                    tx_iface.data_valid <= 1'b0;
                 end
             end
 
@@ -544,12 +548,13 @@ module initialisation
             case (reply)
                 Reply_ATQA: begin
                     // LSByte first
-                    tx_buffer[0]        <= ATQA_REPLY[7:0];
-                    tx_buffer[1]        <= ATQA_REPLY[15:8];
-                    tx_count_minus_1    <= 3'd1;    // send 2 bytes
-                    tx_append_crc       <= 1'b0;
-                    tx_ready_to_send    <= 1'b1;
-                    tx_data_bits        <= 3'd0;    // first tfer is 8 bits wide
+                    tx_buffer[0]            <= ATQA_REPLY[7:0];
+                    tx_buffer[1]            <= ATQA_REPLY[15:8];
+                    tx_count_minus_1        <= 3'd1;    // send 2 bytes
+                    tx_append_crc           <= 1'b0;
+                    tx_iface.data_valid     <= 1'b1;
+                    tx_iface.data_bits      <= 3'd0;    // first tfer is 8 bits wide
+                    tx_bits_in_first_byte   <= 3'd0;
                 end
                 Reply_AC: begin
                     // we have many ticks before we start to send
@@ -557,36 +562,40 @@ module initialisation
                     // shift it one byte at a time to get the correct starting byte
                     // and then one bit at a time to get the correct starting bit
                     // this saves us needing an expensive barrel shifter
-                    tx_buffer[0]        <= current_cascade_uid_data.uid[7 : 0];
-                    tx_buffer[1]        <= current_cascade_uid_data.uid[15: 8];
-                    tx_buffer[2]        <= current_cascade_uid_data.uid[23:16];
-                    tx_buffer[3]        <= current_cascade_uid_data.uid[31:24];
-                    tx_buffer[4]        <= current_cascade_uid_data.bcc;
+                    tx_buffer[0]            <= current_cascade_uid_data.uid[7 : 0];
+                    tx_buffer[1]            <= current_cascade_uid_data.uid[15: 8];
+                    tx_buffer[2]            <= current_cascade_uid_data.uid[23:16];
+                    tx_buffer[3]            <= current_cascade_uid_data.uid[31:24];
+                    tx_buffer[4]            <= current_cascade_uid_data.bcc;
 
-                    tx_bytes_to_shift   <= ac_sel_msg.nvb.bytes - 2'd2;
-                    tx_bits_to_shift    <= ac_sel_msg.nvb.bits;
+                    tx_bytes_to_shift       <= ac_sel_msg.nvb.bytes - 2'd2;
+                    tx_bits_to_shift        <= ac_sel_msg.nvb.bits;
 
                     // for the first transfer send 8 - ac_sel_msg.nvb.bits
                     // since it's 3 bits wide, 0 is the same as 8.
                     // 0 - 0 =  0 = 3'd000 = 0 -> send 8 bits
                     // 0 - 1 = -1 = 3'd111 = 7 -> send 7 bits
                     // 0 - 7 = -7 = 3'd001 = 1 -> send 1 bit
-                    tx_data_bits        <= 3'd0 - ac_sel_msg.nvb.bits;
+                    tx_iface.data_bits      <= 3'd0 - ac_sel_msg.nvb.bits;
+                    tx_bits_in_first_byte   <= 3'd0 - ac_sel_msg.nvb.bits;
 
                     // we have received nvb.bytes - 2, full bytes of the UID + BCC (5 bytes)
                     // so we need to send 5 - (nvb.bytes - 2) = 7 - nvb.bytes
                     // tx_count_minus_1 is -1 of what we actually want, so 6 - nvb.bytes
-                    tx_count_minus_1    <= 3'd6 - ac_sel_msg.nvb.bytes;
-                    tx_append_crc       <= 1'b0;
-                    tx_ready_to_send    <= 1'b1;
+                    tx_count_minus_1        <= 3'd6 - ac_sel_msg.nvb.bytes;
+                    tx_append_crc           <= 1'b0;
+
+                    // set ready to send when we are done shifting data about
+                    tx_set_valid_when_shifted <= 1'b1;
                 end
                 Reply_SAK: begin
-                    tx_buffer[0]        <= (is_final_cascade_level) ? SAK_UID_COMPLETE
-                                                                    : SAK_UID_NOT_COMPLETE;
-                    tx_count_minus_1    <= 3'd0;    // send 1 byte
-                    tx_append_crc       <= 1'b1;
-                    tx_ready_to_send    <= 1'b1;
-                    tx_data_bits        <= 3'd0;    // first tfer is 8 bits wide
+                    tx_buffer[0]            <= (is_final_cascade_level) ? SAK_UID_COMPLETE
+                                                                        : SAK_UID_NOT_COMPLETE;
+                    tx_count_minus_1        <= 3'd0;    // send 1 byte
+                    tx_append_crc           <= 1'b1;
+                    tx_iface.data_valid     <= 1'b1;
+                    tx_iface.data_bits      <= 3'd0;    // first tfer is 8 bits wide
+                    tx_bits_in_first_byte   <= 3'd0;
                 end
             endcase
         end
