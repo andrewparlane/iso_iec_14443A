@@ -105,13 +105,13 @@ module rx_interface_sink
     // When the last byte is not a full byte (short frame / anticollision frame)
     // then the partial byte is issued on the EOC event
     // Only for use when iface.BY_BYTE == 1
-    function automatic void add_expected_eoc_part_byte_event (int bitLen, logic [iface.DATA_WIDTH-1:0] data);
+    function automatic void add_expected_eoc_part_byte_event (int num_bits, logic [iface.DATA_WIDTH-1:0] data);
         automatic RxEvent                       e;
         automatic logic [iface.DATA_WIDTH-1:0]  new_data;
 
         // set the none used bits as x
         new_data = data;
-        for (int i = 7; i >= bitLen; i--) begin
+        for (int i = 7; i >= num_bits; i--) begin
             new_data[i] = 1'bx;
         end
 
@@ -119,7 +119,7 @@ module rx_interface_sink
         e.eoc               = 1'b1;
         e.error             = 1'b0;
         e.data_valid        = 1'b1;
-        e.data_bits         = bitLen;
+        e.data_bits         = num_bits;
         e.data              = new_data;
 
         expected.push_back(e);
