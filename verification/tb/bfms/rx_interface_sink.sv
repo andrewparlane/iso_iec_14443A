@@ -53,8 +53,8 @@ module rx_interface_sink
     // So we can print some debug info
     function automatic string event_to_string (RxEvent e);
         automatic string res = "";
-        $sformat(res, "soc %b, eoc %b, error %b, data_valid %b, data_bits %d, data %b",
-                 e.soc, e.eoc, e.error, e.data_valid, e.data_bits, e.data);
+        $sformat(res, "soc %b, eoc %b, error %b, data_valid %b, data_bits %d, data %x (%b)",
+                 e.soc, e.eoc, e.error, e.data_valid, e.data_bits, e.data, e.data);
         return res;
     endfunction
 
