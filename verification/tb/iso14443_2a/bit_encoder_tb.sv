@@ -48,7 +48,7 @@ module bit_encoder_tb;
     // The source for the in_iface
     // --------------------------------------------------------------
 
-    tx_interface_source source
+    tx_interface_source tx_source
     (
         .clk    (clk),
         .iface  (in_iface)
@@ -86,7 +86,7 @@ module bit_encoder_tb;
 
         // set enable and send the data
         en <= 1'b1;
-        source.send_frame(bq);
+        tx_source.send_frame(bq);
 
         // wait for the last tick and sync to the clk edge
         wait (last_tick) begin end
@@ -118,7 +118,7 @@ module bit_encoder_tb;
 
     initial begin
         en <= 1'b0;
-        source.initialise;
+        tx_source.initialise;
 
         // reset for 5 ticks
         rst_n <= 1'b0;

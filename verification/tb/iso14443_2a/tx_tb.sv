@@ -48,7 +48,7 @@ module tx_tb;
     // The source for the in_iface
     // --------------------------------------------------------------
 
-    tx_interface_source source
+    tx_interface_source tx_source
     (
         .clk    (clk),
         .iface  (in_iface)
@@ -130,7 +130,7 @@ module tx_tb;
 
         // send it
         sending <= 1'b1;
-        source.send_frame(sq);
+        tx_source.send_frame(sq);
 
         // the tx module doesn't tell us when it's done sending
         // so just wait until the expected queue is empty + a few ticks
@@ -165,7 +165,7 @@ module tx_tb;
         automatic logic sendQueue[$] = '{};
 
         sending <= 1'b0;
-        source.initialise;
+        tx_source.initialise;
 
         // reset for 5 ticks
         rst_n <= 1'b0;
