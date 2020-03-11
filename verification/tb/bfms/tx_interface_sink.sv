@@ -41,13 +41,13 @@ module tx_interface_sink
     dataQueue   received;
 
     function automatic void initialise;
-        iface.req           <= 1'b0;
+        iface.req           = 1'b0;
 
         // check by default. Better we forget to disable it than forget to enable it
-        check_expected      <= 1'b1;
+        check_expected      = 1'b1;
         expected.delete;
 
-        use_receive_queue   <= 1'b0;
+        use_receive_queue   = 1'b0;
         received.delete;
     endfunction
 
