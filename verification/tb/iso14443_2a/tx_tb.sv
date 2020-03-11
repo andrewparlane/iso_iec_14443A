@@ -55,6 +55,12 @@ module tx_tb;
     );
 
     // --------------------------------------------------------------
+    // The sink for the load modulator (tx_out)
+    // --------------------------------------------------------------
+
+    load_modulator_sink lm_sink (.*);
+
+    // --------------------------------------------------------------
     // Clock generator
     // --------------------------------------------------------------
 
@@ -73,89 +79,22 @@ module tx_tb;
     // Functions / Tasks
     // --------------------------------------------------------------
 
-    // our expected data
-    logic expected[$];
-
-    // a flag to show when we expect data to be arriving
-    logic sending;
-
-    // convert the sendQueue to expected
-    task setup_expected_queue (logic sq[$]);
-        automatic logic bq [$] = sq;
-
-        // add the SOC bit
-        bq.push_front(1'b1);
-
-        //foreach (bq[i]) $display("%b", bq[i]);
-
-        // data is manchester encoded
-        //  0 -> 64*0s, 64*1s
-        //  1 -> 64*1s, 64*0s
-        // and then AND'ed with the subcarrier (fc/16) and starts asserted
-        // so in the end:
-        //  0: -> 64*0s, repeat 4 times {8*1s, 8*0s}
-        //  1: -> repeat 4 times {8*1s, 8*0s}, 64*0s
-
-        expected.delete;
-        // it takes 3 ticks to start sending data, so we expect 3 0s to start
-        repeat (3) expected.push_back(1'b0);
-        foreach (bq[i]) begin
-            if (bq[i] == 0) begin
-                repeat (64) expected.push_back(1'b0);
-            end
-            repeat (4) begin
-                repeat (8) expected.push_back(1'b1);
-                repeat (8) expected.push_back(1'b0);
-            end
-            if (bq[i] == 1) begin
-                repeat (64) expected.push_back(1'b0);
-            end
-        end
-
-        //$display("expected %p", expected);
-
-        // add two full bit times of unloaded state
-        // this confirms nothing extra gets sent out
-        repeat (256) expected.push_back(1'b0);
-    endtask
-
     task send_data (logic sq[$]);
+        automatic logic rq [$];
         //$display("sending %p", sq);
 
-        // set up the expected queue
-        setup_expected_queue(sq);
-
-        // sync to clk edge
-        @(posedge clk) begin end
-
         // send it
-        sending <= 1'b1;
         tx_source.send_frame(sq);
+        lm_sink.wait_for_idle(512);
 
-        // the tx module doesn't tell us when it's done sending
-        // so just wait until the expected queue is empty + a few ticks
-        wait (expected.size() == 0) begin end
-        repeat (5) @(posedge clk) begin end
+        // get the received data
+        rq = lm_sink.get_and_clear_received_queue();
 
-        // clear the sending bit
-        sending <= 1'b0;
-
-        // wait a couple of ticks
-        repeat (5) @(posedge clk) begin end
+        // check we got what we sent + the SOC bit
+        sq.push_front(1'b1);
+        receivedAsExpected: assert(rq == sq)
+            else $error("received not as expected, got %p expected %p", rq, sq);
     endtask
-
-    // --------------------------------------------------------------
-    // Output verification
-    // --------------------------------------------------------------
-
-    always_ff @(posedge clk) begin: verificationBlock
-        if ((expected.size() != 0) && sending) begin: checkingBlock
-            automatic logic e = expected.pop_front;
-            //$display("got %b", tx_out);
-            dataAsExpected:
-            assert (tx_out == e) else $error("Expected %b got %b", e, tx_out);
-        end
-    end
 
     // --------------------------------------------------------------
     // Test stimulus
@@ -164,8 +103,8 @@ module tx_tb;
     initial begin
         automatic logic sendQueue[$] = '{};
 
-        sending <= 1'b0;
         tx_source.initialise;
+        lm_sink.initialise;
 
         // reset for 5 ticks
         rst_n <= 1'b0;
@@ -174,18 +113,11 @@ module tx_tb;
         repeat (5) @(posedge clk) begin end
 
         // Stuff to test
-        //  0) SOC - done implicity by adding the SOC to the expected queue
-        //  1) nothing sends if send is low
+        //  0) SOC - done by add the SOC bit to expected queue
+        //  1) nothing sends if data_valid is low
         in_iface.data_valid <= 1'b0;
-        expected.delete;
-        repeat(512) expected.push_back(1'b0);   // output always 0 for 4 bit times
-        repeat (5) @(posedge clk) begin end
-        sending <= 1'b1;
-        wait (expected.size() == 0) begin end
-        @(posedge clk) begin end
-        sending <= 1'b0;
-
-        repeat (5) @(posedge clk) begin end
+        repeat (512) @(posedge clk) begin end
+        // we'll error later if any data was received by the lm_sink
 
         //  2) correct number of bits are sent
         //      - implicity checked by adding all bits to the expected queue
@@ -206,15 +138,5 @@ module tx_tb;
         repeat (5) @(posedge clk) begin end
         $stop;
     end
-
-    // --------------------------------------------------------------
-    // Asserts
-    // --------------------------------------------------------------
-
-    inReset:
-    assert property (
-        @(posedge clk)
-        !rst_n |-> !tx_out)
-        else $error("tx_out should be low in reset");
 
 endmodule
