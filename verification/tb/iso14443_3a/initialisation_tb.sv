@@ -102,7 +102,7 @@ module initialisation_tb
     // The source for the rx_iface
     // --------------------------------------------------------------
 
-    rx_interface_source source
+    rx_interface_source rx_source
     (
         .clk    (clk),
         .iface  (rx_iface)
@@ -112,7 +112,7 @@ module initialisation_tb
     // The sink for the tx_iface
     // --------------------------------------------------------------
 
-    tx_interface_sink sink
+    tx_interface_sink tx_sink
     (
         .clk    (clk),
         .iface  (tx_iface)
@@ -220,7 +220,7 @@ module initialisation_tb
             dq.push_back(crc[15:8]);
         end
 
-        source.send_frame(dq, bits_in_last_byte, error_in_byte);
+        rx_source.send_frame(dq, bits_in_last_byte, error_in_byte);
 
         // CRC
         if (add_crc && (error_in_byte == -1)) begin
@@ -432,13 +432,13 @@ module initialisation_tb
     endtask
 
     task recv_data (output logic [7:0] dq[$], output logic crc);
-        // the sink requestes new data every 5 ticks
+        // the tx_sink requestes new data every 5 ticks
         // assuming it takes 20 ticks to start sending (will be less)
         // max reply is AC reply with NVB = 0x20 -> 4 bytes UID + 1 byte BCC = 40 bits
         // 40*5 + 20 = 220 ticks
         // wait 500
-        sink.wait_for_rx_complete(500);
-        dq = sink.get_and_clear_received_queue();
+        tx_sink.wait_for_rx_complete(500);
+        dq = tx_sink.get_and_clear_received_queue();
 
         crc = tx_append_crc;
     endtask
@@ -474,7 +474,7 @@ module initialisation_tb
         // get_and_clear_received_queue and cause an error there. Maybe not ideal, but i'm not
         // sure how else to check this.
         repeat (50) @(posedge clk) begin end
-        dq = sink.get_and_clear_received_queue();
+        dq = tx_sink.get_and_clear_received_queue();
 
         noReply: assert (dq.size == 0) else $fatal(1, "Received data when not expecting a reply");
     endtask
@@ -698,10 +698,10 @@ module initialisation_tb
         iso14443_4_deselect     <= 1'b0;
         last_sent_uid_bits      <= '0;
 
-        source.initialise;
-        sink.initialise;
-        sink.enable_expected_checking(1'b0);    // don't use the expected queue here
-        sink.enable_receive_queue(1'b1);        // use the receive queue instead
+        rx_source.initialise;
+        tx_sink.initialise;
+        tx_sink.enable_expected_checking(1'b0);    // don't use the expected queue here
+        tx_sink.enable_receive_queue(1'b1);        // use the receive queue instead
 
         // reset for 5 ticks
         rst_n <= 1'b0;
@@ -1079,7 +1079,7 @@ module initialisation_tb
             end
         end
 
-        // Since we call sink.enable_expected_checking(1'b0); we don't ever hit the
+        // Since we call tx_sink.enable_expected_checking(1'b0); we don't ever hit the
         // two expected queue assertions in the tx_interface_sink. Which means that
         // the assertion report comes back with those as "0 successes, 0 failures"
         // which my COLOURISE script in the Makefile makes red, since normally if we never
@@ -1087,13 +1087,13 @@ module initialisation_tb
         // using command line arguments but i'd have to do something special for any TBs
         // that need it. So instead, at least for now I'm just adding a quick hack to make
         // sure those assertions are used once.
-        sink.enable_expected_checking(1'b1);
-        sink.set_expected_queue((UID_SIZE == UIDSize_SINGLE) ? '{8'h04, 8'h00} :
-                                (UID_SIZE == UIDSize_DOUBLE) ? '{8'h44, 8'h00} :
+        tx_sink.enable_expected_checking(1'b1);
+        tx_sink.set_expected_queue((UID_SIZE == UIDSize_SINGLE) ? '{8'h04, 8'h00} :
+                                   (UID_SIZE == UIDSize_DOUBLE) ? '{8'h44, 8'h00} :
                                                                '{8'h84, 8'h00});
         go_to_state_idle;
         send_reqa;
-        sink.wait_for_expected_empty(100);
+        tx_sink.wait_for_expected_empty(100);
 
         repeat (5) @(posedge clk) begin end
         $stop;

@@ -52,7 +52,7 @@ module frame_encode_tb;
     // The source for the in_iface
     // --------------------------------------------------------------
 
-    tx_interface_source source
+    tx_interface_source tx_source
     (
         .clk    (clk),
         .iface  (in_iface)
@@ -62,7 +62,7 @@ module frame_encode_tb;
     // The sink for the out_iface
     // --------------------------------------------------------------
 
-    tx_interface_sink sink
+    tx_interface_sink tx_sink
     (
         .clk    (clk),
         .iface  (out_iface)
@@ -104,14 +104,14 @@ module frame_encode_tb;
 
             // process 2 - actually sends the data
             begin
-                source.send_frame(sq);
+                tx_source.send_frame(sq);
             end
 
         // block until both processes finish
         join
 
         // wait for the expected queue to be empty or timeout
-        sink.wait_for_expected_empty(500);
+        tx_sink.wait_for_expected_empty(500);
 
         // wait a few more ticks to make sure nothing more comes through
         repeat (100) @(posedge clk) begin end
@@ -129,8 +129,8 @@ module frame_encode_tb;
         fdt_trigger <= 1'b0;
         append_crc  <= 1'b0;
 
-        source.initialise;
-        sink.initialise;
+        tx_source.initialise;
+        tx_sink.initialise;
 
         // reset for 5 ticks
         rst_n <= 1'b0;
@@ -141,7 +141,7 @@ module frame_encode_tb;
         // Stuff to test
         //  1) nothing sends until fdt_trigger fires
         $display("Testing no Tx before fdt");
-        sink.clear_expected_queue;  // will assert if out_iface.data_valid asserts
+        tx_sink.clear_expected_queue;  // will assert if out_iface.data_valid asserts
         bits_in_first_byte  <= '0;
         in_iface.data_valid <= 1'b1;
         fdt_trigger         <= 1'b0;
@@ -150,7 +150,7 @@ module frame_encode_tb;
 
         //  2) nothing sends if in_iface.data_valid is low when fdt_trigger fires
         $display("Testing no Tx if in_iface.data_valid not asserted on fdt_trigger");
-        sink.clear_expected_queue;  // will assert if out_iface.data_valid asserts
+        tx_sink.clear_expected_queue;  // will assert if out_iface.data_valid asserts
         repeat (5) @(posedge clk) begin end
         fdt_trigger         <= 1'b1;
         @(posedge clk) begin end
@@ -171,7 +171,7 @@ module frame_encode_tb;
         data = frame_generator_pkg::generate_byte_queue(1);
         bits = frame_generator_pkg::convert_message_to_bit_queue(data, 8);
         temp = frame_generator_pkg::add_parity_to_bit_queue(bits);
-        sink.set_expected_queue(temp);
+        tx_sink.set_expected_queue(temp);
         send_data(bits);
 
         // send 1 - 8 bits of data, no crc
@@ -179,7 +179,7 @@ module frame_encode_tb;
             $display("Testing sending %d bits", i);
             bits = frame_generator_pkg::generate_bit_queue(i);
             temp = frame_generator_pkg::add_parity_to_bit_queue(bits, i);
-            sink.set_expected_queue(temp);
+            tx_sink.set_expected_queue(temp);
 
             bits_in_first_byte = 3'(i);
             send_data(bits);
@@ -196,7 +196,7 @@ module frame_encode_tb;
 
             bits = frame_generator_pkg::generate_bit_queue(bitsToSend);
             temp = frame_generator_pkg::add_parity_to_bit_queue(bits, bits_in_first_byte);
-            sink.set_expected_queue(temp);
+            tx_sink.set_expected_queue(temp);
 
             send_data(bits);
         end
@@ -219,7 +219,7 @@ module frame_encode_tb;
             data.push_back(crc[15:8]);
             temp = frame_generator_pkg::convert_message_to_bit_queue(data, 8);
             temp = frame_generator_pkg::add_parity_to_bit_queue(temp);
-            sink.set_expected_queue(temp);
+            tx_sink.set_expected_queue(temp);
 
             send_data(bits);
         end
