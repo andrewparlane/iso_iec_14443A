@@ -87,16 +87,16 @@ SRCS	= $(wildcard $(ROOT_DIR)/$(PKG_DIR)/*.sv) 					\
 # testbenches
 
 # This is used to generate the rules
-TBS		= sequence_decode_tb 	\
-		  subcarrier_tb 		\
-		  bit_encoder_tb 		\
-		  tx_tb 				\
-		  frame_decode_tb 		\
-		  fdt_tb 				\
-		  frame_encode_tb		\
-		  crc_a_tb 				\
-		  initialisation_tb 	\
-		  loopback_test
+TBS		= sequence_decode_tb 			\
+		  subcarrier_tb 				\
+		  bit_encoder_tb 				\
+		  tx_tb 						\
+		  iso14443_2a_loopback_test		\
+		  frame_decode_tb 				\
+		  fdt_tb 						\
+		  frame_encode_tb				\
+		  crc_a_tb 						\
+		  initialisation_tb
 
 # This is for TBs that need to do something custom, it's only used for list_tbs
 CUSTOM_TBS	= initialisation_tb_uid_single \
