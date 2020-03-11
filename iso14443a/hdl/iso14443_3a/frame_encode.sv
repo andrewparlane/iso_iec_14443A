@@ -23,14 +23,9 @@
 
 `timescale 1ps/1ps
 
-// The sender sets in_data, bits_in_first_byte and in_valid as soon as it is ready.
-// when the fdt_trigger fires if in_valid is set, we start sending out data bits
-// When we assert req if there is more to send then the next bit should be provided and in_valid
-// should remain set. If there is nothing further to send then in_valid should deassert.
-
 // Parity bits are added after bits_in_first_byte and then after every 8 bits.
 // We use bits_in_first_byte so that we can send the parity bit at the correct time in AC replies.
-// After in_valid deasserts if the append_crc signal is asserted, we start sending the CRC.
+// After in_iface.data_valid deasserts if the append_crc signal is asserted, we start sending the CRC.
 
 // This module should be connected to the iso14443-2A Tx module
 
@@ -43,22 +38,18 @@ module frame_encode
     input                   rst_n,
 
     // input from the frame delay timer
-    // this triggers the send (if in_valid is set)
+    // this triggers the send (if in_iface.data_valid is set)
     input                   fdt_trigger,
 
     // Input data
-    input                   in_data,
-    input                   in_valid,
-    output logic            in_req,
+    tx_interface.in_bit     in_iface,
 
     input           [2:0]   bits_in_first_byte,
     input                   append_crc,
     input           [15:0]  crc,
 
     // Output data
-    output logic            out_data,
-    output logic            out_valid,
-    input                   out_req
+    tx_interface.out_bit    out_iface
 );
 
     enum
@@ -80,13 +71,13 @@ module frame_encode
 
     always_ff @(posedge clk, negedge rst_n) begin
         if (!rst_n) begin
-            state       <= State_IDLE;
-            in_req      <= 1'b0;
-            out_valid   <= 1'b0;
+            state                   <= State_IDLE;
+            in_iface.req            <= 1'b0;
+            out_iface.data_valid    <= 1'b0;
         end
         else begin
             // req should only ever be asserted one tick at a time
-            in_req <= 1'b0;
+            in_iface.req    <= 1'b0;
 
             case (state)
                 State_IDLE: begin
@@ -94,13 +85,13 @@ module frame_encode
                     // wait for fdt_trigger
                     if (fdt_trigger) begin
                         // start if data valid
-                        if (in_valid) begin
+                        if (in_iface.data_valid) begin
                             // start sending data
-                            out_data    <= in_data;
-                            out_valid   <= 1'b1;
-                            parity      <= !in_data;
+                            out_iface.data          <= in_iface.data;
+                            out_iface.data_valid    <= 1'b1;
+                            parity                  <= !in_iface.data;
 
-                            bits_remaining <= bits_in_first_byte - 1'd1;
+                            bits_remaining          <= bits_in_first_byte - 1'd1;
 
                             if (bits_in_first_byte == 1) begin
                                 // send parity bit next
@@ -111,21 +102,21 @@ module frame_encode
                             end
 
                             // and request the next bit
-                            in_req  <= 1'b1;
+                            in_iface.req    <= 1'b1;
                         end
                     end
                 end
 
                 State_DATA: begin
                     // when the REQ comes in from the 14443-2 Tx module then send out the next data bit
-                    if (out_req) begin
-                        // note: We ignore in_valid here as PICC -> PCD comms should always end
-                        // with a parity bit. The sender should take care to always send the correct
+                    if (out_iface.req) begin
+                        // note: We ignore in_iface.data_valid here as PICC -> PCD comms should always
+                        // end with a parity bit. The sender should take care to always send the correct
                         // number of bits
 
                         // send the next bit and update the parity bit
-                        out_data    <= in_data;
-                        parity      <= parity ^ in_data;
+                        out_iface.data  <= in_iface.data;
+                        parity          <= parity ^ in_iface.data;
 
                         if (bits_remaining == 1) begin
                             // sending the last bit of this byte
@@ -134,7 +125,7 @@ module frame_encode
                         end
 
                         // request the next bit
-                        in_req          <= 1'b1;
+                        in_iface.req    <= 1'b1;
 
                         bits_remaining  <= bits_remaining - 1'd1;
                     end
@@ -142,12 +133,12 @@ module frame_encode
 
                 State_PARITY: begin
                     // wait for the bit encoder to request more data
-                    if (out_req) begin
+                    if (out_iface.req) begin
                         // send the parity bit
-                        out_data    <= parity;
+                        out_iface.data      <= parity;
 
                         // anything more to send?
-                        if (in_valid) begin
+                        if (in_iface.data_valid) begin
                             // yep
                             state           <= State_DATA;
                             bits_remaining  <= 3'd0;    // 8 more bits to send
@@ -170,9 +161,9 @@ module frame_encode
 
                 State_CRC: begin
                     // when the REQ comes in from the 14443-2 Tx module then send out the next crc bit
-                    if (out_req) begin
+                    if (out_iface.req) begin
                         // send the next bit and update the parity bit and shift the crc right by one
-                        out_data            <= cached_crc[0];
+                        out_iface.data      <= cached_crc[0];
                         cached_crc[14:0]    <= cached_crc[15:1];
                         parity              <= parity ^ cached_crc[0];
 
@@ -188,9 +179,9 @@ module frame_encode
 
                 State_CRC_PARITY: begin
                     // wait for the bit encoder to request more data
-                    if (out_req) begin
+                    if (out_iface.req) begin
                         // send the parity bit
-                        out_data    <= parity;
+                        out_iface.data  <= parity;
 
                         // anything more to send?
                         if (crc_byte == 0) begin
@@ -209,10 +200,10 @@ module frame_encode
 
                 State_END: begin
                     // wait for the bit encoder to request more data
-                    if (out_req) begin
+                    if (out_iface.req) begin
                         // no more data to send
-                        out_valid   <= 1'b0;
-                        state       <= State_IDLE;
+                        out_iface.data_valid    <= 1'b0;
+                        state                   <= State_IDLE;
                     end
                 end
 
