@@ -355,7 +355,7 @@ module loopback_test;
             automatic int bits_in_last_byte     = bits_to_send % 8;
 
             data = frame_generator_pkg::generate_byte_queue(bytes_to_send);
-            bits = frame_generator_pkg::convert_message_to_bit_queue(data, bits_in_last_byte);
+            bits = frame_generator_pkg::convert_message_to_bit_queue_for_rx(data, bits_in_last_byte);
             bits = frame_generator_pkg::add_parity_to_bit_queue(bits);
             expected = '{1'b1}; // soc
             foreach (bits[i]) expected.push_back(bits[i]);

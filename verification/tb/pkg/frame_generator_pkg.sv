@@ -35,6 +35,43 @@ package frame_generator_pkg;
     typedef logic [7:0]     byte_queue          [$];
 
     // ------------------------------------------------------------------------
+    // internal functions
+    // ------------------------------------------------------------------------
+
+    // use the convert_message_to_bit_queue_for_rx / _for_tx functions instead
+    function bit_queue convert_message_to_bit_queue_internal (logic [7:0] data [$], int bits_in_first_byte=8, int bits_in_last_byte=8);
+        // build a bit queue
+        bit_queue bits;
+        int last_byte;
+
+        // in some places we use 0 to represent 8 (so it can fit in 3 bits)
+        // but here we want the actual number of bits in the byte
+        if (bits_in_first_byte == 0) begin
+            bits_in_first_byte = 8;
+        end
+
+        if (bits_in_last_byte == 0) begin
+            bits_in_last_byte = 8;
+        end
+
+        bits = {};
+        last_byte = data.size - 1;
+        foreach (data[i]) begin
+            int bits_to_send;
+            bits_to_send = (i == 0)         ? bits_in_first_byte :
+                           (i == last_byte) ? bits_in_last_byte  :
+                                              8;
+
+            // LSb first
+            for (int b = 0; b < bits_to_send; b++) begin
+                bits.push_back(data[i][b]);
+            end
+        end
+
+        return bits;
+    endfunction
+
+    // ------------------------------------------------------------------------
     // external helper functions
     // ------------------------------------------------------------------------
 
@@ -181,30 +218,22 @@ package frame_generator_pkg;
         return new_bits;
     endfunction
 
-    function bit_queue convert_message_to_bit_queue (logic [7:0] data [$], int bits_in_last_byte);
-        // build a bit queue
-        bit_queue bits;
-        int last_byte;
-
-        // in some places we use 0 to represent 8 (so it can fit in 3 bits)
-        // but here we want the actual number of bits in the last byte
-        if (bits_in_last_byte == 0) begin
-            bits_in_last_byte = 8;
+    function bit_queue convert_message_to_bit_queue_for_tx (logic [7:0] data [$], int bits_in_first_byte=8);
+        automatic int bits_in_last_byte = 8;
+        if (data.size == 1) begin
+            // only one byte
+            bits_in_last_byte = bits_in_first_byte;
         end
+        return convert_message_to_bit_queue_internal (data, bits_in_first_byte, bits_in_last_byte);
+    endfunction
 
-        bits = {};
-        last_byte = data.size - 1;
-        foreach (data[i]) begin
-            int bits_to_send;
-            bits_to_send = (i == last_byte) ? bits_in_last_byte : 8;
-
-            // LSb first
-            for (int b = 0; b < bits_to_send; b++) begin
-                bits.push_back(data[i][b]);
-            end
+    function bit_queue convert_message_to_bit_queue_for_rx (logic [7:0] data [$], int bits_in_last_byte=8);
+        automatic int bits_in_first_byte = 8;
+        if (data.size == 1) begin
+            // only one byte
+            bits_in_first_byte = bits_in_last_byte;
         end
-
-        return bits;
+        return convert_message_to_bit_queue_internal (data, bits_in_first_byte, bits_in_last_byte);
     endfunction
 
     function logic [15:0] calculate_crc (logic [7:0] data[$]);

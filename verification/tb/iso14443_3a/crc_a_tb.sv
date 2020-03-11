@@ -110,7 +110,7 @@ module crc_a_tb;
         //$display("fgp_res: %h", fgp_res);
 
         // get the result from the LFSR method
-        lfsr_res    = calculate_crc_lfsr(frame_generator_pkg::convert_message_to_bit_queue(dq, 8));
+        lfsr_res    = calculate_crc_lfsr(frame_generator_pkg::convert_message_to_bit_queue_for_rx(dq));
         //$display("lfsr_res: %h", lfsr_res);
 
         // get the result from the DUT
