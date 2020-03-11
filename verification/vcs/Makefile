@@ -97,6 +97,7 @@ TBS		= sequence_decode_tb 			\
 		  frame_encode_tb				\
 		  crc_a_tb 						\
 		  deserialiser_tb				\
+		  serialiser_tb					\
 		  initialisation_tb
 
 # This is for TBs that need to do something custom, it's only used for list_tbs
