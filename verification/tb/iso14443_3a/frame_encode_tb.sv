@@ -35,25 +35,38 @@ module frame_encode_tb;
 
     logic           fdt_trigger;
 
-    // Input data
-    logic           in_data;
-    logic           in_valid;
-    logic           in_req;
-
     logic [2:0]     bits_in_first_byte;
     logic           append_crc;
     logic [15:0]    crc;
 
-    // Output data
-    logic           out_data;
-    logic           out_valid;
-    logic           out_req;
+    tx_interface #(.BY_BYTE(0)) in_iface (.*);
+    tx_interface #(.BY_BYTE(0)) out_iface (.*);
 
     // --------------------------------------------------------------
     // DUT
     // --------------------------------------------------------------
 
     frame_encode dut (.*);
+
+    // --------------------------------------------------------------
+    // The source for the in_iface
+    // --------------------------------------------------------------
+
+    tx_interface_source source
+    (
+        .clk    (clk),
+        .iface  (in_iface)
+    );
+
+    // --------------------------------------------------------------
+    // The sink for the out_iface
+    // --------------------------------------------------------------
+
+    tx_interface_sink sink
+    (
+        .clk    (clk),
+        .iface  (out_iface)
+    );
 
     // --------------------------------------------------------------
     // PICC -> PCD clock and comms generator
@@ -71,9 +84,6 @@ module frame_encode_tb;
     // Functions / Tasks
     // --------------------------------------------------------------
 
-    // our expected data
-    logic expected[$];
-
     task send_data (logic sq[$]);
         // sync to clock edge
         @(posedge clk)
@@ -89,108 +99,35 @@ module frame_encode_tb;
                 fdt_trigger <= 1'b0;
             end
 
-            // process 2 - actually sends the data (waits for req and provides next bytes)
+            // process 2 - actually sends the data
             begin
-                foreach (sq[i]) begin
-                    // set up the inputs
-                    in_data         <= sq[i];
-                    in_valid        <= 1'b1;
-
-                    //$display("sending %b", sq[i]);
-
-                    // wait a tick so req isn't asserted still
-                    @(posedge clk)
-
-                    // wait for the next req, and align to the clock
-                    wait (in_req) begin end
-                    @(posedge clk) begin end
-                end
-
-                // nothing more to send, clear in_valid
-                in_valid <= 1'b0;
+                source.send_frame(sq);
             end
 
         // block until both processes finish
         join
 
         // wait for the expected queue to be empty or timeout
-
-        fork
-            // process 1 - wait for expected queue to be empty
-            begin
-                // the tx module doesn't tell us when it's done sending
-                // so just wait until the expected queue is empty + a few ticks
-                wait (expected.size() == 0) begin end
-            end
-
-            // process 2 - wait for timeout
-            begin
-                // after we finish sending, the DUT has to continue sending
-                // 16 CRC bits + 3 parity bits
-                // we issue out_req every 6 cycles, so should take ~114 cycles
-                // timeout after 500
-                repeat (500) @(posedge clk) begin end
-            end
-        join_any
-
-        timeout:
-        assert (expected.size() == 0) else $error("Timed out waiting for expected queue to empty");
+        sink.wait_for_expected_empty(500);
 
         // wait a few more ticks to make sure nothing more comes through
         repeat (100) @(posedge clk) begin end
     endtask
 
     // --------------------------------------------------------------
-    // Deal with the output signals
-    // --------------------------------------------------------------
-
-    initial begin
-        out_req <= 1'b0;
-
-        forever begin
-            // wait for the out_valid to assert
-            wait (out_valid) begin end
-
-            // 4 ticks later request more data
-            repeat(4) @(posedge clk) begin end
-
-            out_req <= 1'b1;
-            @(posedge clk) begin end
-            out_req <= 1'b0;
-            @(posedge clk) begin end
-        end
-    end
-
-    // --------------------------------------------------------------
-    // Output verification
-    // --------------------------------------------------------------
-
-    always_ff @(posedge clk) begin: verificationBlock
-        if (out_req) begin
-            expectedNotEmpty:
-            assert(expected.size() != 0) else $error("expected queue empty, but received data");
-
-            //$display("got: %b", out_data);
-
-            if ((expected.size() != 0)) begin: checkingBlock
-                automatic logic e = expected.pop_front;
-                dataAsExpected:
-                assert (out_data == e) else $error("Expected %b got %b", e, out_data);
-            end
-        end
-    end
-
-    // --------------------------------------------------------------
     // Test stimulus
     // --------------------------------------------------------------
 
     initial begin
-        automatic logic [7:0]   data[$];
-        automatic logic         bits[$];
+        automatic logic [7:0] data[$];
+        automatic logic       bits[$];
+        automatic logic       temp[$];
 
         fdt_trigger <= 1'b0;
-        in_valid    <= 1'b0;
         append_crc  <= 1'b0;
+
+        source.initialise;
+        sink.initialise;
 
         // reset for 5 ticks
         rst_n <= 1'b0;
@@ -201,24 +138,23 @@ module frame_encode_tb;
         // Stuff to test
         //  1) nothing sends until fdt_trigger fires
         $display("Testing no Tx before fdt");
-        expected.delete;    // will assert if out_valid asserts
-        in_data             <= 1'b0;
+        sink.clear_expected_queue;  // will assert if out_iface.data_valid asserts
         bits_in_first_byte  <= '0;
-        in_valid            <= 1'b1;
+        in_iface.data_valid <= 1'b1;
         fdt_trigger         <= 1'b0;
         repeat (100) @(posedge clk) begin end
-        in_valid            <= 1'b0;
+        in_iface.data_valid <= 1'b0;
 
-        //  2) nothing sends if in_valid is low when fdt_trigger fires
-        $display("Testing no Tx if in_valid not asserted on fdt_trigger");
-        expected.delete;
+        //  2) nothing sends if in_iface.data_valid is low when fdt_trigger fires
+        $display("Testing no Tx if in_iface.data_valid not asserted on fdt_trigger");
+        sink.clear_expected_queue;  // will assert if out_iface.data_valid asserts
         repeat (5) @(posedge clk) begin end
-        fdt_trigger     <= 1'b1;
+        fdt_trigger         <= 1'b1;
         @(posedge clk) begin end
-        fdt_trigger     <= 1'b0;
-        in_valid        <= 1'b1;
+        fdt_trigger         <= 1'b0;
+        in_iface.data_valid <= 1'b1;
         @(posedge clk) begin end
-        in_valid        <= 1'b0;
+        in_iface.data_valid <= 1'b0;
         repeat (100) @(posedge clk) begin end
 
         //  3) parity is correct (number of 1s is odd)
@@ -229,16 +165,18 @@ module frame_encode_tb;
 
         // send 8 bits of data, no crc
         $display("Testing sending 8 bits");
-        data        = bfm.generate_byte_queue(1);
-        bits        = bfm.convert_message_to_bit_queue(data, 8);
-        expected    = bfm.add_parity_to_bit_queue(bits);
+        data = bfm.generate_byte_queue(1);
+        bits = bfm.convert_message_to_bit_queue(data, 8);
+        temp = bfm.add_parity_to_bit_queue(bits);
+        sink.set_expected_queue(temp);
         send_data(bits);
 
         // send 1 - 8 bits of data, no crc
         for (int i = 1; i <= 8; i++) begin
             $display("Testing sending %d bits", i);
-            bits        = bfm.generate_bit_queue(i);
-            expected    = bfm.add_parity_to_bit_queue(bits, i);
+            bits = bfm.generate_bit_queue(i);
+            temp = bfm.add_parity_to_bit_queue(bits, i);
+            sink.set_expected_queue(temp);
 
             bits_in_first_byte = 3'(i);
             send_data(bits);
@@ -253,8 +191,9 @@ module frame_encode_tb;
 
             //$display("sending %d bits, %d in first byte", bitsToSend, bits_in_first_byte);
 
-            bits        = bfm.generate_bit_queue(bitsToSend);
-            expected    = bfm.add_parity_to_bit_queue(bits, bits_in_first_byte);
+            bits = bfm.generate_bit_queue(bitsToSend);
+            temp = bfm.add_parity_to_bit_queue(bits, bits_in_first_byte);
+            sink.set_expected_queue(temp);
 
             send_data(bits);
         end
@@ -266,16 +205,18 @@ module frame_encode_tb;
         append_crc          = 1'b1;
         repeat (10000) begin
             automatic int bytes_to_send = $urandom_range(1, 10);
-            data        = bfm.generate_byte_queue(bytes_to_send);
-            crc         = bfm.calculate_crc(data);
+            data    = bfm.generate_byte_queue(bytes_to_send);
+            crc     = bfm.calculate_crc(data);
 
             // bit queue to send
-            bits        = bfm.convert_message_to_bit_queue(data, 8);
+            bits    = bfm.convert_message_to_bit_queue(data, 8);
 
             // expected
             data.push_back(crc[7:0]);
             data.push_back(crc[15:8]);
-            expected    = bfm.add_parity_to_bit_queue(bfm.convert_message_to_bit_queue(data, 8));
+            temp = bfm.convert_message_to_bit_queue(data, 8);
+            temp = bfm.add_parity_to_bit_queue(temp);
+            sink.set_expected_queue(temp);
 
             send_data(bits);
         end
@@ -288,10 +229,12 @@ module frame_encode_tb;
     // Asserts
     // --------------------------------------------------------------
 
-    inReset:
+    // we should assert data_valid on the out_iface 1 tick after the fdt_trigger fires
+    validAfterTrigger:
     assert property (
         @(posedge clk)
-        !rst_n |-> (!out_valid && !in_req))
-        else $error("Invalid outputs in reset");
+        ($rose(fdt_trigger) && in_iface.data_valid) |=>
+            $rose(out_iface.data_valid))
+        else $error("out_iface.data_valid didn't rise after fdt_trigger");
 
 endmodule
