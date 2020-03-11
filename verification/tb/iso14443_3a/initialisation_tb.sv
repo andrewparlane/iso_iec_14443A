@@ -153,16 +153,19 @@ module initialisation_tb
     endgenerate
 
     // --------------------------------------------------------------
-    // PICC -> PCD clock and comms generator
+    // Clock generator
     // --------------------------------------------------------------
-    // just used for generating the clk and calculating CRCs
-    iso14443a_pcd_to_picc_comms_generator bfm
-    (
-        .clk            (clk),
-        .pcd_pause_n    (),
-        .pause_n        (),
-        .sending        ()
-    );
+
+    // Calculate our clock period in ps
+    localparam CLOCK_FREQ_HZ = 13560000; // 13.56MHz
+    localparam CLOCK_PERIOD_PS = 1000000000000.0 / CLOCK_FREQ_HZ;
+    initial begin
+        clk = 1'b0;
+        forever begin
+            #(int'(CLOCK_PERIOD_PS/2))
+            clk = ~clk;
+        end
+    end
 
     // --------------------------------------------------------------
     // Functions / Tasks
@@ -208,7 +211,7 @@ module initialisation_tb
     endfunction
 
     task send_frame (logic [7:0] dq[$], int bits_in_last_byte, logic add_crc, int error_in_byte = -1);
-        automatic logic [15:0] crc = bfm.calculate_crc(dq);
+        automatic logic [15:0] crc = frame_generator_pkg::calculate_crc(dq);
 
         rx_crc_ok <= 1'b0;
 

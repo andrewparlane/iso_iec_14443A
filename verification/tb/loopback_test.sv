@@ -91,7 +91,7 @@ module loopback_test;
 
     // TODO: We should set these values based on the actual behaivour of the AFE
     //       and then run this testbench again
-    //       don't forget to adjust the values in the BFM.
+    //       don't forget to adjust the values in the pause_n_and_clock_source.
     //       also would need to add a delay to the tx_out signal to mimic output buffer
     //       + AFE delay on the transmit side
 
@@ -131,18 +131,15 @@ module loopback_test;
     );
 
     // --------------------------------------------------------------
-    // PICC -> PCD clock and comms generator
+    // The source for the clock and pause_n signal
     // --------------------------------------------------------------
-    logic bfm_sending;
+    logic pause_n_source_sending;
     logic pcd_pause_n;
     logic pause_n;
-    iso14443a_pcd_to_picc_comms_generator bfm
-    (
-        .clk            (clk),
-        .pcd_pause_n    (pcd_pause_n),
-        .pause_n        (pause_n),
-        .sending        (bfm_sending)
-    );
+    pause_n_and_clock_source pause_n_source (.*);
+
+    // connect pause_n_synchronised and pause_n
+    assign pause_n_synchronised = pause_n;
 
     // --------------------------------------------------------------
     // Synchronise the pause_n signal
@@ -357,9 +354,9 @@ module loopback_test;
             automatic int bytes_to_send         = int'($ceil(bits_to_send / 8.0));
             automatic int bits_in_last_byte     = bits_to_send % 8;
 
-            data = bfm.generate_byte_queue(bytes_to_send);
-            bits = bfm.convert_message_to_bit_queue(data, bits_in_last_byte);
-            bits = bfm.add_parity_to_bit_queue(bits);
+            data = frame_generator_pkg::generate_byte_queue(bytes_to_send);
+            bits = frame_generator_pkg::convert_message_to_bit_queue(data, bits_in_last_byte);
+            bits = frame_generator_pkg::add_parity_to_bit_queue(bits);
             expected = '{1'b1}; // soc
             foreach (bits[i]) expected.push_back(bits[i]);
 
@@ -370,7 +367,7 @@ module loopback_test;
             // with the remaining 5 bits of that byte + the parity bit, and then the remaining
             // bytes as normal. Hence we always want to send a parity bit on PICC -> PCD comms
             // So we need to add the parity bit to the expected data queue manually, since
-            // the bfm.add_parity_to_bit_queue only adds a parity bit after every 8 bits of data.
+            // the frame_generator_pkg::add_parity_to_bit_queue only adds a parity bit after every 8 bits of data.
             if (bits_in_last_byte != 0) begin
                 automatic logic parity = 1'b1;
                 for (int i = 0; i < bits_in_last_byte; i++) begin
@@ -383,7 +380,7 @@ module loopback_test;
             $display("data %p", data);
             $display("expected %p", expected); */
 
-            bfm.send_message_no_crc(data, bits_in_last_byte);
+            pause_n_source.send_message_no_crc(data, bits_in_last_byte);
 
             wait (expected.size() == 0) begin end
             repeat (256) @(posedge clk) begin end

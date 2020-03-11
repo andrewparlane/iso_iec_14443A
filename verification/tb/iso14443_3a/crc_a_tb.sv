@@ -45,24 +45,26 @@ module crc_a_tb;
     crc_a dut (.*);
 
     // --------------------------------------------------------------
-    // PICC -> PCD clock and comms generator
+    // Clock generator
     // --------------------------------------------------------------
-    // used to generate data, the calculate_crc() function
-    // and as a clock generator
-    iso14443a_pcd_to_picc_comms_generator bfm
-    (
-        .clk            (clk),
-        .pcd_pause_n    (),
-        .pause_n        (),
-        .sending        ()
-    );
+
+    // Calculate our clock period in ps
+    localparam CLOCK_FREQ_HZ = 13560000; // 13.56MHz
+    localparam CLOCK_PERIOD_PS = 1000000000000.0 / CLOCK_FREQ_HZ;
+    initial begin
+        clk = 1'b0;
+        forever begin
+            #(int'(CLOCK_PERIOD_PS/2))
+            clk = ~clk;
+        end
+    end
 
     // --------------------------------------------------------------
     // Functions / Tasks
     // --------------------------------------------------------------
 
     // I know of two ways to generate the CRC:
-    //  1) using the algorithm in iso14443a_pcd_to_picc_comms_generator.v:calculate_crc()
+    //  1) using the algorithm in frame_generator_pkg::calculate_crc()
     //     which is based on the C code in ISO/IEC 14443-3:2016 Annex B.3
     //  2) using an LFSR with polynomial: x^16 + x^12 + x^5 + 1
     // I test the result of crc_a against both of these
@@ -99,16 +101,16 @@ module crc_a_tb;
 
     task testCRC (input logic [7:0] dq[$], output logic [15:0] crc_a_res);
         automatic logic [15:0] lfsr_res;
-        automatic logic [15:0] bfm_res;
+        automatic logic [15:0] fgp_res;
 
         //$display("testCRC %p", dq);
 
-        // get the result from the method in the BFM
-        bfm_res     = bfm.calculate_crc(dq);
-        //$display("bfm_res: %h", bfm_res);
+        // get the result from the method in the frame_generator_pkg
+        fgp_res     = frame_generator_pkg::calculate_crc(dq);
+        //$display("fgp_res: %h", fgp_res);
 
         // get the result from the LFSR method
-        lfsr_res    = calculate_crc_lfsr(bfm.convert_message_to_bit_queue(dq, 8));
+        lfsr_res    = calculate_crc_lfsr(frame_generator_pkg::convert_message_to_bit_queue(dq, 8));
         //$display("lfsr_res: %h", lfsr_res);
 
         // get the result from the DUT
@@ -136,11 +138,11 @@ module crc_a_tb;
         //$display("crc_a res %h", crc_a_res);
 
         // validate
-        bfmEqualLfsr:
-        assert (bfm_res == lfsr_res) else $error("BFM result (%h) != lfsr_res (%h)", bfm_res, lfsr_res);
+        fgpEqualLfsr:
+        assert (fgp_res == lfsr_res) else $error("FGP result (%h) != lfsr_res (%h)", fgp_res, lfsr_res);
 
         crcAValid:
-        assert (bfm_res == crc_a_res) else $error("BFM result (%h) != crc_a_res (%h)", bfm_res, crc_a_res);
+        assert (fgp_res == crc_a_res) else $error("FGP result (%h) != crc_a_res (%h)", fgp_res, crc_a_res);
     endtask
 
     // --------------------------------------------------------------
@@ -183,7 +185,7 @@ module crc_a_tb;
             automatic int bytes = $urandom_range(1, 100);
 
             // just test the generated data
-            generatedData = bfm.generate_byte_queue(bytes);
+            generatedData = frame_generator_pkg::generate_byte_queue(bytes);
             testCRC(generatedData, crc_a_res);
 
             // append the CRC LSByte first to the generatedData and check again

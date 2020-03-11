@@ -47,16 +47,19 @@ module frame_decode_tb;
     frame_decode dut (.*);
 
     // --------------------------------------------------------------
-    // PICC -> PCD clock and comms generator
-    // Note: we only use this to generate data, not to send it
+    // Clock generator
     // --------------------------------------------------------------
-    iso14443a_pcd_to_picc_comms_generator bfm
-    (
-        .clk            (clk),
-        .pcd_pause_n    (),
-        .pause_n        (),
-        .sending        ()
-    );
+
+    // Calculate our clock period in ps
+    localparam CLOCK_FREQ_HZ = 13560000; // 13.56MHz
+    localparam CLOCK_PERIOD_PS = 1000000000000.0 / CLOCK_FREQ_HZ;
+    initial begin
+        clk = 1'b0;
+        forever begin
+            #(int'(CLOCK_PERIOD_PS/2))
+            clk = ~clk;
+        end
+    end
 
     // --------------------------------------------------------------
     // The source for the in_iface
@@ -97,21 +100,21 @@ module frame_decode_tb;
 
         // 1) Test an 8 bit frame with parity bit OK
         //$display("Testing an 8 bit frame with parity bit OK");
-        data = bfm.generate_byte_queue(1);
-        bits = bfm.convert_message_to_bit_queue(data, 8);
+        data = frame_generator_pkg::generate_byte_queue(1);
+        bits = frame_generator_pkg::convert_message_to_bit_queue(data, 8);
 
         sink.clear_expected_queue;
         sink.build_valid_frame_expected_queue(bits);
 
-        bits = bfm.add_parity_to_bit_queue(bits);
+        bits = frame_generator_pkg::add_parity_to_bit_queue(bits);
         check_last_bit = 1'b1;
         source.send_frame(bits);
         sink.wait_for_expected_empty(bits.size * 5 * 2);
 
         // 2) Test an 8 bit frame with parity FAIL
         //$display("Testing an 8 bit frame with parity FAIL");
-        data = bfm.generate_byte_queue(1);
-        bits = bfm.convert_message_to_bit_queue(data, 8);
+        data = frame_generator_pkg::generate_byte_queue(1);
+        bits = frame_generator_pkg::convert_message_to_bit_queue(data, 8);
 
         sink.clear_expected_queue;
         sink.add_expected_soc_event;
@@ -119,7 +122,7 @@ module frame_decode_tb;
         sink.add_expected_error_event;
         sink.add_expected_eoc_full_byte_event(1'b0);
 
-        bits = bfm.add_parity_to_bit_queue(bits);
+        bits = frame_generator_pkg::add_parity_to_bit_queue(bits);
         bits[$] = !bits[$]; // flip the parity bit
 
         source.send_frame(bits);
@@ -128,8 +131,8 @@ module frame_decode_tb;
 
         // 3) Test an 8 bit frame with parity missing
         //$display("Testing an 8 bit frame with parity bit missing");
-        data = bfm.generate_byte_queue(1);
-        bits = bfm.convert_message_to_bit_queue(data, 8);
+        data = frame_generator_pkg::generate_byte_queue(1);
+        bits = frame_generator_pkg::convert_message_to_bit_queue(data, 8);
         sink.clear_expected_queue;
         sink.add_expected_soc_event;
         sink.add_expected_data_events(bits);
@@ -147,8 +150,8 @@ module frame_decode_tb;
         for (int i = 0; i < 10; i++) begin
             //$display("Testing an 8 bit frame with an error at idx %d", i);
 
-            data = bfm.generate_byte_queue(1);
-            bits = bfm.convert_message_to_bit_queue(data, 8);
+            data = frame_generator_pkg::generate_byte_queue(1);
+            bits = frame_generator_pkg::convert_message_to_bit_queue(data, 8);
 
             sink.clear_expected_queue;
             sink.add_expected_soc_event;
@@ -160,7 +163,7 @@ module frame_decode_tb;
             end
             sink.add_expected_eoc_full_byte_event(i == 9);
 
-            bits = bfm.add_parity_to_bit_queue(bits);
+            bits = frame_generator_pkg::add_parity_to_bit_queue(bits);
             check_last_bit = 1'b0;
             source.send_frame(bits, 0, i);
             sink.wait_for_expected_empty(bits.size * 5 * 2);
@@ -179,8 +182,8 @@ module frame_decode_tb;
         // 6) test 1 - 7 bit frames
         for (int bitLen = 1; bitLen <= 7; bitLen++) begin
             //$display("Testing a %d bit frame", bitLen);
-            data = bfm.generate_byte_queue(1);
-            bits = bfm.convert_message_to_bit_queue(data, bitLen);
+            data = frame_generator_pkg::generate_byte_queue(1);
+            bits = frame_generator_pkg::convert_message_to_bit_queue(data, bitLen);
 
             sink.clear_expected_queue;
             sink.build_valid_frame_expected_queue(bits);
@@ -199,13 +202,13 @@ module frame_decode_tb;
 
             // 7) Test an N bit frame with parity OK
             //$display("Testing a %d bit frame with parity bits OK", num_bits);
-            data = bfm.generate_byte_queue(num_bytes);
-            bits = bfm.convert_message_to_bit_queue(data, num_bits_in_last_byte);
+            data = frame_generator_pkg::generate_byte_queue(num_bytes);
+            bits = frame_generator_pkg::convert_message_to_bit_queue(data, num_bits_in_last_byte);
 
             sink.clear_expected_queue;
             sink.build_valid_frame_expected_queue(bits);
 
-            bits = bfm.add_parity_to_bit_queue(bits);
+            bits = frame_generator_pkg::add_parity_to_bit_queue(bits);
             check_last_bit = 1'b1;
             source.send_frame(bits);
             sink.wait_for_expected_empty(bits.size * 5 * 2);
@@ -214,9 +217,9 @@ module frame_decode_tb;
             if (num_bits > 8) begin
                 automatic int broken_parity_byte    = $urandom_range(num_bytes - 2);
                 //$display("Testing a %d bit frame with broken parity bit in byte %d", num_bits, broken_parity_byte);
-                data = bfm.generate_byte_queue(num_bytes);
+                data = frame_generator_pkg::generate_byte_queue(num_bytes);
 
-                bits = bfm.convert_message_to_bit_queue(data, num_bits_in_last_byte);
+                bits = frame_generator_pkg::convert_message_to_bit_queue(data, num_bits_in_last_byte);
 
                 sink.clear_expected_queue;
                 sink.add_expected_soc_event;
@@ -224,7 +227,7 @@ module frame_decode_tb;
                 sink.add_expected_error_event;
                 sink.add_expected_eoc_full_byte_event(1'b0);
 
-                bits = bfm.add_parity_to_bit_queue(bits);
+                bits = frame_generator_pkg::add_parity_to_bit_queue(bits);
                 bits[broken_parity_byte*9 + 8] = !bits[broken_parity_byte*9 + 8]; // break the parity bit
                 check_last_bit = 1'b0;
                 source.send_frame(bits);
@@ -234,8 +237,8 @@ module frame_decode_tb;
             // 9) Test an N byte frame with last parity missing
             num_bytes = $urandom_range(1, 100);
             //$display("Testing a %d byte frame with last parity missing", num_bytes);
-            data = bfm.generate_byte_queue(num_bytes);
-            bits = bfm.convert_message_to_bit_queue(data, 8);
+            data = frame_generator_pkg::generate_byte_queue(num_bytes);
+            bits = frame_generator_pkg::convert_message_to_bit_queue(data, 8);
 
             // expecting parity error on EOC
             sink.clear_expected_queue;
@@ -243,7 +246,7 @@ module frame_decode_tb;
             sink.add_expected_data_events(bits);
             sink.add_expected_eoc_full_byte_event(1'b1);
 
-            bits = bfm.add_parity_to_bit_queue(bits);
+            bits = frame_generator_pkg::add_parity_to_bit_queue(bits);
             void'(bits.pop_back);   // remove the last bit
 
             check_last_bit = 1'b1;

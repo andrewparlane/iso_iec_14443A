@@ -78,6 +78,7 @@ SRCS	= $(wildcard $(ROOT_DIR)/$(PKG_DIR)/*.sv) 					\
 		  $(wildcard $(ROOT_DIR)/$(SRC_DIR)/iso14443_2a/*.sv) 		\
 		  $(wildcard $(ROOT_DIR)/$(SRC_DIR)/iso14443_3a/*.sv) 		\
 		  $(wildcard $(ROOT_DIR)/$(SRC_DIR)/*.sv) 					\
+		  $(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/pkg/*.sv) 			\
 		  $(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/*.sv) 				\
 		  $(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/bfms/*.sv) 			\
 		  $(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/iso14443_2a/*.sv) 	\
