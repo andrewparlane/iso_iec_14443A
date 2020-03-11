@@ -1079,22 +1079,6 @@ module initialisation_tb
             end
         end
 
-        // Since we call tx_sink.enable_expected_checking(1'b0); we don't ever hit the
-        // two expected queue assertions in the tx_interface_sink. Which means that
-        // the assertion report comes back with those as "0 successes, 0 failures"
-        // which my COLOURISE script in the Makefile makes red, since normally if we never
-        // hit an assertion that would be a problem. I could disable those assertions
-        // using command line arguments but i'd have to do something special for any TBs
-        // that need it. So instead, at least for now I'm just adding a quick hack to make
-        // sure those assertions are used once.
-        tx_sink.enable_expected_checking(1'b1);
-        tx_sink.set_expected_queue((UID_SIZE == UIDSize_SINGLE) ? '{8'h04, 8'h00} :
-                                   (UID_SIZE == UIDSize_DOUBLE) ? '{8'h44, 8'h00} :
-                                                               '{8'h84, 8'h00});
-        go_to_state_idle;
-        send_reqa;
-        tx_sink.wait_for_expected_empty(100);
-
         repeat (5) @(posedge clk) begin end
         $stop;
     end
