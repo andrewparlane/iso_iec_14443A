@@ -96,7 +96,7 @@ module deserialiser_tb;
         // 1) Test an 8 bit frame
         $display("Testing an 8 bit frame");
         data = frame_generator_pkg::generate_byte_queue(1);
-        bits = frame_generator_pkg::convert_message_to_bit_queue(data, 8);
+        bits = frame_generator_pkg::convert_message_to_bit_queue_for_rx(data);
 
         rx_sink.clear_expected_queue;
         rx_sink.build_valid_frame_expected_queue(data);
@@ -108,7 +108,7 @@ module deserialiser_tb;
         for (int i = 1; i < 8; i++) begin
             $display("Testing a %d bit frame", i);
             data = frame_generator_pkg::generate_byte_queue(1);
-            bits = frame_generator_pkg::convert_message_to_bit_queue(data, i);
+            bits = frame_generator_pkg::convert_message_to_bit_queue_for_rx(data, i);
 
             rx_sink.clear_expected_queue;
             rx_sink.add_expected_soc_event;
@@ -128,7 +128,7 @@ module deserialiser_tb;
 
             //$display("Testing a %d bit frame", num_bits);
             data = frame_generator_pkg::generate_byte_queue(num_bytes);
-            bits = frame_generator_pkg::convert_message_to_bit_queue(data, num_bits_in_last_byte);
+            bits = frame_generator_pkg::convert_message_to_bit_queue_for_rx(data, num_bits_in_last_byte);
 
             if (num_bits_in_last_byte != 0) begin
                 // ends in a partial byte
@@ -160,7 +160,7 @@ module deserialiser_tb;
 
             //$display("Testing a %d bit frame with error before bit %d", num_bits, error_before_bit);
             data = frame_generator_pkg::generate_byte_queue(num_bytes);
-            bits = frame_generator_pkg::convert_message_to_bit_queue(data, num_bits_in_last_byte);
+            bits = frame_generator_pkg::convert_message_to_bit_queue_for_rx(data, num_bits_in_last_byte);
 
             rx_sink.clear_expected_queue;
             rx_sink.add_expected_soc_event;

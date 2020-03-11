@@ -169,7 +169,7 @@ module frame_encode_tb;
         // send 8 bits of data, no crc
         $display("Testing sending 8 bits");
         data = frame_generator_pkg::generate_byte_queue(1);
-        bits = frame_generator_pkg::convert_message_to_bit_queue(data, 8);
+        bits = frame_generator_pkg::convert_message_to_bit_queue_for_tx(data);
         temp = frame_generator_pkg::add_parity_to_bit_queue(bits);
         tx_sink.set_expected_queue(temp);
         send_data(bits);
@@ -212,12 +212,12 @@ module frame_encode_tb;
             crc     = frame_generator_pkg::calculate_crc(data);
 
             // bit queue to send
-            bits    = frame_generator_pkg::convert_message_to_bit_queue(data, 8);
+            bits    = frame_generator_pkg::convert_message_to_bit_queue_for_tx(data);
 
             // expected
             data.push_back(crc[7:0]);
             data.push_back(crc[15:8]);
-            temp = frame_generator_pkg::convert_message_to_bit_queue(data, 8);
+            temp = frame_generator_pkg::convert_message_to_bit_queue_for_tx(data);
             temp = frame_generator_pkg::add_parity_to_bit_queue(temp);
             tx_sink.set_expected_queue(temp);
 

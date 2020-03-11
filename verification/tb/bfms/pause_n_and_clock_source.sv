@@ -343,7 +343,7 @@ module pause_n_and_clock_source
     task send_message_no_crc (logic [7:0] data [$], int bits_in_last_byte);
         // build a bit queue
         logic bits[$];
-        bits = frame_generator_pkg::convert_message_to_bit_queue(data, bits_in_last_byte);
+        bits = frame_generator_pkg::convert_message_to_bit_queue_for_rx(data, bits_in_last_byte);
 
         // do it
         send_bit_queue_with_parity(bits);

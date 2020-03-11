@@ -101,7 +101,7 @@ module frame_decode_tb;
         // 1) Test an 8 bit frame with parity bit OK
         //$display("Testing an 8 bit frame with parity bit OK");
         data = frame_generator_pkg::generate_byte_queue(1);
-        bits = frame_generator_pkg::convert_message_to_bit_queue(data, 8);
+        bits = frame_generator_pkg::convert_message_to_bit_queue_for_rx(data);
 
         rx_sink.clear_expected_queue;
         rx_sink.build_valid_frame_expected_queue(bits);
@@ -114,7 +114,7 @@ module frame_decode_tb;
         // 2) Test an 8 bit frame with parity FAIL
         //$display("Testing an 8 bit frame with parity FAIL");
         data = frame_generator_pkg::generate_byte_queue(1);
-        bits = frame_generator_pkg::convert_message_to_bit_queue(data, 8);
+        bits = frame_generator_pkg::convert_message_to_bit_queue_for_rx(data);
 
         rx_sink.clear_expected_queue;
         rx_sink.add_expected_soc_event;
@@ -132,7 +132,7 @@ module frame_decode_tb;
         // 3) Test an 8 bit frame with parity missing
         //$display("Testing an 8 bit frame with parity bit missing");
         data = frame_generator_pkg::generate_byte_queue(1);
-        bits = frame_generator_pkg::convert_message_to_bit_queue(data, 8);
+        bits = frame_generator_pkg::convert_message_to_bit_queue_for_rx(data);
         rx_sink.clear_expected_queue;
         rx_sink.add_expected_soc_event;
         rx_sink.add_expected_data_events(bits);
@@ -145,13 +145,13 @@ module frame_decode_tb;
         rx_sink.wait_for_expected_empty(bits.size * 5 * 2);
 
         // 4) Test an 8 bit frame + parity with error in each location
-        //      before bit 0, bit 1, ... bit 8, bit 9, EOC
+        //      before bit 0, bit 1, ... bit 7, parity bit, EOC
 
         for (int i = 0; i < 10; i++) begin
             //$display("Testing an 8 bit frame with an error at idx %d", i);
 
             data = frame_generator_pkg::generate_byte_queue(1);
-            bits = frame_generator_pkg::convert_message_to_bit_queue(data, 8);
+            bits = frame_generator_pkg::convert_message_to_bit_queue_for_rx(data);
 
             rx_sink.clear_expected_queue;
             rx_sink.add_expected_soc_event;
@@ -183,7 +183,7 @@ module frame_decode_tb;
         for (int bitLen = 1; bitLen <= 7; bitLen++) begin
             //$display("Testing a %d bit frame", bitLen);
             data = frame_generator_pkg::generate_byte_queue(1);
-            bits = frame_generator_pkg::convert_message_to_bit_queue(data, bitLen);
+            bits = frame_generator_pkg::convert_message_to_bit_queue_for_rx(data, bitLen);
 
             rx_sink.clear_expected_queue;
             rx_sink.build_valid_frame_expected_queue(bits);
@@ -203,7 +203,7 @@ module frame_decode_tb;
             // 7) Test an N bit frame with parity OK
             //$display("Testing a %d bit frame with parity bits OK", num_bits);
             data = frame_generator_pkg::generate_byte_queue(num_bytes);
-            bits = frame_generator_pkg::convert_message_to_bit_queue(data, num_bits_in_last_byte);
+            bits = frame_generator_pkg::convert_message_to_bit_queue_for_rx(data, num_bits_in_last_byte);
 
             rx_sink.clear_expected_queue;
             rx_sink.build_valid_frame_expected_queue(bits);
@@ -219,7 +219,7 @@ module frame_decode_tb;
                 //$display("Testing a %d bit frame with broken parity bit in byte %d", num_bits, broken_parity_byte);
                 data = frame_generator_pkg::generate_byte_queue(num_bytes);
 
-                bits = frame_generator_pkg::convert_message_to_bit_queue(data, num_bits_in_last_byte);
+                bits = frame_generator_pkg::convert_message_to_bit_queue_for_rx(data, num_bits_in_last_byte);
 
                 rx_sink.clear_expected_queue;
                 rx_sink.add_expected_soc_event;
@@ -238,7 +238,7 @@ module frame_decode_tb;
             num_bytes = $urandom_range(1, 100);
             //$display("Testing a %d byte frame with last parity missing", num_bytes);
             data = frame_generator_pkg::generate_byte_queue(num_bytes);
-            bits = frame_generator_pkg::convert_message_to_bit_queue(data, 8);
+            bits = frame_generator_pkg::convert_message_to_bit_queue_for_rx(data);
 
             // expecting parity error on EOC
             rx_sink.clear_expected_queue;
