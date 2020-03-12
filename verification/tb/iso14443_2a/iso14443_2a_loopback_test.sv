@@ -72,7 +72,7 @@ module iso14443_2a_loopback_test;
 
     logic loopbackQueue [$];
 
-    always @(posedge clk, negedge rst_n) begin
+    always_ff @(posedge clk, negedge rst_n) begin
         if (!rst_n) begin
             loopbackQueue.delete;
             tx_iface.data_valid <= 1'b0;

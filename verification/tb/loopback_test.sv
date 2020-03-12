@@ -160,7 +160,7 @@ module loopback_test;
     logic [7:0] loopbackQueue [$];
     logic [2:0] lastByteBits;
 
-    always @(posedge clk, negedge rst_n) begin
+    always_ff @(posedge clk, negedge rst_n) begin
         if (!rst_n) begin
             loopbackQueue.delete;
             tx_ready_to_send <= 1'b0;
@@ -215,7 +215,7 @@ module loopback_test;
     // and compare it with the expected patterns for a logical 0,1 or idle
     logic [127:0] tx_out_shift_reg;
 
-    always @(posedge clk) begin
+    always_ff @(posedge clk) begin
         tx_out_shift_reg <= {tx_out_shift_reg[126:0], tx_out};
     end
 
