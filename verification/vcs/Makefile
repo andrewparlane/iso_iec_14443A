@@ -96,6 +96,7 @@ TBS		= sequence_decode_tb 			\
 		  fdt_tb 						\
 		  frame_encode_tb				\
 		  crc_a_tb 						\
+		  crc_control_tb 				\
 		  deserialiser_tb				\
 		  serialiser_tb					\
 		  initialisation_tb
