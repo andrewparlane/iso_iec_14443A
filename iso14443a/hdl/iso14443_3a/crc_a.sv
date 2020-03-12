@@ -54,6 +54,7 @@ module crc_a
 
     always_ff @(posedge clk, negedge rst_n) begin
         if (!rst_n) begin
+            lfsr <= INIT;
         end
         else begin
             if (start) begin
