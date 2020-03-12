@@ -275,7 +275,7 @@ module sequence_decode
     logic           prev_is_soc;
     logic           in_frame;
 
-    always @(posedge clk, negedge rst_n) begin
+    always_ff @(posedge clk, negedge rst_n) begin
         if (!rst_n) begin
             out_iface.soc           <= 1'b0;
             out_iface.eoc           <= 1'b0;
