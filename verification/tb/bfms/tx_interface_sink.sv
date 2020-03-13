@@ -195,7 +195,12 @@ module tx_interface_sink
             end
 
             // wait a few ticks before requesting more data
-            repeat(2) @(posedge clk) begin end
+            // we could end up with errors if in the real design upstream requests
+            // data quicker than this. But we should see that in the top level testbench
+            // at the worst.
+            // Adittionally I don't think anything ever requests anything more frequently than
+            // every 64 ticks
+            repeat(4) @(posedge clk) begin end
 
             // request more data
             iface.req <= 1'b1;
