@@ -49,13 +49,15 @@ interface tx_interface
 
     logic [DATA_WIDTH-1:0]  data;
     logic                   data_valid;
-    logic [2:0]             data_bits;  // 0 -> 8 bits, only used if BY_BYTE==1
+    logic [2:0]             data_bits;          // 0 -> 8 bits, only used if BY_BYTE==1
+    logic                   last_bit_in_byte;   // only used if BY_BYTE==0
     logic                   req;
 
     modport in_bit
     (
         input   data,
         input   data_valid,
+        input   last_bit_in_byte,
         output  req
     );
 
@@ -71,6 +73,7 @@ interface tx_interface
     (
         output  data,
         output  data_valid,
+        output  last_bit_in_byte,
         input   req
     );
 
@@ -87,6 +90,25 @@ interface tx_interface
     // ------------------------------------------------------------------------
     // only for use in testbenches
 
+    // for use with the bfms
+    modport in_all
+    (
+        input   data,
+        input   data_valid,
+        input   data_bits,
+        input   last_bit_in_byte,
+        output  req
+    );
+
+    modport out_all
+    (
+        output  data,
+        output  data_valid,
+        output  data_bits,
+        output  last_bit_in_byte,
+        input   req
+    );
+
     // Check that the signals are correct when in reset
     signalsInReset:
     assert property (
@@ -102,12 +124,13 @@ interface tx_interface
         req |=> !req)
         else $error("req asserted for more than one tick");
 
-    // data, data_valid and data_bits can only change either when data_valid is low
+    // data, data_valid, data_bits and last_bit_in_byte can only change either when data_valid is low
     // or within 4 ticks of req asserting.
     signalChangesOnlyAfterReqOrWhenIdle:
     assert property (
         @(posedge clk)
-        (!$stable(data) || !$stable(data_valid) || !$stable(data_bits)) |->
+        (!$stable(data)         || !$stable(data_valid) ||
+         !$stable(data_bits)    || !$stable(last_bit_in_byte)) |->
             ($rose(data_valid)                  ||  // we were not valid before (so idle)
              (data_valid == 0)                  ||  // we are no longer valid
              $past(req, 1) || $past(req, 2)     ||  // or req asserted one of the previous 4 ticks
