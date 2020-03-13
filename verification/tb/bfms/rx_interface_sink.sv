@@ -62,7 +62,53 @@ module rx_interface_sink
     // Some functions to construct events and add them to an expected queue
     // ========================================================================
 
-    RxEvent expected[$];
+    typedef logic [iface.DATA_WIDTH-1:0] dataQueue [$];
+
+    logic       check_expected;
+    RxEvent     expected[$];;
+
+    logic       use_receive_queue;
+    dataQueue   received;
+
+    logic       initialise_called = 1'b0;
+
+    function automatic void initialise;
+        // check by default. Better we forget to disable it than forget to enable it
+        check_expected      = 1'b1;
+        expected.delete;
+
+        use_receive_queue   = 1'b0;
+        received.delete;
+        initialise_called   = 1'b1;
+    endfunction
+
+    initial begin: initialiseCalledCheck
+        repeat(2) @(posedge clk) begin end
+        initialiseCalled:
+            assert (initialise_called) else $fatal(0, "Must call initialise on rx_interface_sink");
+    end
+
+    function automatic void enable_expected_checking(logic en);
+        check_expected = en;
+    endfunction
+
+    function automatic void enable_receive_queue(logic en);
+        use_receive_queue = en;
+    endfunction
+
+    function automatic void clear_received_queue;
+        received.delete;
+    endfunction
+
+    function automatic logic received_queue_is_empty;
+        return received.size == 0;
+    endfunction
+
+    function automatic dataQueue get_and_clear_received_queue;
+        automatic dataQueue res = received;
+        received.delete;
+        return res;
+    endfunction
 
     function automatic void clear_expected_queue;
         expected.delete;
@@ -178,19 +224,25 @@ module rx_interface_sink
 
     always_ff @(posedge clk) begin
         if (event_detected) begin
-            gotEventButNoneExpected:
-                assert (expected.size != 0)
-                else $error("event detected but not expecting anything");
+            if (check_expected) begin: checkExpected
+                gotEventButNoneExpected:
+                    assert (expected.size != 0)
+                    else $error("event detected but not expecting anything");
 
-            if (expected.size != 0) begin: expectedQueueNotEmpty
-                automatic RxEvent expectedEvent         = expected.pop_front;
-                automatic string err_str_actual         = event_to_string(currentValues);
-                automatic string err_str_expected       = event_to_string(expectedEvent);
+                if (expected.size != 0) begin: expectedQueueNotEmpty
+                    automatic RxEvent expectedEvent         = expected.pop_front;
+                    automatic string err_str_actual         = event_to_string(currentValues);
+                    automatic string err_str_expected       = event_to_string(expectedEvent);
 
-                eventNotAsExpected:
-                    assert (currentValues ==? expectedEvent)  // ==? so we allow 'x in expectedEvent as a wildcard
-                    else $error("Detected event is not as expected. Got %s, expected %s",
-                                err_str_actual, err_str_expected);
+                    eventNotAsExpected:
+                        assert (currentValues ==? expectedEvent)  // ==? so we allow 'x in expectedEvent as a wildcard
+                        else $error("Detected event is not as expected. Got %s, expected %s",
+                                    err_str_actual, err_str_expected);
+                end
+            end
+
+            if (use_receive_queue && iface.data_valid) begin
+                received.push_back(iface.data);
             end
         end
     end
@@ -215,6 +267,31 @@ module rx_interface_sink
             // process 2 - wait for the expected queue to be empty
             begin
                 wait (expected.size() == 0) begin end
+            end
+
+        // finish as soon as any of these processes finish
+        join_any
+
+        // disable the remaining process
+        disable fork;
+    endtask
+
+    task automatic wait_for_idle(int timeout=0);
+        fork
+            // process 1, timeout
+            begin
+                if (timeout == 0) begin
+                    forever @(posedge clk) begin end
+                end
+                else begin
+                    repeat (timeout) @(posedge clk) begin end
+                end
+                $error("wait_for_idle timed out after %d ticks", timeout);
+            end
+
+            // process 2 - wait for data_valid to be low
+            begin
+                wait (!iface.data_valid) begin end
             end
 
         // finish as soon as any of these processes finish
