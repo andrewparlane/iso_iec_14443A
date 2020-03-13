@@ -40,6 +40,8 @@ module tx_interface_sink
     logic       use_receive_queue;
     dataQueue   received;
 
+    logic       initialise_called = 1'b0;
+
     function automatic void initialise;
         iface.req           = 1'b0;
 
@@ -49,7 +51,14 @@ module tx_interface_sink
 
         use_receive_queue   = 1'b0;
         received.delete;
+        initialise_called   = 1'b1;
     endfunction
+
+    initial begin: initialiseCalledCheck
+        repeat(2) @(posedge clk) begin end
+        initialiseCalled:
+            assert (initialise_called) else $fatal(0, "Must call initialise on tx_interface_sink");
+    end
 
     function automatic void clear_expected_queue;
         expected.delete;

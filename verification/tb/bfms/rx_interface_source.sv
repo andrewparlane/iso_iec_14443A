@@ -29,12 +29,21 @@ module rx_interface_source
     rx_interface.out_byte   iface
 );
 
+    logic initialise_called = 1'b0;
+
     function void initialise;
         iface.soc           <= 1'b0;
         iface.eoc           <= 1'b0;
         iface.data_valid    <= 1'b0;
         iface.error         <= 1'b0;
+        initialise_called   <= 1'b1;
     endfunction
+
+    initial begin: initialiseCalledCheck
+        repeat(2) @(posedge clk) begin end
+        initialiseCalled:
+            assert (initialise_called) else $fatal(0, "Must call initialise on rx_interface_source");
+    end
 
     // sends out a frame, with an optional error
     task send_frame (logic [iface.DATA_WIDTH-1:0] sq[$], int bits_in_last_byte=0, int error_before_bit=-1);
