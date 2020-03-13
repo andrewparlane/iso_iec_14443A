@@ -26,7 +26,7 @@
 module tx_interface_source
 (
     input                   clk,
-    tx_interface.out_byte   iface
+    tx_interface.out_all    iface
 );
     logic initialise_called = 1'b0;
 
@@ -42,20 +42,26 @@ module tx_interface_source
     end
 
     // sends out a frame
-    task send_frame (logic [iface.DATA_WIDTH-1:0] sq[$], int bits_in_first_byte=0);
-        // bits_in_first_byte == 0 and == 8 are sort of the same thing
-        // we allow both to be used here
-        if (bits_in_first_byte == 8) begin
-            bits_in_first_byte = 0;
-        end
+    task send_frame (logic [iface.DATA_WIDTH-1:0] sq[$], int bits_in_first_byte = 0);
+        automatic int bits_left_in_byte;
 
-        // set bits for first byte
+        if (!iface.BY_BYTE) begin
+            // when we are sending bits, the bits in the first byte has to be
+            // set so that the entire transfer ends with a full byte
+            bits_in_first_byte = sq.size % 8;
+        end
+        bits_left_in_byte = (bits_in_first_byte == 0) ? 8 : bits_in_first_byte;
+
+        // set bits for first byte (only relevant if iface.BY_BYTE == 1)
         iface.data_bits <= 3'(bits_in_first_byte);
 
         foreach (sq[i]) begin
+            bits_left_in_byte--;
+
             // set up the inputs
-            iface.data          <= sq[i];
-            iface.data_valid    <= 1'b1;
+            iface.data              <= sq[i];
+            iface.data_valid        <= 1'b1;
+            iface.last_bit_in_byte  <= (bits_left_in_byte == 0);    // only relevant for iface.BY_BYTE == 0
 
             // wait a tick so req isn't asserted still
             @(posedge clk)
@@ -64,12 +70,23 @@ module tx_interface_source
             wait (iface.req) begin end
             @(posedge clk) begin end
 
-            // all remaining bits have 8 bits per byte
-            iface.data_bits = 3'd0;
+            // all remaining bytes have 8 bits per byte (only relevant for iface.BY_BYTE == 1)
+            iface.data_bits <= 3'd0;
+
+            if (bits_left_in_byte == 0) begin
+                bits_left_in_byte = 8;
+            end
         end
 
         // nothing more to send
         iface.data_valid <= 1'b0;
+
+        if (!iface.BY_BYTE) begin: byBit
+            // confirm last_bit_in_byte is asserted
+            // this is to sanity check my implementation
+            checkLastBitInByte:
+                assert (iface.last_bit_in_byte) else $error("finished sending and last_bit_in_byte is not asserted");
+        end
     endtask
 
 endmodule
