@@ -34,9 +34,18 @@ module load_modulator_sink
 
     dataQueue   received;
 
+    logic       initialise_called = 1'b0;
+
     function automatic void initialise;
         received.delete;
+        initialise_called = 1'b1;
     endfunction
+
+    initial begin: initialiseCalledcheck
+        repeat(2) @(posedge clk) begin end
+        initialiseCalled:
+            assert (initialise_called) else $fatal(0, "Must call initialise_called on load_modulator_sink");
+    end
 
     function automatic void clear_received_queue;
         received.delete;

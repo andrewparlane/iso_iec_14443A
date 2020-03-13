@@ -28,10 +28,18 @@ module tx_interface_source
     input                   clk,
     tx_interface.out_byte   iface
 );
+    logic initialise_called = 1'b0;
 
     function void initialise;
-        iface.data_valid <= 0;
+        iface.data_valid    <= 0;
+        initialise_called   <= 1'b1;
     endfunction
+
+    initial begin: initialiseCalledCheck
+        repeat(2) @(posedge clk) begin end
+        initialiseCalled:
+            assert (initialise_called) else $fatal(0, "Must call initialise on tx_interface_source");
+    end
 
     // sends out a frame
     task send_frame (logic [iface.DATA_WIDTH-1:0] sq[$], int bits_in_first_byte=0);
