@@ -82,26 +82,38 @@ module serialiser_tb;
     // --------------------------------------------------------------
 
     task send_frame (int num_bits);
-        automatic logic [7:0]   data        [$];
-        automatic logic         expected    [$];
-        automatic logic         rq          [$];
-        automatic int           num_bytes           = int'($ceil(num_bits / 8.0));
-        automatic int           bits_in_first_byte  = num_bits % 8;
+        automatic logic [7:0]   data                [$];
+        automatic logic         expected            [$];
+        automatic logic         last_bit_expected   [$];
+        automatic const int     num_bytes           = int'($ceil(num_bits / 8.0));
+        automatic const int     bits_in_first_byte  = num_bits % 8;
+        automatic const int     num_zeros           = (bits_in_first_byte == 0) ? 7 : bits_in_first_byte - 1'd1;
 
-        // generate the data
-        data = frame_generator_pkg::generate_byte_queue(num_bytes);
+        // generate the data and expected queue (bit stream)
+        data        = frame_generator_pkg::generate_byte_queue(num_bytes);
+        expected    = frame_generator_pkg::convert_message_to_bit_queue_for_tx(data, bits_in_first_byte);
+
+        // generate the last_bit_expected queue
+        // we expect the first last_bit to come based on bits_in_first_byte
+        repeat(num_zeros) last_bit_expected.push_back(1'b0);
+        last_bit_expected.push_back(1'b1);
+        // then every 8 bits after that
+        repeat (num_bytes - 1) begin
+            repeat(7) last_bit_expected.push_back(1'b0);
+            last_bit_expected.push_back(1'b1);
+        end
+
+        // set the expected queues
+        tx_sink.set_expected_queue(expected, last_bit_expected);
 
         // send it
         tx_source.send_frame(data, bits_in_first_byte);
 
         // wait for us to receive it in the sink
-        tx_sink.wait_for_rx_complete(16);
-        rq = tx_sink.get_and_clear_received_queue();
+        tx_sink.wait_for_expected_empty(16);
 
-        // check it against the expected bit queue
-        expected = frame_generator_pkg::convert_message_to_bit_queue_for_tx(data, bits_in_first_byte);
-        //$display("Sent %p, bits_in_first_byte %d, Got %p expected %p", data, bits_in_first_byte, rq, expected);
-        rqAsExpected: assert (rq == expected) else $error("Output data not as expected. Got %p expected %p", rq, expected);
+        // wait a few more ticks
+        repeat (5) @(posedge clk) begin end
     endtask
 
     // --------------------------------------------------------------
@@ -111,8 +123,8 @@ module serialiser_tb;
     initial begin
         tx_source.initialise;
         tx_sink.initialise;
-        tx_sink.enable_expected_checking(1'b0);
-        tx_sink.enable_receive_queue(1'b1);
+
+        tx_sink.enable_expected_checking(1'b1, 1'b1);
 
         // reset for 5 ticks
         rst_n <= 1'b0;
