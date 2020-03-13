@@ -200,11 +200,21 @@ module rx_interface_sink
         expected.push_back(e);
     endfunction
 
-    function automatic void build_valid_frame_expected_queue (logic [iface.DATA_WIDTH-1:0] data[$]);
+    function automatic void build_valid_frame_expected_queue (logic [iface.DATA_WIDTH-1:0] data[$], int bits_in_last_byte=0);
         clear_expected_queue;
         add_expected_soc_event;
-        add_expected_data_events(data);
-        add_expected_eoc_full_byte_event(1'b0);
+
+        bits_in_last_byte = (bits_in_last_byte == 0) ? 8 : bits_in_last_byte;
+        if ((bits_in_last_byte == 8) || !iface.BY_BYTE) begin
+            add_expected_data_events(data);
+            add_expected_eoc_full_byte_event(1'b0);
+        end
+        else begin
+            if (data.size > 1) begin
+                add_expected_data_events(data[0:$-1]);
+            end
+            add_expected_eoc_part_byte_event(bits_in_last_byte, data[$]);
+        end
     endfunction
 
     // ========================================================================
