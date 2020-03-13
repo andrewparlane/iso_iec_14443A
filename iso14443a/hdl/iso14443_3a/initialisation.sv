@@ -63,7 +63,6 @@ module initialisation
 
     // Transmit signals
     tx_interface.out_byte       tx_iface,
-    output logic [2:0]          tx_bits_in_first_byte,
     output logic                tx_append_crc
 );
 
@@ -554,7 +553,6 @@ module initialisation
                     tx_append_crc           <= 1'b0;
                     tx_iface.data_valid     <= 1'b1;
                     tx_iface.data_bits      <= 3'd0;    // first tfer is 8 bits wide
-                    tx_bits_in_first_byte   <= 3'd0;
                 end
                 Reply_AC: begin
                     // we have many ticks before we start to send
@@ -577,7 +575,6 @@ module initialisation
                     // 0 - 1 = -1 = 3'd111 = 7 -> send 7 bits
                     // 0 - 7 = -7 = 3'd001 = 1 -> send 1 bit
                     tx_iface.data_bits      <= 3'd0 - ac_sel_msg.nvb.bits;
-                    tx_bits_in_first_byte   <= 3'd0 - ac_sel_msg.nvb.bits;
 
                     // we have received nvb.bytes - 2, full bytes of the UID + BCC (5 bytes)
                     // so we need to send 5 - (nvb.bytes - 2) = 7 - nvb.bytes
@@ -595,7 +592,6 @@ module initialisation
                     tx_append_crc           <= 1'b1;
                     tx_iface.data_valid     <= 1'b1;
                     tx_iface.data_bits      <= 3'd0;    // first tfer is 8 bits wide
-                    tx_bits_in_first_byte   <= 3'd0;
                 end
             endcase
         end

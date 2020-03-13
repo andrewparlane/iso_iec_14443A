@@ -97,7 +97,8 @@ module serialiser
         end
     end
 
-    assign out_iface.data_valid = !idle;
-    assign out_iface.data       = cached_data[0];
+    assign out_iface.data_valid         = !idle;
+    assign out_iface.data               = cached_data[0];
+    assign out_iface.last_bit_in_byte   = (bit_count == 0);
 
 endmodule

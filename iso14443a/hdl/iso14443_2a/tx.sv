@@ -121,9 +121,12 @@ module tx
     );
 
     tx_interface #(.BY_BYTE(0)) be_iface (.*);
-    assign be_iface.data        = bit_to_send;
-    assign be_iface.data_valid  = in_iface.data_valid && (state != State_IDLE);
-    // TODO: Check data_valid is optimised out
+    assign be_iface.data                = bit_to_send;
+    assign be_iface.data_valid          = in_iface.data_valid && (state != State_IDLE);
+    assign be_iface.last_bit_in_byte    = in_iface.last_bit_in_byte;
+    // TODO: Check data_valid and last_bit_in_byte are optimised out
+    // check last_bit_in_byte is optimised out all the way up the chain
+    // it's only used in serialiser -> frame_encode
 
     // convert the bit to manchester encoding over 128 ticks
     logic encoded_data;
