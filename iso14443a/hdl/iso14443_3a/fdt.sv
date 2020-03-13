@@ -62,9 +62,10 @@ module fdt
 
     // TRIGGER_TO_MODULATION_EDGE_PS: This should be the time in ps between the rising edge
     // of the trigger output (of this module) and the load modulation activing.
-    // This is probably dominated by the Tx module, (one tick to see the trigger, and one tick
-    // to see the enable signal and assert the output data. But there will be a slight delay
-    // due to the output buffering and in the AFE before the load modulation circuit activates
+    // This is probably dominated by the frame_encode and x modules, (one tick to see the trigger,
+    // one tick to see the data_valid signal one tick to assert the output data.
+    // But there will be a slight delay due to the output buffering and in the AFE before
+    // the load modulation circuit activates.
 
     // Note: We can NOT trigger early, but we have a fair bit of leeway to trigger late.
     //       so choose the minimum times for the above values. For this same reason we use
