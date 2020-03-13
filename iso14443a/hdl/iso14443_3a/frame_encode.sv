@@ -44,7 +44,6 @@ module frame_encode
     // Input data
     tx_interface.in_bit     in_iface,
 
-    input           [2:0]   bits_in_first_byte,
     input                   append_crc,
     input           [15:0]  crc,
 
@@ -87,13 +86,12 @@ module frame_encode
                         // start if data valid
                         if (in_iface.data_valid) begin
                             // start sending data
-                            out_iface.data          <= in_iface.data;
-                            out_iface.data_valid    <= 1'b1;
-                            parity                  <= !in_iface.data;
+                            out_iface.data              <= in_iface.data;
+                            out_iface.data_valid        <= 1'b1;
+                            out_iface.last_bit_in_byte  <= 1'b0;
+                            parity                      <= !in_iface.data;
 
-                            bits_remaining          <= bits_in_first_byte - 1'd1;
-
-                            if (bits_in_first_byte == 1) begin
+                            if (in_iface.last_bit_in_byte) begin
                                 // send parity bit next
                                 state   <= State_PARITY;
                             end
@@ -115,10 +113,11 @@ module frame_encode
                         // number of bits
 
                         // send the next bit and update the parity bit
-                        out_iface.data  <= in_iface.data;
-                        parity          <= parity ^ in_iface.data;
+                        out_iface.data              <= in_iface.data;
+                        out_iface.last_bit_in_byte  <= 1'b0;
+                        parity                      <= parity ^ in_iface.data;
 
-                        if (bits_remaining == 1) begin
+                        if (in_iface.last_bit_in_byte) begin
                             // sending the last bit of this byte
                             // next bit is the parity bit
                             state   <= State_PARITY;
@@ -126,8 +125,6 @@ module frame_encode
 
                         // request the next bit
                         in_iface.req    <= 1'b1;
-
-                        bits_remaining  <= bits_remaining - 1'd1;
                     end
                 end
 
@@ -135,13 +132,13 @@ module frame_encode
                     // wait for the bit encoder to request more data
                     if (out_iface.req) begin
                         // send the parity bit
-                        out_iface.data      <= parity;
+                        out_iface.data              <= parity;
+                        out_iface.last_bit_in_byte  <= 1'b1;
 
                         // anything more to send?
                         if (in_iface.data_valid) begin
                             // yep
                             state           <= State_DATA;
-                            bits_remaining  <= 3'd0;    // 8 more bits to send
                             parity          <= 1'b1;
                         end
                         else if (append_crc) begin
@@ -163,9 +160,10 @@ module frame_encode
                     // when the REQ comes in from the 14443-2 Tx module then send out the next crc bit
                     if (out_iface.req) begin
                         // send the next bit and update the parity bit and shift the crc right by one
-                        out_iface.data      <= cached_crc[0];
-                        cached_crc[14:0]    <= cached_crc[15:1];
-                        parity              <= parity ^ cached_crc[0];
+                        out_iface.data              <= cached_crc[0];
+                        out_iface.last_bit_in_byte  <= 1'b0;
+                        cached_crc[14:0]            <= cached_crc[15:1];
+                        parity                      <= parity ^ cached_crc[0];
 
                         if (bits_remaining == 1) begin
                             // sending the last bit of this byte
@@ -181,7 +179,8 @@ module frame_encode
                     // wait for the bit encoder to request more data
                     if (out_iface.req) begin
                         // send the parity bit
-                        out_iface.data  <= parity;
+                        out_iface.data              <= parity;
+                        out_iface.last_bit_in_byte  <= 1'b1;
 
                         // anything more to send?
                         if (crc_byte == 0) begin
