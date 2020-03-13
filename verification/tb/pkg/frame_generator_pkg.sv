@@ -185,12 +185,12 @@ package frame_generator_pkg;
         return seqs;
     endfunction
 
-    function bit_queue add_parity_to_bit_queue (logic bits[$], int first_parity_after_bits=8);
+    function bit_queue add_parity_to_bit_queue (logic bits[$], int bits_in_first_byte=8);
         // create a new bit queue with the parity bits in
         automatic bit_queue new_bits    = '{};
         automatic int bit_count         = 0;
         automatic logic parity          = 1'b1;
-        automatic int parity_after_bits = first_parity_after_bits;
+        automatic int parity_after_bits = bits_in_first_byte;
 
         if (parity_after_bits == 0) begin
             parity_after_bits = 8;
