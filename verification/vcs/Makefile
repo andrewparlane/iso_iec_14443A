@@ -286,13 +286,16 @@ initialisation_tb_actual_simv: $(AN_DB_DIR)
 list_tbs:
 	@echo $(TBS) $(CUSTOM_TBS) | sed -E 's/[ \t]+/\n/g'
 
+# execute all TBs, pipe the result of this into a log file for easier viewing
+all_tbs: $(TBS) $(CUSTOM_TBS)
+
 clean:
 	-@rm ???*_simv
 	-@rm -rf ???*_simv.daidir/
 	-@rm -rf $(ROOT_DIR)/$(WORK_DIR)
 	-@rm -rf csrc/
 
-.PHONY: analyse elaborate list_tbs clean
+.PHONY: analyse elaborate list_tbs all_tbs clean
 
 # ----------------------------------------------------------------------------------
 # Rules for working remotely
