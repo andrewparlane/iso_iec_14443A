@@ -91,6 +91,7 @@ module frame_decode_tb;
         automatic logic         bits[$];
 
         rx_source.initialise;
+        rx_sink.initialise;
 
         // reset for 5 ticks
         rst_n <= 1'b0;
