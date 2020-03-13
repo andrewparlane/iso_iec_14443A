@@ -58,59 +58,43 @@ module iso14443_2a_loopback_test;
     assign pause_n_synchronised = pause_n;
 
     // --------------------------------------------------------------
+    // The source for the tx_iface
+    // --------------------------------------------------------------
+
+    tx_interface_source tx_source
+    (
+        .clk    (clk),
+        .iface  (tx_iface)
+    );
+
+    // --------------------------------------------------------------
+    // The sink for the rx_iface
+    // --------------------------------------------------------------
+
+    rx_interface_sink rx_sink
+    (
+        .clk    (clk),
+        .iface  (rx_iface)
+    );
+
+    // --------------------------------------------------------------
     // The sink for the load modulator (tx_out)
     // --------------------------------------------------------------
 
     load_modulator_sink lm_sink (.*);
 
     // --------------------------------------------------------------
-    // Loopback
-    // --------------------------------------------------------------
-
-    // we ignore rx_iface.error, .soc and .eoc
-    // we know they work as desired since we test them in other TBs
-
-    logic loopbackQueue [$];
-
-    always_ff @(posedge clk, negedge rst_n) begin
-        if (!rst_n) begin
-            loopbackQueue.delete;
-            tx_iface.data_valid <= 1'b0;
-        end
-        else begin
-            if (rx_iface.data_valid) begin
-                // rx has data
-                if (!tx_iface.data_valid) begin
-                    // first bit
-                    // so just push it straight to the tx module inputs
-                    tx_iface.data       <= rx_iface.data;
-                    tx_iface.data_valid <= 1'b1;
-                end
-                else begin
-                    // not the first byte, so push it to the queue
-                    loopbackQueue.push_back(rx_iface.data);
-                end
-            end
-
-            if (tx_iface.req) begin
-                // tx wants more data
-                if (loopbackQueue.size() == 0) begin
-                    // no more data
-                    tx_iface.data_valid <= 1'b0;
-                end
-                else begin
-                    tx_iface.data       <= loopbackQueue.pop_front;
-                    tx_iface.data_valid <= 1'b1;
-                end
-            end
-        end
-    end
-
-    // --------------------------------------------------------------
     // Test stimulus
     // --------------------------------------------------------------
 
     initial begin: testStimulus
+
+        tx_source.initialise;
+        rx_sink.initialise;
+        lm_sink.initialise;
+
+        rx_sink.enable_expected_checking(1'b0);
+        rx_sink.enable_receive_queue(1'b1);
 
         // reset for 5 ticks
         rst_n <= 1'b0;
@@ -127,16 +111,18 @@ module iso14443_2a_loopback_test;
             sq = frame_generator_pkg::generate_bit_queue(bits_to_send);
             pause_n_source.send_bit_queue_no_parity(sq);
 
-            // wait for the load modulator sink to receive everything
-            // since the clock stops during pauses each bit sent from the pause_n_source
-            // takes ~96 ticks, however the return path takes 128 ticks per bit
-            // so the tx gets further and further behind, so don't use a timeout here
-            // just trust that it doesn't lock up. This isn't a problem in hardware, since
-            // the FDT ensures Tx happens after Rx has finished
+            // wait for it to be done and get the received data
+            rx_sink.wait_for_idle(256);
+            rq = rx_sink.get_and_clear_received_queue();
+
+            // now send it out over the tx_iface
+            tx_source.send_frame(rq);
+
+            // wait for the load_modulator_sink to receive it all and then get the data
             lm_sink.wait_for_idle(0);
             rq = lm_sink.get_and_clear_received_queue();
 
-            // received should have the SOC bit added (1'b1)
+            // received should have the SOC bit added (by the tx module) (1'b1)
             sq.push_front(1'b1);
             receivedAsExpected: assert(rq == sq)
                 else $error("received not as expected, got %p expected %p", rq, sq);
