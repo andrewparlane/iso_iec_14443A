@@ -173,6 +173,8 @@ module sequence_decode_tb;
     initial begin
         //pause_n_source.set_sequence_timings(4, 12, 6, 0);
 
+        rx_sink.initialise;
+
         // reset for 5 ticks
         rst_n <= 1'b0;
         repeat (5) @(posedge clk) begin end
