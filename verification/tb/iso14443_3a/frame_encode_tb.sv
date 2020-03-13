@@ -35,7 +35,6 @@ module frame_encode_tb;
 
     logic           fdt_trigger;
 
-    logic [2:0]     bits_in_first_byte;
     logic           append_crc;
     logic [15:0]    crc;
 
@@ -142,7 +141,6 @@ module frame_encode_tb;
         //  1) nothing sends until fdt_trigger fires
         $display("Testing no Tx before fdt");
         tx_sink.clear_expected_queue;  // will assert if out_iface.data_valid asserts
-        bits_in_first_byte  <= '0;
         in_iface.data_valid <= 1'b1;
         fdt_trigger         <= 1'b0;
         repeat (100) @(posedge clk) begin end
@@ -180,8 +178,6 @@ module frame_encode_tb;
             bits = frame_generator_pkg::generate_bit_queue(i);
             temp = frame_generator_pkg::add_parity_to_bit_queue(bits, i);
             tx_sink.set_expected_queue(temp);
-
-            bits_in_first_byte = 3'(i);
             send_data(bits);
         end
 
@@ -190,12 +186,10 @@ module frame_encode_tb;
         repeat (10000) begin
             automatic int bitsToSend = $urandom_range(9, 100);
 
-            bits_in_first_byte = 3'(bitsToSend % 8);
-
-            //$display("sending %d bits, %d in first byte", bitsToSend, bits_in_first_byte);
+            //$display("sending %d bits", bitsToSend);
 
             bits = frame_generator_pkg::generate_bit_queue(bitsToSend);
-            temp = frame_generator_pkg::add_parity_to_bit_queue(bits, bits_in_first_byte);
+            temp = frame_generator_pkg::add_parity_to_bit_queue(bits, bitsToSend % 8);
             tx_sink.set_expected_queue(temp);
 
             send_data(bits);
@@ -204,7 +198,6 @@ module frame_encode_tb;
         // 6) Test adding CRC
         // we only care about multiples of 8 bits here
         $display("Test adding CRC");
-        bits_in_first_byte  = 3'd0;
         append_crc          = 1'b1;
         repeat (10000) begin
             automatic int bytes_to_send = $urandom_range(1, 10);
