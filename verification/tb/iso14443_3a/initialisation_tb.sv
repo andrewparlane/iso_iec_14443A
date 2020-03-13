@@ -83,7 +83,6 @@ module initialisation_tb
 
     // Transmit signals
     tx_interface #(.BY_BYTE(1)) tx_iface (.*);
-    logic [2:0]                 tx_bits_in_first_byte;
     logic                       tx_append_crc;
 
     // --------------------------------------------------------------
@@ -431,21 +430,23 @@ module initialisation_tb
         endcase
     endtask
 
-    task recv_data (output logic [7:0] dq[$], output logic crc);
+    task recv_data (output logic [7:0] dq[$], output int bits_in_first_byte, output logic crc);
         // the tx_sink requestes new data every 5 ticks
         // assuming it takes 20 ticks to start sending (will be less)
         // max reply is AC reply with NVB = 0x20 -> 4 bytes UID + 1 byte BCC = 40 bits
         // 40*5 + 20 = 220 ticks
         // wait 500
         tx_sink.wait_for_rx_complete(500);
-        dq = tx_sink.get_and_clear_received_queue();
+        dq                  = tx_sink.get_and_clear_received_queue();
+        bits_in_first_byte  = tx_sink.get_bits_in_first_byte();
 
-        crc = tx_append_crc;
+        crc                 = tx_append_crc;
     endtask
 
     task recv_atqa;
         automatic logic [15:0]  expected;
         automatic logic [7:0]   dq[$];
+        automatic int           bits_in_first_byte;
         automatic logic         crc;
 
         case (UID_SIZE)
@@ -454,11 +455,11 @@ module initialisation_tb
             UIDSize_TRIPLE: expected = 16'h0084;
         endcase
 
-        recv_data (dq, crc);
+        recv_data (dq, bits_in_first_byte, crc);
 
         atqaAsExpected:
         assert ((dq.size == 2)                  &&
-                (tx_bits_in_first_byte == 0)    &&
+                (bits_in_first_byte == 0)       &&
                 !crc                            &&
                 (dq[0] == expected[7:0])        &&
                 (dq[1] == expected[15:8]))
@@ -481,8 +482,9 @@ module initialisation_tb
 
     task recv_ac_reply (logic [31:0] uid);
         automatic logic [39:0]  built_uid;
-        automatic int           bits_to_copy;
         automatic int           idx;
+        automatic int           bits_in_first_byte;
+        automatic int           bits_to_copy;
         automatic logic [7:0]   bcc = uid[31:24] ^ uid[23:16] ^ uid[15:8] ^ uid[7:0];
 
         automatic logic [7:0]   dq[$];
@@ -493,10 +495,10 @@ module initialisation_tb
         // copy the part sent by the PCD
         for (idx = 0; idx < last_sent_uid_bits; idx++) built_uid[idx] = uid[idx];
 
-        recv_data (dq, crc);
+        recv_data (dq, bits_in_first_byte, crc);
 
-        // only copy tx_bits_in_first_byte of the first byte
-        bits_to_copy = int'(tx_bits_in_first_byte);
+        // only copy bits_in_first_byte of the first byte
+        bits_to_copy = bits_in_first_byte;
         if (bits_to_copy == 0) begin
             bits_to_copy = 8;
         end
@@ -509,7 +511,7 @@ module initialisation_tb
             bits_to_copy = 8;
         end
 
-        //$display("received AC reply: %p, tx_bits_in_first_byte %d, idx %d, build %h", dq, tx_bits_in_first_byte, idx, built_uid);
+        //$display("received AC reply: %p, bits_in_first_byte %d, idx %d, build %h", dq, bits_in_first_byte, idx, built_uid);
 
         acReplyAsExpected:
         assert ((idx == 40)                 &&
@@ -522,6 +524,7 @@ module initialisation_tb
     task recv_sak (int level);
         automatic logic [7:0]   expected;
         automatic logic [7:0]   dq[$];
+        automatic int           bits_in_first_byte;
         automatic logic         crc;
 
         automatic const logic [7:0] expectedComplete    = 8'h20;
@@ -536,14 +539,14 @@ module initialisation_tb
             expected    = expectedNotComplete;
         end
 
-        recv_data (dq, crc);
+        recv_data (dq, bits_in_first_byte, crc);
 
         sakAsExpected:
         assert ((dq.size == 1)                  &&
-                (tx_bits_in_first_byte == 0)    &&
+                (bits_in_first_byte == 0)       &&
                 crc                             &&
                 (dq[0] == expected[7:0]))
-            else $error("Failed to receive SAK as expected, got %p, tx_bits_in_first_byte %d, crc %d", dq, tx_bits_in_first_byte, crc);
+            else $error("Failed to receive SAK as expected, got %p, crc %d", dq, crc);
     endtask
 
     task select_tag (logic star);
