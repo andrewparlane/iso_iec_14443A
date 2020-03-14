@@ -55,6 +55,7 @@ module initialisation
 
     // Receive signals
     rx_interface.in_byte        rx_iface,
+    rx_interface.in_bit         rx_iface_bits,
     input                       rx_crc_ok,
 
     // From the iso14443-4 block
@@ -163,44 +164,20 @@ module initialisation
 
     // The largest message we could receive is the SELECT message
     // consisting of 7 bytes (+ 2 bytes of CRC, which we drop since we check it in the parent module)
-    localparam int RX_BUFF_LEN = 7;
-    logic [7:0] rx_buffer [RX_BUFF_LEN];
-    logic [2:0] rx_count;
-    logic       rx_error_flag;
-    logic       pkt_received;
-    logic       is_AC_SELECT_for_us;      // check if it's for us or not
+    localparam int  RX_BUFF_LEN = 7;
+    logic [7:0]     rx_buffer [RX_BUFF_LEN];
+    logic [2:0]     rx_count;
+    logic           rx_error_flag;
+    logic           pkt_received;
+    logic           is_AC_SELECT_for_us;
+    logic           uid_matching;           // currently checking our UID against the incoming data
+    logic [7:0]     ac_reply_buffer [5];    // the reply to AC messages
 
-    // compare the received byte with the correct byte of the uid data
-    // there may be a better way to do this? Potentially rewriting the rx module
-    // to provide bit at a time instead of byte at a time.
-    // TODO: Is it worth doing this?
-    // another option is to just compare whole bytes, and then
-    // after the EOC shift the data bit by bit and check them over a few clock cycles
-    logic rx_matches_uid_data_byte;
-    always_comb begin
-        logic [7:0] uid_data_byte;
-        case (rx_count)
-            //0: level
-            //1: NVB
-            2:          uid_data_byte = current_cascade_uid_data.uid[7:0];
-            3:          uid_data_byte = current_cascade_uid_data.uid[15: 8];
-            4:          uid_data_byte = current_cascade_uid_data.uid[23:16];
-            5:          uid_data_byte = current_cascade_uid_data.uid[31:24];
-            default:    uid_data_byte = current_cascade_uid_data.bcc;
-        endcase
-
-        // now compare it with the received data (depending on how many bits we received)
-        case (rx_iface.data_bits)
-            1: rx_matches_uid_data_byte = (uid_data_byte[0:0] == rx_iface.data[0:0]);
-            2: rx_matches_uid_data_byte = (uid_data_byte[1:0] == rx_iface.data[1:0]);
-            3: rx_matches_uid_data_byte = (uid_data_byte[2:0] == rx_iface.data[2:0]);
-            4: rx_matches_uid_data_byte = (uid_data_byte[3:0] == rx_iface.data[3:0]);
-            5: rx_matches_uid_data_byte = (uid_data_byte[4:0] == rx_iface.data[4:0]);
-            6: rx_matches_uid_data_byte = (uid_data_byte[5:0] == rx_iface.data[5:0]);
-            7: rx_matches_uid_data_byte = (uid_data_byte[6:0] == rx_iface.data[6:0]);
-            0: rx_matches_uid_data_byte = (uid_data_byte[7:0] == rx_iface.data[7:0]);
-        endcase
-    end
+    logic is_REQA;
+    logic is_WUPA;
+    logic is_HLTA;
+    logic is_AC_SELECT;             // is AC or SELECT
+    logic is_SELECT;                // is SELECT (not AC)
 
     always_ff @(posedge clk, negedge rst_n) begin
         if (!rst_n) begin
@@ -219,12 +196,11 @@ module initialisation
 
             if (rx_iface.soc) begin
                 // start of a new message
-                rx_count            <= '0;
-                rx_error_flag       <= 1'b0;
+                rx_count        <= '0;
+                rx_error_flag   <= 1'b0;
 
-                // assume that if it's a AC / select message then it's for us
-                // we'll set this to 0 later if it doesn't match
-                is_AC_SELECT_for_us <= 1'b1;
+                // don't start UID matching yet
+                uid_matching    <= 1'b0;
             end
 
             if (rx_iface.eoc) begin
@@ -243,22 +219,57 @@ module initialisation
                 if (rx_count != $bits(rx_count)'(RX_BUFF_LEN)) begin
                     rx_buffer[rx_count]     <= rx_iface.data;
 
+                    if ((rx_count == 1) && is_AC_SELECT) begin
+                        // received SEL + NVB
+                        // start UID matching bit by bit
+                        uid_matching        <= 1'b1;
+                        is_AC_SELECT_for_us <= 1'b1;
+
+                        // we set up this buffer, so we can just shift right
+                        // 1 bit for every bit we receive, and the we just copy
+                        // the whole buffer to the tx_buffer (if it's for us),
+                        // and just set the correct number of bits and bytes to send
+                        ac_reply_buffer     <= {current_cascade_uid_data.uid[7:0],
+                                                current_cascade_uid_data.uid[15:8],
+                                                current_cascade_uid_data.uid[23:16],
+                                                current_cascade_uid_data.uid[31:24],
+                                                current_cascade_uid_data.bcc};
+                    end
+
                     if (!rx_iface.eoc) begin
                         // don't count partial bytes. This makes our rx_count and rx_data_bits
                         // match the AC/SELECT message's NVB
                         rx_count <= rx_count + 1'd1;
-                    end
 
-                    // if rx_count is 2,3,4,5,6 (or in other words > 1) then check to see
-                    // if the received data matches our UID data. This is only used if we are
-                    // actually an AC / SELECT message.
-                    // TODO: compare area usage with if (rx_count[2:1] != 0)
-                    if (rx_count > 1) begin
-                        if (!rx_matches_uid_data_byte) begin
-                            // not for us
-                            is_AC_SELECT_for_us <= 1'b0;
+                        // if we are matching the uid, and we've just received a full byte
+                        // then shift the ac_reply_buffer right by one byte and start checking
+                        // the next bit.
+                        if (uid_matching) begin
+                            ac_reply_buffer[0:3] <= ac_reply_buffer[1:4];
+                        end
+
+                        if (rx_count == 6) begin
+                            // if we were matching the UID, then we just received the BCC
+                            // so next would be the CRC, stop checking the UID now, we match
+                            uid_matching <= 1'b0;
                         end
                     end
+
+                end
+            end
+
+            if (uid_matching) begin
+                if (rx_iface_bits.data_valid) begin
+                    // received a UID bit
+                    // is it still for us?
+                    if (rx_iface_bits.data != ac_reply_buffer[0][0]) begin
+                        // not for us.
+                        uid_matching        <= 1'b0;
+                        is_AC_SELECT_for_us <= 1'b0;
+                    end
+
+                    // shift the LSB of the reply buffer right by one
+                    ac_reply_buffer[0][6:0] <= ac_reply_buffer[0][7:1];
                 end
             end
         end
@@ -281,13 +292,6 @@ module initialisation
     // cast the rx_buffer to the AntiCollisionSelectCommand struct
     AntiCollisionSelectCommand ac_sel_msg;
     assign ac_sel_msg = AntiCollisionSelectCommand'(rx_buffer);
-
-    logic is_REQA;
-    logic is_WUPA;
-    logic is_HLTA;
-    logic is_AC_SELECT_NVB_valid;   // is the NVB in the ac_sel_msg valid
-    logic is_AC_SELECT;             // is AC or SELECT
-    logic is_SELECT;                // is SELECT (not AC)
 
     // we could make these checks more precise, by checking we have the exact correct amount of bits
     // However I'm not sure it's necesarry. if we are in the idle state waiting REQA and there's
@@ -482,9 +486,6 @@ module initialisation
     localparam int TX_BUFF_LEN = 5;
     logic [7:0]     tx_buffer [TX_BUFF_LEN];
     logic [2:0]     tx_count_minus_1;
-    logic [2:0]     tx_bytes_to_shift;
-    logic [2:0]     tx_bits_to_shift;
-    logic           tx_set_valid_when_shifted;
 
     // Our ATQA response
     localparam logic [15:0] ATQA_REPLY = ATQA(UID_SIZE);
@@ -494,32 +495,10 @@ module initialisation
     always_ff @(posedge clk, negedge rst_n) begin
         if (!rst_n) begin
             tx_iface.data_valid         <= 1'b0;
-            tx_bytes_to_shift           <= '0;
-            tx_bits_to_shift            <= '0;
-            tx_set_valid_when_shifted   <= 1'b0;
         end
         else begin
             // tx_iface.data_valid is cleared when the tx_iface.req asserts and we are out of
             // stuff to send. tx_iface.data_valid gets set when reply is not Reply_NONE
-
-            // deal with byte and bit shifting as part of the AC reply (see Reply_AC below)
-            if (tx_bytes_to_shift) begin
-                tx_bytes_to_shift <= tx_bytes_to_shift - 1'd1;
-                // shift tx_buffer
-                for (int i = 0; i < (TX_BUFF_LEN - 1); i++) begin
-                    tx_buffer[i] <= tx_buffer[i+1];
-                end
-            end
-            else if (tx_bits_to_shift) begin
-                tx_bits_to_shift <= tx_bits_to_shift - 1'd1;
-                // shift tx_buffer[0] right by 1
-                tx_buffer[0][6:0] <= tx_buffer[0][7:1];
-            end
-            else if (tx_set_valid_when_shifted) begin
-                // nothing more to shift, set RTS
-                tx_set_valid_when_shifted   <= 1'b0;
-                tx_iface.data_valid         <= 1'b1;
-            end
 
             // Deal with the Tx module requesting more data
             if (tx_iface.req) begin
@@ -555,19 +534,10 @@ module initialisation
                     tx_iface.data_bits      <= 3'd0;    // first tfer is 8 bits wide
                 end
                 Reply_AC: begin
-                    // we have many ticks before we start to send
-                    // so we copy all the data in here and then
-                    // shift it one byte at a time to get the correct starting byte
-                    // and then one bit at a time to get the correct starting bit
-                    // this saves us needing an expensive barrel shifter
-                    tx_buffer[0]            <= current_cascade_uid_data.uid[7 : 0];
-                    tx_buffer[1]            <= current_cascade_uid_data.uid[15: 8];
-                    tx_buffer[2]            <= current_cascade_uid_data.uid[23:16];
-                    tx_buffer[3]            <= current_cascade_uid_data.uid[31:24];
-                    tx_buffer[4]            <= current_cascade_uid_data.bcc;
-
-                    tx_bytes_to_shift       <= ac_sel_msg.nvb.bytes - 2'd2;
-                    tx_bits_to_shift        <= ac_sel_msg.nvb.bits;
+                    // copy all the data from the ac_reply_buffer,
+                    // although we only transmit the correct number of bits
+                    tx_buffer               <= ac_reply_buffer;
+                    tx_iface.data_valid     <= 1'b1;
 
                     // for the first transfer send 8 - ac_sel_msg.nvb.bits
                     // since it's 3 bits wide, 0 is the same as 8.
@@ -581,9 +551,6 @@ module initialisation
                     // tx_count_minus_1 is -1 of what we actually want, so 6 - nvb.bytes
                     tx_count_minus_1        <= 3'd6 - ac_sel_msg.nvb.bytes;
                     tx_append_crc           <= 1'b0;
-
-                    // set ready to send when we are done shifting data about
-                    tx_set_valid_when_shifted <= 1'b1;
                 end
                 Reply_SAK: begin
                     tx_buffer[0]            <= (is_final_cascade_level) ? SAK_UID_COMPLETE
