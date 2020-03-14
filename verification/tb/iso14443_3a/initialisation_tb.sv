@@ -75,6 +75,7 @@ module initialisation_tb
 
     // Receive signals
     rx_interface #(.BY_BYTE(1)) rx_iface (.*);
+    rx_interface #(.BY_BYTE(0)) rx_iface_bits (.*);
     logic                       rx_crc_ok;
 
     // From the iso14443-4 block
@@ -104,7 +105,7 @@ module initialisation_tb
     rx_interface_source rx_source
     (
         .clk    (clk),
-        .iface  (rx_iface)
+        .iface  (rx_iface_bits)
     );
 
     // --------------------------------------------------------------
@@ -115,6 +116,19 @@ module initialisation_tb
     (
         .clk    (clk),
         .iface  (tx_iface)
+    );
+
+    // --------------------------------------------------------------
+    // The deserialiser as the source of the rx_iface_bytes
+    // --------------------------------------------------------------
+
+    deserialiser ds_inst
+    (
+        .clk        (clk),
+        .rst_n      (rst_n),
+
+        .in_iface   (rx_iface_bits),
+        .out_iface  (rx_iface)
     );
 
     // --------------------------------------------------------------
@@ -209,8 +223,10 @@ module initialisation_tb
         endcase
     endfunction
 
-    task send_frame (logic [7:0] dq[$], int bits_in_last_byte, logic add_crc, int error_in_byte = -1);
-        automatic logic [15:0] crc = frame_generator_pkg::calculate_crc(dq);
+    task send_frame (logic [7:0] dq[$], int bits_in_last_byte, logic add_crc, logic add_error=1'b0);
+        automatic logic [15:0]  crc = frame_generator_pkg::calculate_crc(dq);
+        automatic logic         bits[$];
+        automatic int           error_in_bit = -1;
 
         rx_crc_ok <= 1'b0;
 
@@ -219,13 +235,19 @@ module initialisation_tb
             dq.push_back(crc[15:8]);
         end
 
-        rx_source.send_frame(dq, bits_in_last_byte, error_in_byte);
+        // get the bits to send
+        bits = frame_generator_pkg::convert_message_to_bit_queue_for_rx(dq, bits_in_last_byte);
+
+        // add an error?
+        if (add_error) begin
+            error_in_bit = $urandom_range(0, bits.size); // not -1, the last error comes before the EOC
+        end
+
+        rx_source.send_frame(bits, 0, error_in_bit);
 
         // CRC
-        if (add_crc && (error_in_byte == -1)) begin
-            rx_crc_ok       <= 1'b1;
-            @(posedge clk) begin end
-            rx_crc_ok       <= 1'b0;
+        if (add_crc && !add_error) begin
+            rx_crc_ok <= 1'b1;
         end
     endtask
 
@@ -243,7 +265,7 @@ module initialisation_tb
     endtask
 
     int last_sent_uid_bits;
-    task send_ac_select (int level, int uid_bits, logic [31:0] uid, logic add_crc_if_select=1'b1);
+    task send_ac_select (int level, int uid_bits, logic [31:0] uid, logic add_crc_if_select=1'b1, logic flip_last_bit=1'b0);
         // the AC/SELECT message is: sel, nvb, uid0, uid1, uid2, uid3, bcc
 
         automatic logic [7:0]   dq[$];
@@ -281,6 +303,10 @@ module initialisation_tb
         // BCC
         if (uid_bits == 32) begin
             dq.push_back(bcc);
+        end
+
+        if (flip_last_bit) begin
+            dq[$][7] = !dq[$][7];
         end
 
         // send it
@@ -323,7 +349,7 @@ module initialisation_tb
     task send_error;
         automatic int bytes_to_send     = $urandom_range(1, 20);
         automatic int bits_in_last_byte = $urandom_range(0, 7);
-        automatic int error_in_byte     = $urandom_range(0, bytes_to_send - 1);
+
         automatic logic [7:0] dq [$];
 
         for (int i = 0; i < bytes_to_send; i++) begin
@@ -332,7 +358,7 @@ module initialisation_tb
             dq.push_back(b);
         end
 
-        send_frame(dq, bits_in_last_byte, 1'($urandom), error_in_byte);
+        send_frame(dq, bits_in_last_byte, 1'($urandom), 1'b1);
     endtask
 
     task send_msg(logic REQA, logic WUPA, logic HLTA,
