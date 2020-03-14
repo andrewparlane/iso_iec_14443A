@@ -1120,7 +1120,7 @@ module initialisation_tb
 
                 std::randomize(start_state) with {start_state inside {states};};
                 go_to_state(start_state);
-                $display("starting in state %s", start_state.name);
+                //$display("starting in state %s", start_state.name);
 
                 // valid select but without the CRC
                 send_hlta(1'b0);
