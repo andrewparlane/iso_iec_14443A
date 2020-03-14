@@ -1051,6 +1051,32 @@ module initialisation_tb
                             end
                         end
                     end
+
+                    // 5) send SELECT with the last bit wrong.
+                    //    this makes sure that UID Matching runs for the entire UID
+                    $display("%s + SELECT with last bit wrong", states[i].name);
+                    for (int level = 0; level < get_num_sel_levels(); level++) begin
+                        // go to the ready/ready* state
+                        go_to_state(states[i]);
+
+                        // send previous selects
+                        for (int l = 0; l < level; l++) begin
+                            send_ac_select (l, 32, sel_uid_level[l]);
+                            recv_sak (l);
+
+                            // confirm we're still in states[i]
+                            check_state(states[i]);
+                        end
+
+                        // send SELECT, flipping the last bit
+                        // IE. not for us
+                        send_ac_select (level, 32, sel_uid_level[level], 1'b1, 1'b1);
+
+                        check_no_reply;
+
+                        // confirm we're in IDLE / HALT
+                        check_state((states[i] == State_READY) ? State_IDLE : State_HALT);
+                    end
                 end
             end
 
