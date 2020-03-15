@@ -55,6 +55,7 @@
 #	INTERACTIVE:		running "make INTERACTIVE=1 X" will cause VCS to start up and wait for
 #						user input in the UCLI. You can add breakpoints / step through, etc..
 #	GUI:				running "make GUI=1 X" will start VCS with the -gui flag, opening DVE
+#	RANDOM_SEED=X:		set the random number generator's seed to X
 
 # ----------------------------------------------------------------------------------
 # VARIABLES
@@ -156,7 +157,13 @@ COLOURISE = (set -o pipefail; $(1) | $(COLOURISE_SED_ALL))
 # arguments to the various commands
 VLOGAN_ARGS	= -full64 +lint=all +warn=all -sverilog
 VCS_ARGS	= -full64 +lint=all,noSVA-DIU,noSVA-LDA,noSVA-ADORM,noSVA-NSVU +warn=all -assert enable_diag -debug_acc+all -ntb_opts check=all
-SIMV_ARGS	= -assert global_finish_maxfail=10 -cm assert +ntb_random_seed_automatic -ucli
+SIMV_ARGS	= -assert global_finish_maxfail=10 -cm assert -ucli
+
+ifdef RANDOM_SEED
+	SIMV_ARGS 		+= +ntb_random_seed=$(RANDOM_SEED)
+else
+	SIMV_ARGS 		+= +ntb_random_seed_automatic
+endif
 
 ifdef GUI
 # if we want to use the GUI then add the -gui argument to SIMV_ARGS
