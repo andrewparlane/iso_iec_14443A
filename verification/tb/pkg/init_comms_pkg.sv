@@ -706,7 +706,7 @@ package init_comms_pkg;
         // Tests
         // --------------------------------------------------------------------
 
-        task run_all_initialisation_tests;
+        task run_all_initialisation_tests(int num_loops_per_test=1000);
             // --------------------------------------------------------------------
             // Test all possible state transititions
             // --------------------------------------------------------------------
@@ -717,7 +717,7 @@ package init_comms_pkg;
 
             // reqa / wupa -> ready + ATQA
             $display("State_IDLE + REQA/WUPA");
-            repeat (1000) begin
+            repeat (num_loops_per_test) begin
                 go_to_state_idle;
                 send_msg(.REQA      (1'b1), .WUPA      (1'b1), .HLTA      (1'b0),
                          .AC        (1'b0), .nAC       (1'b0),
@@ -729,7 +729,7 @@ package init_comms_pkg;
 
             // all others -> idle + no reply
             $display("State_IDLE + others");
-            repeat (1000) begin
+            repeat (num_loops_per_test) begin
                 go_to_state_idle;
                 send_msg(.REQA      (1'b0), .WUPA      (1'b0),  .HLTA      (1'b1),
                          .AC        (1'b1), .nAC       (1'b1),
@@ -746,7 +746,7 @@ package init_comms_pkg;
 
             // AC -> ready + AC reply
             $display("State_READY + AC");
-            repeat (1000) begin
+            repeat (num_loops_per_test) begin
                 go_to_state_ready;
                 // always level 0 for now. We check AC stuff more later
                 send_ac_select (0, $urandom_range(31), sel_uid_level[0]);
@@ -757,14 +757,14 @@ package init_comms_pkg;
             // SELECT - just select the tag (as many levels as are needed)
             // we worry about AC / select stuff more later
             $display("State_READY + SELECT");
-            repeat (1000) begin
+            repeat (num_loops_per_test) begin
                 go_to_state_ready;
                 select_tag(1'b0); // this checks the SAKs and state internally
             end
 
             // all others -> idle, no reply
             $display("State_READY + others");
-            repeat (1000) begin
+            repeat (num_loops_per_test) begin
                 go_to_state_ready;
                 send_msg(.REQA      (1'b1), .WUPA      (1'b1), .HLTA      (1'b1),
                          .AC        (1'b0), .nAC       (1'b1),
@@ -781,7 +781,7 @@ package init_comms_pkg;
 
             // HLTA -> halt, no reply
             $display("State_ACTIVE + HLTA");
-            repeat (1000) begin
+            repeat (num_loops_per_test) begin
                 go_to_state_active;
                 send_hlta();
                 check_no_reply;
@@ -792,7 +792,7 @@ package init_comms_pkg;
 
             // all others -> idle, no reply
             $display("State_ACTIVE + others");
-            repeat (1000) begin
+            repeat (num_loops_per_test) begin
                 go_to_state_active;
                 send_msg(.REQA      (1'b1), .WUPA      (1'b1), .HLTA      (1'b0),
                          .AC        (1'b1), .nAC       (1'b1),
@@ -808,7 +808,7 @@ package init_comms_pkg;
 
             // wupa -> ready* + ATQA
             $display("State_HALT + WUPA");
-            repeat (1000) begin
+            repeat (num_loops_per_test) begin
                 go_to_state_halt;
                 send_wupa();
                 recv_atqa;
@@ -817,7 +817,7 @@ package init_comms_pkg;
 
             // all others -> idle + no reply
             $display("State_HALT + others");
-            repeat (1000) begin
+            repeat (num_loops_per_test) begin
                 go_to_state_halt;
                 send_msg(.REQA      (1'b1), .WUPA      (1'b0),  .HLTA      (1'b1),
                          .AC        (1'b1), .nAC       (1'b1),
@@ -835,7 +835,7 @@ package init_comms_pkg;
 
             // AC -> ready_star + AC reply
             $display("State_READY_STAR + AC");
-            repeat (1000) begin
+            repeat (num_loops_per_test) begin
                 go_to_state_ready_star;
                 // always level 0 for now. We check AC stuff more later
                 send_ac_select (0, $urandom_range(31), sel_uid_level[0]);
@@ -846,14 +846,14 @@ package init_comms_pkg;
             // SELECT - just select the tag (as many levels as are needed)
             // we worry about AC / select stuff more later
             $display("State_READY_STAR + SEL");
-            repeat (1000) begin
+            repeat (num_loops_per_test) begin
                 go_to_state_ready_star;
                 select_tag(1'b1); // this checks the SAKs and state internally
             end
 
             // all others -> halt, no reply
             $display("State_READY_STAR + others");
-            repeat (1000) begin
+            repeat (num_loops_per_test) begin
                 go_to_state_ready_star;
                 send_msg(.REQA      (1'b1), .WUPA      (1'b1), .HLTA      (1'b1),
                          .AC        (1'b0), .nAC       (1'b1),
@@ -871,7 +871,7 @@ package init_comms_pkg;
 
             // all others -> halt, no reply
             $display("State_ACTIVE_STAR + others");
-            repeat (1000) begin
+            repeat (num_loops_per_test) begin
                 go_to_state_active_star;
                 send_msg(.REQA      (1'b1), .WUPA      (1'b1), .HLTA      (1'b1),
                          .AC        (1'b1), .nAC       (1'b1),
@@ -921,7 +921,7 @@ package init_comms_pkg;
                     //    we've already tested this with the tag in level 0, but repeat anyway
                     $display("%s + nAC/nSELECT", states[i].name);
                     for (int level = 0; level < get_num_sel_levels(); level++) begin
-                        repeat (1000) begin
+                        repeat (num_loops_per_test) begin
                             // go to the ready/ready* state
                             go_to_state(states[i]);
 
@@ -1046,7 +1046,7 @@ package init_comms_pkg;
             // CRC fail is counted as a transmission error and should return us to HALT / IDLE
 
             $display("Testing SELECT with CRC error");
-            repeat (10) begin
+            repeat (num_loops_per_test) begin
                 // SELECT is only valid in State_READY or State_READY_STAR
                 automatic State states [$] = '{State_READY, State_READY_STAR};
                 automatic State start_state;
@@ -1064,7 +1064,7 @@ package init_comms_pkg;
             end
 
             $display("Testing HLTA with CRC error");
-            repeat (100) begin
+            repeat (num_loops_per_test) begin
                 // HLTA can be sent from any state other than PROTOCOL
                 // (although in READY and IDLE we go to IDLE)
                 // It's a bit silly that HLTA requires a CRC.
