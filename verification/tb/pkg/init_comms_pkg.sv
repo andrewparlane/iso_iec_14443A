@@ -310,7 +310,7 @@ package init_comms_pkg;
 
             res.data.delete;
             res.bits_in_last_byte   = $urandom_range(0, 7);
-            res.add_crc             = 1'($urandom);
+            res.add_crc             = res.bits_in_last_byte ? 1'b0 : 1'($urandom);  // don't add CRC partial bytes
             res.add_error           = 1'b0;
 
             for (int i = 0; i < bytes_to_send; i++) begin
