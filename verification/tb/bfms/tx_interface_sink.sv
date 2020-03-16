@@ -136,6 +136,8 @@ module tx_interface_sink
                     rxQueueEmpty:
                     assert (received.size() == 0) else $error("Received queue not empty on receiving the first byte of a new frame");
                 end
+                // and clear the bit count
+                bits_in_first_byte  = 0;
                 first_tfer          = 1'b0;
             end
             else begin: notFirstTfer
