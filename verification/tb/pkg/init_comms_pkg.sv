@@ -228,6 +228,7 @@ package init_comms_pkg;
             res.bits_in_last_byte   = 7;
             res.add_crc             = 1'b0;
             res.add_error           = 1'b0;
+            //$display("sending reqa %p", res);
             return res;
         endfunction
 
@@ -237,6 +238,7 @@ package init_comms_pkg;
             res.bits_in_last_byte   = 7;
             res.add_crc             = 1'b0;
             res.add_error           = 1'b0;
+            //$display("sending wupa %p", res);
             return res;
         endfunction
 
@@ -247,6 +249,7 @@ package init_comms_pkg;
             res.bits_in_last_byte   = 8;
             res.add_crc             = add_crc;
             res.add_error           = 1'b0;
+            //$display("sending hlta %p", res);
             return res;
         endfunction
 
@@ -351,6 +354,7 @@ package init_comms_pkg;
                 res.data.push_back(b);
             end
 
+            //$display("sending error %p", res);
             return res;
         endfunction
 
@@ -506,7 +510,7 @@ package init_comms_pkg;
                   (msg.data[1] == expected[15:8]);
 
             atqaAsExpected:
-            assert (res) else $error("Failed to receive ATQA as expected");
+            assert (res) else $error("Failed to receive ATQA as expected: %p", msg);
         endfunction
 
         function logic validate_ac_reply (MsgFromPICC msg, logic [31:0] uid);
@@ -543,7 +547,7 @@ package init_comms_pkg;
                   (bcc == built_uid[39:32]);
 
             acReplyAsExpected:
-            assert (res) else $error("Failed to receive AC reply as expected");
+            assert (res) else $error("Failed to receive AC reply as expected: %p, idx %d, built %h", msg, idx, built_uid);
         endfunction
 
         function logic validate_sak (MsgFromPICC msg, int level);
@@ -567,7 +571,7 @@ package init_comms_pkg;
                   (msg.data[0] == expected[7:0]);
 
             sakAsExpected:
-            assert (res) else $error("Failed to receive SAK as expected, got %p, crc %d", msg.data, msg.has_crc);
+            assert (res) else $error("Failed to receive SAK as expected, got %p", msg);
         endfunction
 
         // --------------------------------------------------------------
