@@ -218,6 +218,25 @@ package frame_generator_pkg;
         return new_bits;
     endfunction
 
+    function bit_queue remove_parity_from_bit_queue (logic bits[$], int bits_in_first_byte=8);
+        automatic logic new_bits[$] = '{};
+        automatic int next_parity_bit_in = bits_in_first_byte;
+
+        foreach (bits[i]) begin
+            if (next_parity_bit_in == 0) begin
+                // parity bit, ignore
+                next_parity_bit_in = 8;
+            end
+            else begin
+                // not a parity bit, copy
+                new_bits.push_back(bits[i]);
+                next_parity_bit_in--;
+            end
+        end
+
+        return new_bits;
+    endfunction
+
     function bit_queue convert_message_to_bit_queue_for_tx (logic [7:0] data [$], int bits_in_first_byte=8);
         automatic int bits_in_last_byte = 8;
         if (data.size == 1) begin
