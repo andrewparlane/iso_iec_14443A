@@ -101,13 +101,18 @@ TBS		= sequence_decode_tb 			\
 		  deserialiser_tb				\
 		  serialiser_tb					\
 		  framing_tb					\
-		  initialisation_tb
+		  initialisation_tb				\
+		  iso14443_3a_tb
 
 # This is for TBs that need to do something custom, it's only used for list_tbs
-CUSTOM_TBS	= initialisation_tb_uid_single \
-			  initialisation_tb_uid_double \
-			  initialisation_tb_uid_triple \
-			  initialisation_tb_actual
+CUSTOM_TBS	= initialisation_tb_uid_single	\
+			  initialisation_tb_uid_double	\
+			  initialisation_tb_uid_triple	\
+			  initialisation_tb_actual		\
+			  iso14443_3a_tb_uid_single		\
+			  iso14443_3a_tb_uid_double 	\
+			  iso14443_3a_tb_uid_triple 	\
+			  iso14443_3a_tb_actual
 
 # ----------------------------------------------------------------------------------
 # colourization
@@ -276,6 +281,15 @@ initialisation_tb_uid_double_simv: $(AN_DB_DIR) .FORCE
 initialisation_tb_uid_triple_simv: $(AN_DB_DIR) .FORCE
 	@$(call ELABORATE, initialisation_tb, $@, -pvalue+initialisation_tb.UID_SIZE_CODE=2 -pvalue+initialisation_tb.UID_INPUT_BITS=$(call strip, $(call RANDOM, 76, 79)) -pvalue+initialisation_tb.UID_FIXED=$(call strip, $(call RANDOM, 0, 15)))
 
+iso14443_3a_tb_uid_single_simv: $(AN_DB_DIR) .FORCE
+	@$(call ELABORATE, iso14443_3a_tb, $@, -pvalue+iso14443_3a_tb.UID_SIZE_CODE=0 -pvalue+iso14443_3a_tb.UID_INPUT_BITS=$(call strip, $(call RANDOM, 28, 31)) -pvalue+iso14443_3a_tb.UID_FIXED=$(call strip, $(call RANDOM, 0, 15)))
+
+iso14443_3a_tb_uid_double_simv: $(AN_DB_DIR) .FORCE
+	@$(call ELABORATE, iso14443_3a_tb, $@, -pvalue+iso14443_3a_tb.UID_SIZE_CODE=1 -pvalue+iso14443_3a_tb.UID_INPUT_BITS=$(call strip, $(call RANDOM, 52, 55)) -pvalue+iso14443_3a_tb.UID_FIXED=$(call strip, $(call RANDOM, 0, 15)))
+
+iso14443_3a_tb_uid_triple_simv: $(AN_DB_DIR) .FORCE
+	@$(call ELABORATE, iso14443_3a_tb, $@, -pvalue+iso14443_3a_tb.UID_SIZE_CODE=2 -pvalue+iso14443_3a_tb.UID_INPUT_BITS=$(call strip, $(call RANDOM, 76, 79)) -pvalue+iso14443_3a_tb.UID_FIXED=$(call strip, $(call RANDOM, 0, 15)))
+
 # This test should be run with the values we want to fabricate with
 # TODO: UPDATE THESE VALUES
 # We use a UIDSize_SINGLE in the form of: EF FE C7 0X
@@ -286,9 +300,12 @@ UID_SIZE_CODE	= 0
 UID_INPUT_BITS 	= 4
 UID_FIXED		= 251653232
 
-# Don't need to rebuild this each time, as these values are fixed (should run make clean if we change them here)
+# Don't need to rebuild these each time, as these values are fixed (should run make clean if we change them here)
 initialisation_tb_actual_simv: $(AN_DB_DIR)
 	@$(call ELABORATE, initialisation_tb, $@, -pvalue+initialisation_tb.UID_SIZE_CODE=$(UID_SIZE_CODE) -pvalue+initialisation_tb.UID_INPUT_BITS=$(UID_INPUT_BITS) -pvalue+initialisation_tb.UID_FIXED=$(UID_FIXED))
+
+iso14443_3a_tb_actual_simv: $(AN_DB_DIR)
+	@$(call ELABORATE, iso14443_3a_tb, $@, -pvalue+iso14443_3a_tb.UID_SIZE_CODE=$(UID_SIZE_CODE) -pvalue+iso14443_3a_tb.UID_INPUT_BITS=$(UID_INPUT_BITS) -pvalue+iso14443_3a_tb.UID_FIXED=$(UID_FIXED))
 
 # output TBS each on it's own line
 list_tbs:
