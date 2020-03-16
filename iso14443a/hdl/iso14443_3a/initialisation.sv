@@ -293,24 +293,22 @@ module initialisation
     AntiCollisionSelectCommand ac_sel_msg;
     assign ac_sel_msg = AntiCollisionSelectCommand'(rx_buffer);
 
-    // we could make these checks more precise, by checking we have the exact correct amount of bits
-    // However I'm not sure it's necesarry. if we are in the idle state waiting REQA and there's
-    // a REQA in the correct bits of the first byte, then it's probably meant to be a REQA and
-    // not something else / corrupt.
-    assign is_REQA                  = (rx_buffer[0][6:0] == REQA); /* &&
-                                      (rx_count == 1)               &&
-                                      (rx_data_bits == 7); */
+    assign is_REQA                  = (rx_buffer[0][6:0] == REQA)   &&
+                                      (rx_count == 0)               &&  // partial byte
+                                      (rx_iface.data_bits == 7);
 
-    assign is_WUPA                  = (rx_buffer[0][6:0] == WUPA); /* &&
-                                      (rx_count == 1)               &&
-                                      (rx_data_bits == 7); */
+    assign is_WUPA                  = (rx_buffer[0][6:0] == WUPA)   &&
+                                      (rx_count == 0)               &&  // partial byte
+                                      (rx_iface.data_bits == 7);
 
     assign is_HLTA                  = (rx_buffer[0] == HLTA[7:0])   &&
                                       (rx_buffer[1] == HLTA[15:8])  &&
-                                      rx_crc_ok;                   /* &&
+                                      rx_crc_ok                     &&
                                       (rx_count == 4)               && // 2 bytes HLTA + 2 bytes CRC
-                                      (rx_data_bits == 0); */
+                                      (rx_iface.data_bits == 0);
 
+    // we don't check that the received length matches the NVB here.
+    // If the UID matches ours, then we respond.
     assign is_AC_SELECT             = (ac_sel_msg.cascadeLevel == current_cascade_level_code); /* &&
                                       (ac_sel_msg.nvb.bits  == rx_data_bits)                    &&
                                       (ac_sel_msg.nvb.bytes == rx_count); */
