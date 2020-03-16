@@ -190,7 +190,7 @@ module initialisation
             pkt_received    <= 1'b0;
 
             // I don't check that these signals are correct. There are various things
-            // that would cause trouble here such as rx_data_bits != 0 when rx_eoc == 0
+            // that would cause trouble here such as rx_iface.data_bits != 0 when rx_eoc == 0
             // But we have to assume that the rx module produces valid signals, and that
             // the Rx testbench will catch any problems.
 
@@ -237,7 +237,7 @@ module initialisation
                     end
 
                     if (!rx_iface.eoc) begin
-                        // don't count partial bytes. This makes our rx_count and rx_data_bits
+                        // don't count partial bytes. This makes our rx_count and rx_iface.data_bits
                         // match the AC/SELECT message's NVB
                         rx_count <= rx_count + 1'd1;
 
@@ -310,7 +310,7 @@ module initialisation
     // we don't check that the received length matches the NVB here.
     // If the UID matches ours, then we respond.
     assign is_AC_SELECT             = (ac_sel_msg.cascadeLevel == current_cascade_level_code); /* &&
-                                      (ac_sel_msg.nvb.bits  == rx_data_bits)                    &&
+                                      (ac_sel_msg.nvb.bits  == rx_iface.data_bits)              &&
                                       (ac_sel_msg.nvb.bytes == rx_count); */
 
     // CRC is checked where we use is_SELECT
