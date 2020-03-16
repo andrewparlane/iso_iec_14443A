@@ -255,6 +255,33 @@ package frame_generator_pkg;
         return convert_message_to_bit_queue_internal (data, bits_in_first_byte, bits_in_last_byte);
     endfunction
 
+    function byte_queue convert_bits_to_bytes(logic data [$], int bits_in_first_byte);
+        automatic logic [7:0] res [$];
+        automatic logic [7:0] curr_byte     = 'x;
+        automatic int         bits_in_byte  = bits_in_first_byte;
+        automatic int         bit_count     = 0;
+
+        if (bits_in_byte == 0) begin
+            bits_in_byte = 8;
+        end
+
+        foreach(data[i]) begin
+            curr_byte[bit_count++] = data[i];
+            if (bit_count == bits_in_byte) begin
+                res.push_back(curr_byte);
+                curr_byte       = 'x;
+                bit_count       = 0;
+                bits_in_byte    = 8;
+            end
+        end
+
+        // final partial byte?
+        if (bit_count != 0) begin
+            res.push_back(curr_byte);
+        end
+        return res;
+    endfunction
+
     function logic [15:0] calculate_crc (logic [7:0] data[$]);
         logic [15:0] crc;
         crc = 16'h6363;
