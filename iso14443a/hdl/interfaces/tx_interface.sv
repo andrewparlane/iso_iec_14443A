@@ -27,7 +27,8 @@ interface tx_interface
 #(
     // are we a bit by bit interface (ie after the serialiser) or a byte by byte interface (ie. before).
     // When we are by byte we use the data_bits signal to indicate partial bytes
-    parameter logic BY_BYTE = 0
+    parameter logic BY_BYTE     = 0,
+    parameter logic USE_ASSERTS = 1
 )
 (
     input clk,
@@ -109,32 +110,37 @@ interface tx_interface
         input   req
     );
 
-    // Check that the signals are correct when in reset
-    signalsInReset:
-    assert property (
-        @(posedge clk)
-        !rst_n |->
-            (!req && !data_valid))
-        else $error("Signals not as expected whilst in reset");
+    generate
+        if (USE_ASSERTS) begin: useAsserts
 
-    // req is only asserted for one tick at a time
-    reqOnlyOneTick:
-    assert property (
-        @(posedge clk)
-        req |=> !req)
-        else $error("req asserted for more than one tick");
+            // Check that the signals are correct when in reset
+            signalsInReset:
+            assert property (
+                @(posedge clk)
+                !rst_n |->
+                    (!req && !data_valid))
+                else $error("Signals not as expected whilst in reset");
 
-    // data, data_valid, data_bits and last_bit_in_byte can only change either when data_valid is low
-    // or within 4 ticks of req asserting.
-    signalChangesOnlyAfterReqOrWhenIdle:
-    assert property (
-        @(posedge clk)
-        (!$stable(data)         || !$stable(data_valid) ||
-         !$stable(data_bits)    || !$stable(last_bit_in_byte)) |->
-            ($rose(data_valid)                  ||  // we were not valid before (so idle)
-             (data_valid == 0)                  ||  // we are no longer valid
-             $past(req, 1) || $past(req, 2)     ||  // or req asserted one of the previous 4 ticks
-             $past(req, 3) || $past(req, 4)))
-        else $error("data, data_valid or data_bits changed when not idle and not immediately after req");
+            // req is only asserted for one tick at a time
+            reqOnlyOneTick:
+            assert property (
+                @(posedge clk)
+                req |=> !req)
+                else $error("req asserted for more than one tick");
+
+            // data, data_valid, data_bits and last_bit_in_byte can only change either when data_valid is low
+            // or within 4 ticks of req asserting.
+            signalChangesOnlyAfterReqOrWhenIdle:
+            assert property (
+                @(posedge clk)
+                (!$stable(data)         || !$stable(data_valid) ||
+                 !$stable(data_bits)    || !$stable(last_bit_in_byte)) |->
+                    ($rose(data_valid)                  ||  // we were not valid before (so idle)
+                     (data_valid == 0)                  ||  // we are no longer valid
+                     $past(req, 1) || $past(req, 2)     ||  // or req asserted one of the previous 4 ticks
+                     $past(req, 3) || $past(req, 4)))
+                else $error("data, data_valid or data_bits changed when not idle and not immediately after req");
+        end
+    endgenerate
 
 endinterface
