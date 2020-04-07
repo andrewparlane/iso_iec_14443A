@@ -102,6 +102,7 @@ TBS		= sequence_decode_tb 			\
 		  serialiser_tb					\
 		  framing_tb					\
 		  initialisation_tb				\
+		  routing_tb					\
 		  iso14443_3a_tb
 
 # This is for TBs that need to do something custom, it's only used for list_tbs
