@@ -65,13 +65,19 @@ module initialisation_tb
     rx_interface #(.BY_BYTE(0)) rx_iface_bits (.*);
     logic                       rx_crc_ok;
 
-    // From the iso14443-4 block
-    // tells us if a deselect command has been received
-    logic                       iso14443_4_deselect;
-
     // Transmit signals
     tx_interface #(.BY_BYTE(1)) tx_iface (.*);
     logic                       tx_append_crc;
+
+    // To/From the iso14443-4 block
+    logic                       iso14443_4a_deselect;
+    logic                       iso14443_4a_rats;
+    logic                       iso14443_4a_tag_active;
+
+    // Message routing controls
+    logic                       route_rx_to_initialisation;
+    logic                       route_rx_to_14443_4a;
+    logic                       route_tx_from_14443_4a;
 
     // --------------------------------------------------------------
     // DUT
@@ -213,12 +219,13 @@ module initialisation_tb
 
         function void check_state (State state);
             case (state)
-                State_IDLE:         isIdle:        assert ((dut.state == dut.State_IDLE)   && !dut.state_star) else $error("DUT not in correct state expected State_IDLE, 0 got %s, %b", dut.state.name, dut.state_star);
-                State_READY:        isReady:       assert ((dut.state == dut.State_READY)  && !dut.state_star) else $error("DUT not in correct state expected State_READY, 0 got %s, %b", dut.state.name, dut.state_star);
-                State_ACTIVE:       isActive:      assert ((dut.state == dut.State_ACTIVE) && !dut.state_star) else $error("DUT not in correct state expected State_ACTIVE, 0 got %s, %b", dut.state.name, dut.state_star);
-                State_HALT:         isHalt:        assert ((dut.state == dut.State_IDLE)   && dut.state_star)  else $error("DUT not in correct state expected State_IDLE, 1 got %s, %b", dut.state.name, dut.state_star);
-                State_READY_STAR:   isReadyStar:   assert ((dut.state == dut.State_READY)  && dut.state_star)  else $error("DUT not in correct state expected State_READY, 1 got %s, %b", dut.state.name, dut.state_star);
-                State_ACTIVE_STAR:  isActiveStar:  assert ((dut.state == dut.State_ACTIVE) && dut.state_star)  else $error("DUT not in correct state expected State_ACTIVE, 1 got %s, %b", dut.state.name, dut.state_star);
+                State_IDLE:         isIdle:         assert ((dut.state == dut.State_IDLE)   && !dut.state_star) else $error("DUT not in correct state expected State_IDLE, 0 got %s, %b", dut.state.name, dut.state_star);
+                State_READY:        isReady:        assert ((dut.state == dut.State_READY)  && !dut.state_star) else $error("DUT not in correct state expected State_READY, 0 got %s, %b", dut.state.name, dut.state_star);
+                State_ACTIVE:       isActive:       assert ((dut.state == dut.State_ACTIVE) && !dut.state_star) else $error("DUT not in correct state expected State_ACTIVE, 0 got %s, %b", dut.state.name, dut.state_star);
+                State_HALT:         isHalt:         assert ((dut.state == dut.State_IDLE)   && dut.state_star)  else $error("DUT not in correct state expected State_IDLE, 1 got %s, %b", dut.state.name, dut.state_star);
+                State_READY_STAR:   isReadyStar:    assert ((dut.state == dut.State_READY)  && dut.state_star)  else $error("DUT not in correct state expected State_READY, 1 got %s, %b", dut.state.name, dut.state_star);
+                State_ACTIVE_STAR:  isActiveStar:   assert ((dut.state == dut.State_ACTIVE) && dut.state_star)  else $error("DUT not in correct state expected State_ACTIVE, 1 got %s, %b", dut.state.name, dut.state_star);
+                State_PROTOCOL:     isProtocol:     assert ((dut.state == dut.State_PROTOCOL))                  else $error("DUT not in correct state expected State_PROTOCOL, 1 got %s, %b", dut.state.name, dut.state_star);
             endcase
         endfunction
     endclass
@@ -237,8 +244,8 @@ module initialisation_tb
     // --------------------------------------------------------------
 
     initial begin
-        // TODO: test message routing
-        iso14443_4_deselect     <= 1'b0;
+        iso14443_4a_deselect    <= 1'b0;
+        iso14443_4a_rats        <= 1'b0;
 
         rx_source.initialise;
         tx_sink.initialise;
@@ -259,7 +266,43 @@ module initialisation_tb
             $display("UID_SIZE: %s, UID_INPUT_BITS: %d, UID_FIXED: 'b%b, Our UID: %h",
                      UID_SIZE.name, UID_INPUT_BITS, UID_FIXED, init_tb_class.get_uid);
 
+            // Run the normal tests
             init_tb_class.run_all_initialisation_tests();
+
+            // Test the transitions into and out of the PROTOCOL state
+            $display("Transitions into and out of State_PROTOCOL");
+            repeat (1000) begin
+                // check we can get into the PROTOCOL state by asserting iso14443_4a_rats
+                // after sending a message from the ACTIVE / ACTIVE_STAR state.
+                init_tb_class.go_to_state(1'($urandom) ? init_tb_class.State_ACTIVE
+                                                       : init_tb_class.State_ACTIVE_STAR);
+                // the actual RATS message is handled in the iso14443_4a module
+                // all we care about here is that a message was recieved and the
+                // iso14443_4a_rats signal is asserted
+                init_tb_class.send_random;
+                iso14443_4a_rats <= 1'b1;
+                repeat (5) @(posedge clk) begin end
+                iso14443_4a_rats <= 1'b0;
+                init_tb_class.check_state(init_tb_class.State_PROTOCOL);
+
+                // check that there's no reply / state change to any message now
+                repeat (10) begin
+                    init_tb_class.send_msg(.REQA      (1'b1), .WUPA      (1'b1), .HLTA  (1'b1),
+                                           .AC        (1'b1), .nAC       (1'b1),
+                                           .SELECT    (1'b1), .nSELECT   (1'b1),
+                                           .random    (1'b1), .error     (1'b1));
+                    init_tb_class.check_no_reply;
+                    init_tb_class.check_state(init_tb_class.State_PROTOCOL);
+                end
+
+                // check that we can exit this state by asserting iso14443_4a_deselect
+                iso14443_4a_deselect <= 1'b1;
+                @(posedge clk) begin end
+                iso14443_4a_deselect <= 1'b0;
+
+                init_tb_class.check_no_reply;
+                init_tb_class.check_state(init_tb_class.State_HALT);
+            end
         end
 
         repeat (5) @(posedge clk) begin end
@@ -283,5 +326,23 @@ module initialisation_tb
         @(posedge clk)
         $rose(rx_iface.soc) |=> !tx_iface.data_valid throughout rx_iface.eoc[->1])
         else $error("tx_iface.data_valid asserted during Rx");
+
+    // check tag_active when the tag is in the active state
+    tagActive:
+    assert property (
+        @(posedge clk)
+        iso14443_4a_tag_active == (dut.state == dut.State_ACTIVE))
+        else $error("iso14443_4a_tag_active not correct %b, dut in state %s", iso14443_4a_tag_active, dut.state.name);
+
+    // check routing signals
+    routingSignals:
+    assert property (
+        @(posedge clk)
+        (route_rx_to_initialisation == (dut.state != dut.State_PROTOCOL))   &&
+        (route_rx_to_14443_4a       == ((dut.state == dut.State_ACTIVE) ||
+                                        (dut.state == dut.State_PROTOCOL))) &&
+        (route_tx_from_14443_4a     == (dut.state == dut.State_PROTOCOL)))
+        else $error("Routing signals are not correct, route_rx_to_initialisation %b, route_rx_to_14443_4 %b, route_tx_from_14443_4 %b when in state %s",
+                    route_rx_to_initialisation, route_rx_to_14443_4a, route_tx_from_14443_4a, dut.state.name);
 
 endmodule
