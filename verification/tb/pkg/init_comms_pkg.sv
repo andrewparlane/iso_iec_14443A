@@ -246,7 +246,7 @@ package init_comms_pkg;
             // we have add_crc so we can disable it to mimic a CRC fail
             automatic MsgFromPCD res;
             res.data                = '{8'h50, 8'h00};
-            res.bits_in_last_byte   = 8;
+            res.bits_in_last_byte   = 0;
             res.add_crc             = add_crc;
             res.add_error           = 1'b0;
             //$display("sending hlta %p", res);
