@@ -158,9 +158,9 @@ package init_comms_pkg;
 
             State_HALT,
             State_READY_STAR,
-            State_ACTIVE_STAR
+            State_ACTIVE_STAR,
 
-            //State_PROTOCOL            // we currently don't support the PROTOCOL state here
+            State_PROTOCOL
         } State;
 
         typedef enum
@@ -788,8 +788,6 @@ package init_comms_pkg;
                 check_state(State_HALT);
             end
 
-            // TODO: Checks state transition for RATS
-
             // all others -> idle, no reply
             $display("State_ACTIVE + others");
             repeat (num_loops_per_test) begin
@@ -864,10 +862,8 @@ package init_comms_pkg;
             end
 
             // 6) Start in State_ACTIVE_STAR
-            //      RATS (not supported yet) takes us to State_PROTOCOL + reply
+            //      RATS (this is done in iso14443_4a) takes us to State_PROTOCOL + reply
             //      Anything else takes us to State_IDLE, no reply
-
-            // TODO: Checks state transition for RATS
 
             // all others -> halt, no reply
             $display("State_ACTIVE_STAR + others");
@@ -880,8 +876,6 @@ package init_comms_pkg;
                 check_no_reply;
                 check_state(State_HALT);
             end
-
-            // TODO: Check transitions from State_PROTOCOL
 
             // --------------------------------------------------------------------
             // Test AC/SELECT
