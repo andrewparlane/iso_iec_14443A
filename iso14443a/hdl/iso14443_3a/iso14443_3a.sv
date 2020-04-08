@@ -62,20 +62,36 @@ module iso14443_3a
     // So we just look for rising edges (end of pause)
     input                       pause_n_synchronised,
 
-    // Rx interface from 14443_2a
-    rx_interface.in_bit         in_rx_iface,
+    // To/From 14443_2a
+    rx_interface.in_bit         rx_iface_from_14443_2a,
+    tx_interface.out_bit        tx_iface_to_14443_2a,
 
-    // Rx interface to 14443_4
-    rx_interface.out_byte       out_rx_iface,
+    // To/From 14443_4
+    rx_interface.out_byte       rx_iface_to_14443_4a,
     output logic                rx_crc_ok,
+    tx_interface.in_byte        tx_iface_from_14443_4a,
+    input                       tx_append_crc_14443_4a,
 
-    // Tx interface to 14443_2a
-    tx_interface.out_bit        out_tx_iface
+    input                       iso14443_4a_deselect,
+    input                       iso14443_4a_rats,
+    output logic                iso14443_4a_tag_active
 );
 
-    rx_interface #(.BY_BYTE(0)) rx_iface_bits  (.*);
-    rx_interface #(.BY_BYTE(1)) rx_iface_bytes (.*);
-    tx_interface #(.BY_BYTE(1)) tx_iface (.*);
+    // internal interfaces
+    rx_interface #(.BY_BYTE(1)) rx_iface_bytes_to_routing   (.*);
+    rx_interface #(.BY_BYTE(1)) rx_iface_bytes_to_init      (.*);
+    rx_interface #(.BY_BYTE(0)) rx_iface_bits_to_init       (.*);
+
+    tx_interface #(.BY_BYTE(1)) tx_iface_from_routing       (.*);
+    tx_interface #(.BY_BYTE(1)) tx_iface_from_init          (.*);
+
+    // ========================================================================
+    // Framing
+    // ========================================================================
+    // Take the rx bit stream from 14443-2, check and strip the parity bit,
+    // and convert it into a byte stream, and check the CRC.
+    // Take the tx byte stream, append the CRC turn it into a bit stream
+    // and add the parity bits
 
     logic tx_append_crc;
     framing
@@ -90,23 +106,56 @@ module iso14443_3a
         .pause_n_synchronised   (pause_n_synchronised),
 
         // Rx interface from 14443_2a
-        .in_rx_iface            (in_rx_iface),
+        .in_rx_iface            (rx_iface_from_14443_2a),
 
-        // Rx interfaces to initialisation/14443_4
-        .out_rx_iface_bytes     (rx_iface_bytes),
-        .out_rx_iface_bits      (rx_iface_bits),
+        // Rx interfaces to initialisation/14443_4a (via routing)
+        .out_rx_iface_bytes     (rx_iface_bytes_to_routing),
+        .out_rx_iface_bits      (rx_iface_bits_to_init),
         .rx_crc_ok              (rx_crc_ok),
 
-        // Tx interface from initialisation/14443_4
-        .in_tx_iface            (tx_iface),
+        // Tx interface from initialisation/14443_4a (via routing)
+        .in_tx_iface            (tx_iface_from_routing),
         .tx_append_crc          (tx_append_crc),
 
         // Tx interface to 14443_2a
-        .out_tx_iface           (out_tx_iface)
+        .out_tx_iface           (tx_iface_to_14443_2a)
     );
 
-    logic iso14443_4_deselect;
-    assign iso14443_4_deselect = 1'b0;
+    // ========================================================================
+    // Routing
+    // ========================================================================
+    // Send the Rx messages where needed (initialisation / iso14443_4a)
+    // and mux the Tx replies.
+
+    logic route_rx_to_initialisation;
+    logic route_rx_to_14443_4a;
+    logic route_tx_from_14443_4a;
+    logic tx_append_crc_init;
+
+    routing routing_inst
+    (
+        .route_rx_to_initialisation (route_rx_to_initialisation),
+        .route_rx_to_14443_4        (route_rx_to_14443_4a),
+        .route_tx_from_14443_4      (route_tx_from_14443_4a),
+
+        .in_rx_iface                (rx_iface_bytes_to_routing),
+        .out_rx_iface_init          (rx_iface_bytes_to_init),
+        .out_rx_iface_14443_4       (rx_iface_to_14443_4a),
+
+        .in_tx_iface_init           (tx_iface_from_init),
+        .in_tx_iface_14443_4        (tx_iface_from_14443_4a),
+        .out_tx_iface               (tx_iface_from_routing),
+
+        .in_tx_append_crc_init      (tx_append_crc_init),
+        .in_tx_append_crc_14443_4   (tx_append_crc_14443_4a),
+        .out_tx_append_crc          (tx_append_crc)
+    );
+
+
+    // ========================================================================
+    // Initialisation
+    // ========================================================================
+    // Handle the initialisation and anticollision protocol
 
     initialisation
     #(
@@ -116,25 +165,25 @@ module iso14443_3a
     )
     initialisation_inst
     (
-        .clk                    (clk),
-        .rst_n                  (rst_n),
+        .clk                        (clk),
+        .rst_n                      (rst_n),
 
-        .uid_variable           (uid_variable),
+        .uid_variable               (uid_variable),
 
-        .rx_iface               (rx_iface_bytes),
-        .rx_iface_bits          (rx_iface_bits),
-        .rx_crc_ok              (rx_crc_ok),
+        .rx_iface                   (rx_iface_bytes_to_init),
+        .rx_iface_bits              (rx_iface_bits_to_init),
+        .rx_crc_ok                  (rx_crc_ok),
 
-        .iso14443_4_deselect    (iso14443_4_deselect),
+        .tx_iface                   (tx_iface_from_init),
+        .tx_append_crc              (tx_append_crc_init),
 
-        .tx_iface               (tx_iface),
-        .tx_append_crc          (tx_append_crc)
+        .iso14443_4a_deselect       (iso14443_4a_deselect),
+        .iso14443_4a_rats           (iso14443_4a_rats),
+        .iso14443_4a_tag_active     (iso14443_4a_tag_active),
+
+        .route_rx_to_initialisation (route_rx_to_initialisation),
+        .route_rx_to_14443_4a       (route_rx_to_14443_4a),
+        .route_tx_from_14443_4a     (route_tx_from_14443_4a)
     );
-
-    // TODO: routing
-    assign out_rx_iface.soc         = 1'b0;
-    assign out_rx_iface.eoc         = 1'b0;
-    assign out_rx_iface.error       = 1'b0;
-    assign out_rx_iface.data_valid  = 1'b0;
 
 endmodule
