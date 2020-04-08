@@ -53,18 +53,24 @@ module initialisation
     // further investigation would be necesarry to be sure.
     input [UID_INPUT_BITS-1:0]  uid_variable,
 
-    // Receive signals
+    // From/To the iso14443-2 block
     rx_interface.in_byte        rx_iface,
     rx_interface.in_bit         rx_iface_bits,
     input                       rx_crc_ok,
 
-    // From the iso14443-4 block
-    // tells us if a deselect command has been received
-    input                       iso14443_4_deselect,
-
-    // Transmit signals
     tx_interface.out_byte       tx_iface,
-    output logic                tx_append_crc
+    output logic                tx_append_crc,
+
+    // From/To the iso14443-4 block
+    // tells us if a deselect command has been received
+    input                       iso14443_4a_deselect,
+    input                       iso14443_4a_rats,           // this must be asserted when pkt_received is asserted
+    output logic                iso14443_4a_tag_active,     // next message must be RATS
+
+    // Message routing controls
+    output logic                route_rx_to_initialisation, // send received messages to us
+    output logic                route_rx_to_14443_4a,       // send received messages to the 14443-4 block
+    output logic                route_tx_from_14443_4a      // use 14443_4a to Tx
 );
 
     import ISO14443A_pkg::*;
@@ -437,15 +443,13 @@ module initialisation
                         // if it's HLTA then go to State_IDLE + set state_star
                         // for anything else go to State_IDLE
 
-                        // TODO: Maybe move RATS detection and decode to the 14443-4 block?
-                        //       when in the active state we direct the rx data to the
-                        //       14443-4 block and this initialisation module
-                        //       when in the protocol state we just direct it to the 14443-4 block
-                        //       ??
-                        /* if (is_RATS) begin
+                        // note: we handle RATS detection in the part4 block,
+                        //       which asserts the iso14443_4a_rats signal.
+
+                        if (iso14443_4a_rats) begin
                             next_state = State_PROTOCOL;
                         end
-                        else */ begin
+                        else begin
                             next_state = State_IDLE;
                         end
 
@@ -456,7 +460,10 @@ module initialisation
 
                     State_PROTOCOL: begin
                         // we shouldn't ever receive messages while in the PROTOCOL state
-                        // just remain in this state
+                        // since the routing block should direct all messages only to the
+                        // iso14443_4a module.
+                        // just remain in this state.
+                        // we exit this state below, when iso14443_4a_deselect asserts.
                     end
 
                     default: begin
@@ -467,13 +474,30 @@ module initialisation
                 endcase
             end
         end
-        else if ((state == State_PROTOCOL) && iso14443_4_deselect) begin
+        else if ((state == State_PROTOCOL) && iso14443_4a_deselect) begin
             // the ISO 14443-4 block has received the DESELECT command
             // go to idle + star
             next_state      = State_IDLE;
             next_state_star = 1'b1;
         end
     end
+
+    // when the tag is in the active state is the only time the iso14443_4a block
+    // can receive the RATS message
+    assign iso14443_4a_tag_active   = (state == State_ACTIVE);
+
+    // if we are in the ACTIVE or PROTOCOL state then send the received messages to
+    // the 14443-4 module. if we are not in the PROTOCOL state then send the received
+    // messages to us.
+    // note: there is an overlap in the ACTIVE state. Where both us and the 14443-4
+    //       module receive the messages. That's because that message could be a HLTA,
+    //       an erroror, or RATS.
+    // We only allow the 14443-4 module to Tx when we are in state PROTOCOL
+    // because once it confirms that it received RATS, we move to protocol
+    // so the repyl happens there.
+    assign route_rx_to_14443_4a         = (state == State_ACTIVE) || (state == State_PROTOCOL);
+    assign route_rx_to_initialisation   = (state != State_PROTOCOL);
+    assign route_tx_from_14443_4a       = (state == State_PROTOCOL);
 
     // ========================================================================
     // Replies
