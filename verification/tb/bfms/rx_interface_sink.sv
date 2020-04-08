@@ -69,6 +69,8 @@ module rx_interface_sink
 
     logic       use_receive_queue;
     dataQueue   received;
+    logic       error_detected;
+    int         bits_in_last_byte;
 
     logic       initialise_called = 1'b0;
 
@@ -108,6 +110,14 @@ module rx_interface_sink
         automatic dataQueue res = received;
         received.delete;
         return res;
+    endfunction
+
+    function automatic logic get_error_detected;
+        return error_detected;
+    endfunction
+
+    function automatic int get_bits_in_last_byte;
+        return bits_in_last_byte;
     endfunction
 
     function automatic void clear_expected_queue;
@@ -253,6 +263,18 @@ module rx_interface_sink
 
             if (use_receive_queue && iface.data_valid) begin
                 received.push_back(iface.data);
+            end
+
+            if (iface.soc) begin
+                error_detected = 1'b0;
+            end
+
+            if (iface.error) begin
+                error_detected = 1'b1;
+            end
+
+            if (iface.data_valid && iface.BY_BYTE) begin
+                bits_in_last_byte = int'(iface.data_bits);
             end
         end
     end
