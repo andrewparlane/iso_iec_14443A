@@ -263,7 +263,17 @@ module rx_interface_sink
             end
 
             if (use_receive_queue && iface.data_valid) begin
-                received.push_back(iface.data);
+                automatic logic [iface.DATA_WIDTH-1:0] data = iface.data;
+                if (iface.BY_BYTE) begin
+                    // set the not valid bits to 0
+                    if (iface.data_bits != 0) begin
+                        for (int i = int'(iface.data_bits); i < 8; i++) begin
+                            data[i] = 1'b0;
+                        end
+                    end
+                end
+
+                received.push_back(data);
             end
 
             if (iface.soc) begin
