@@ -71,6 +71,7 @@ module rx_interface_sink
     dataQueue   received;
     logic       error_detected;
     int         bits_in_last_byte;
+    logic       in_frame;
 
     logic       initialise_called = 1'b0;
 
@@ -266,11 +267,16 @@ module rx_interface_sink
             end
 
             if (iface.soc) begin
-                error_detected = 1'b0;
+                error_detected  = 1'b0;
+                in_frame        = 1'b1;
+            end
+
+            if (iface.eoc) begin
+                in_frame        = 1'b0;
             end
 
             if (iface.error) begin
-                error_detected = 1'b1;
+                error_detected  = 1'b1;
             end
 
             if (iface.data_valid && iface.BY_BYTE) begin
@@ -321,9 +327,9 @@ module rx_interface_sink
                 $error("wait_for_idle timed out after %d ticks", timeout);
             end
 
-            // process 2 - wait for data_valid to be low
+            // process 2 - wait for us to not be in a frame
             begin
-                wait (!iface.data_valid) begin end
+                wait (!in_frame) begin end
             end
 
         // finish as soon as any of these processes finish
