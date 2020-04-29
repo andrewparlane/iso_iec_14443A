@@ -81,6 +81,10 @@ package ISO14443A_pkg;
     localparam logic [7:0]  SEL2            = 8'h95;
     localparam logic [7:0]  SEL3            = 8'h97;
 
+    // Part 4 commands, see ISO/IEC 14443-4:2016 sections 5.1/5.3
+    localparam logic [7:0]  RATS            = 8'hE0;
+    localparam logic [3:0]  PPSS            = 4'hD;
+
     // ========================================================================
     // PICC -> PCD Messages
     // ========================================================================
@@ -106,6 +110,13 @@ package ISO14443A_pkg;
     // We support ISO/IEC 14443-4, and so bit 5 is set when bit 2 is cleared
     localparam logic [7:0] SAK_UID_COMPLETE     = 8'h20;
     localparam logic [7:0] SAK_UID_NOT_COMPLETE = 8'h04;
+
+    // part 4 commands
+    // these have the CID, NAD and the block num set to 0, set those bits if needed
+    localparam logic [7:0]  S_DESELECT      = 8'b11000010;
+    localparam logic [7:0]  S_PARAMETERS    = 8'b11110000;
+    localparam logic [7:0]  R_ACK           = 8'b10100010;
+    localparam logic [7:0]  I_NO_CHAINING   = 8'b00000010;
 
     // ========================================================================
     // Anticollision / select structs
