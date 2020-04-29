@@ -78,12 +78,14 @@ SRCS	= $(wildcard $(ROOT_DIR)/$(PKG_DIR)/*.sv) 					\
 		  $(wildcard $(ROOT_DIR)/$(SRC_DIR)/interfaces/*.sv) 		\
 		  $(wildcard $(ROOT_DIR)/$(SRC_DIR)/iso14443_2a/*.sv) 		\
 		  $(wildcard $(ROOT_DIR)/$(SRC_DIR)/iso14443_3a/*.sv) 		\
+		  $(wildcard $(ROOT_DIR)/$(SRC_DIR)/iso14443_4a/*.sv) 		\
 		  $(wildcard $(ROOT_DIR)/$(SRC_DIR)/*.sv) 					\
 		  $(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/pkg/*.sv) 			\
 		  $(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/*.sv) 				\
 		  $(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/bfms/*.sv) 			\
 		  $(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/iso14443_2a/*.sv) 	\
-		  $(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/iso14443_3a/*.sv)
+		  $(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/iso14443_3a/*.sv)	\
+		  $(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/iso14443_4a/*.sv)
 
 # testbenches
 
@@ -103,7 +105,8 @@ TBS		= sequence_decode_tb 			\
 		  framing_tb					\
 		  initialisation_tb				\
 		  routing_tb					\
-		  iso14443_3a_tb
+		  iso14443_3a_tb				\
+		  iso14443_4a_tb
 
 # This is for TBs that need to do something custom, it's only used for list_tbs
 CUSTOM_TBS	= initialisation_tb_uid_single	\
