@@ -42,7 +42,7 @@ module tx_interface_source
     end
 
     // sends out a frame
-    task send_frame (logic [iface.DATA_WIDTH-1:0] sq[$], int bits_in_first_byte = 0);
+    task send_frame (logic [iface.DATA_WIDTH-1:0] sq[$], int bits_in_first_byte = 0, int timeout=0);
         automatic int bits_left_in_byte;
 
         if (!iface.BY_BYTE) begin
@@ -55,28 +55,47 @@ module tx_interface_source
         // set bits for first byte (only relevant if iface.BY_BYTE == 1)
         iface.data_bits <= 3'(bits_in_first_byte);
 
-        foreach (sq[i]) begin
-            bits_left_in_byte--;
-
-            // set up the inputs
-            iface.data              <= sq[i];
-            iface.data_valid        <= 1'b1;
-            iface.last_bit_in_byte  <= (bits_left_in_byte == 0);    // only relevant for iface.BY_BYTE == 0
-
-            // wait a tick so req isn't asserted still
-            @(posedge clk)
-
-            // wait for the next req, and align to the clock
-            wait (iface.req) begin end
-            @(posedge clk) begin end
-
-            // all remaining bytes have 8 bits per byte (only relevant for iface.BY_BYTE == 1)
-            iface.data_bits <= 3'd0;
-
-            if (bits_left_in_byte == 0) begin
-                bits_left_in_byte = 8;
+        fork
+            // process 1 - timeout
+            begin
+                if (timeout != 0) begin
+                    repeat (timeout) @(posedge clk) begin end
+                    $error("tx_interface_source.send_frame timed out after %d ticks", timeout);
+                end
+                else begin
+                    forever begin end
+                end
             end
-        end
+
+            // process 2 - send the data
+            begin
+                foreach (sq[i]) begin
+                    bits_left_in_byte--;
+
+                    // set up the inputs
+                    iface.data              <= sq[i];
+                    iface.data_valid        <= 1'b1;
+                    iface.last_bit_in_byte  <= (bits_left_in_byte == 0);    // only relevant for iface.BY_BYTE == 0
+
+                    // wait a tick so req isn't asserted still
+                    @(posedge clk)
+
+                    // wait for the next req, and align to the clock
+                    wait (iface.req) begin end
+                    @(posedge clk) begin end
+
+                    // all remaining bytes have 8 bits per byte (only relevant for iface.BY_BYTE == 1)
+                    iface.data_bits <= 3'd0;
+
+                    if (bits_left_in_byte == 0) begin
+                        bits_left_in_byte = 8;
+                    end
+                end
+            end
+        join_any
+
+        // disable the remaining process
+        disable fork;
 
         // nothing more to send
         iface.data_valid <= 1'b0;
