@@ -166,7 +166,7 @@ COLOURISE = (set -o pipefail; $(1) | $(COLOURISE_SED_ALL))
 
 # arguments to the various commands
 VLOGAN_ARGS	= -full64 +lint=all +warn=all -sverilog
-VCS_ARGS	= -full64 +lint=all,noSVA-DIU,noSVA-LDA,noSVA-ADORM,noSVA-NSVU +warn=all -assert enable_diag -debug_acc+all -ntb_opts check=all
+VCS_ARGS	= -full64 +lint=all,noSVA-DIU,noSVA-LDA,noSVA-ADORM,noSVA-NSVU,noSVA-AECASR +warn=all -assert enable_diag -debug_acc+all -ntb_opts check=all
 SIMV_ARGS	= -assert global_finish_maxfail=10 -cm assert -ucli
 
 ifdef RANDOM_SEED
