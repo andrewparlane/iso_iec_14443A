@@ -46,24 +46,57 @@ module sequence_decode_tb;
 
     // --------------------------------------------------------------
     // The source for the clock and pause_n signal
+    // includes the pcd_pause_n driver
     // --------------------------------------------------------------
-    logic pcd_pause_n;  // not used, just here so that .* works
-    logic pause_n;
-    logic sending;
-    pause_n_and_clock_source pause_n_source (.*);
-
-    // connect pause_n_synchronised and pause_n
-    assign pause_n_synchronised = pause_n;
-
-    // --------------------------------------------------------------
-    // The sink for the out_iface
-    // --------------------------------------------------------------
-
-    rx_interface_sink rx_sink
+    analogue_sim analogue_sim_inst
     (
-        .clk    (clk),
-        .iface  (out_iface)
+        .picc_clk               (clk),
+        .pcd_pause_n            (),
+        .pause_n_async          (),
+        .pause_n_synchronised   (pause_n_synchronised)
     );
+
+    // our send queue
+    typedef pcd_pause_n_transaction_pkg::PCDPauseNTransaction SendTransType;
+    SendTransType send_queue [$];
+
+    // --------------------------------------------------------------
+    // The monitor for the out_iface
+    // --------------------------------------------------------------
+
+    rx_bit_iface_monitor_pkg::RxBitIfaceMonitor monitor;
+
+    // and the recv_queue
+    typedef rx_bit_transaction_pkg::RxMonitorBitTransaction RecvTransType;
+    RecvTransType recv_queue [$];
+
+    // --------------------------------------------------------------
+    // Helper functions / tasks
+    // --------------------------------------------------------------
+
+    task send_data_verify_result(SendTransType trans, RecvTransType expected);
+        automatic int timeout;
+
+        timeout = analogue_sim_inst.driver.calculate_send_time(trans);
+
+        // send it
+        //$display("pushing trans: %p to queue", trans);
+        send_queue.push_back(trans);
+
+        // wait for it to be done
+        analogue_sim_inst.driver.wait_for_idle(timeout + 256);
+        monitor.wait_for_idle(256, 512);
+
+        // verify
+        receivedOneTransaction:
+        assert (recv_queue.size() == 1) else $error("recv_queue.size() is %d, expecting 1", recv_queue.size());
+
+        if (recv_queue.size() != 0) begin: recvQueueNotEmpty
+            automatic RecvTransType recv = recv_queue.pop_front;
+            receivedExpected:
+            assert (recv.compare(expected)) else $error("Received %s, not as expected %p", recv.to_string, expected.to_string);
+        end
+    endtask
 
     // --------------------------------------------------------------
     // Test stimulus
@@ -72,7 +105,8 @@ module sequence_decode_tb;
     // helper task that runs multiple tests
     // so we can repeatedly use them with different settings
     task run_tests;
-        automatic PCDBitSequence seqs[$] = '{};
+        automatic RecvTransType expected;
+        automatic SendTransType trans;
 
         // 1) We have 10 sequences combinitions to check
         //    (ordered by when we test each)
@@ -88,92 +122,66 @@ module sequence_decode_tb;
         //    X    -> Z     - INVALID (this is tested later
         //$display("Running test 1a");
 
-        seqs = '{PCDBitSequence_Z,  // IDLE -> Z    SOC
-                 PCDBitSequence_Z,  // Z    -> Z    0
-                 PCDBitSequence_X,  // Z    -> X    1
-                 PCDBitSequence_X,  // X    -> X    1
-                 PCDBitSequence_Y,  // X    -> Y    0
-                 PCDBitSequence_Z,  // Y    -> Z    0
-                 PCDBitSequence_X,  //              1
-                 PCDBitSequence_Y,  //              0
-                 PCDBitSequence_X,  // Y    -> X    1
-                 PCDBitSequence_Y,  //              EOC
-                 PCDBitSequence_Y}; // Y    -> Y    EOC + IDLE
+        trans = new('{PCDBitSequence_Z,     // IDLE -> Z    SOC
+                      PCDBitSequence_Z,     // Z    -> Z    0
+                      PCDBitSequence_X,     // Z    -> X    1
+                      PCDBitSequence_X,     // X    -> X    1
+                      PCDBitSequence_Y,     // X    -> Y    0
+                      PCDBitSequence_Z,     // Y    -> Z    0
+                      PCDBitSequence_X,     //              1
+                      PCDBitSequence_Y,     //              0
+                      PCDBitSequence_X,     // Y    -> X    1
+                      PCDBitSequence_Y,     //              EOC
+                      PCDBitSequence_Y});   // Y    -> Y    EOC + IDLE
 
-        rx_sink.clear_expected_queue;
-        rx_sink.build_valid_frame_expected_queue('{1'b0, 1'b1, 1'b1, 1'b0, 1'b0, 1'b1, 1'b0, 1'b1});
-
-        pause_n_source.send_sequence_queue(seqs);
-        rx_sink.wait_for_expected_empty(seqs.size * 128 * 2);
+        expected = new('{1'b0, 1'b1, 1'b1, 1'b0, 1'b0, 1'b1, 1'b0, 1'b1}, 1'b0);
+        send_data_verify_result(trans, expected);
 
         // Test Z -> Y EOC
         //$display("Running test 1b");
-        seqs = '{PCDBitSequence_Z,  //          SOC
-                 PCDBitSequence_X,  //          1
-                 PCDBitSequence_Y,  //          0
-                 PCDBitSequence_Z,  //          EOC
-                 PCDBitSequence_Y,  // Z -> Y   EOC
-                 PCDBitSequence_Y}; //          IDLE
+        trans = new('{PCDBitSequence_Z,     //          SOC
+                      PCDBitSequence_X,     //          1
+                      PCDBitSequence_Y,     //          0
+                      PCDBitSequence_Z,     //          EOC
+                      PCDBitSequence_Y,     // Z -> Y   EOC
+                      PCDBitSequence_Y});   //          IDLE
 
-        rx_sink.clear_expected_queue;
-        rx_sink.build_valid_frame_expected_queue('{1'b1, 1'b0});
-
-        pause_n_source.send_sequence_queue(seqs);
-        rx_sink.wait_for_expected_empty(seqs.size * 128 * 2);
+        expected = new('{1'b1, 1'b0}, 1'b0);
+        send_data_verify_result(trans, expected);
 
         // 2) Generate a bunch of random queue of sequences (excludes error cases)
         //$display("Running test 2");
         repeat (50) begin
-            automatic logic bq[$];
-            seqs = frame_generator_pkg::generate_valid_sequence_queue(100);
-
-            // starts at 1 because [0] is SOC,
-            // ends at size-3 because last two are YY
-            for (int i = 1; i < seqs.size-2; i++) begin
-                bq.push_back(seqs[i] == PCDBitSequence_X);
-            end
-            if (seqs[$-2] == PCDBitSequence_Z) begin
-                // ends in ZYY, which is EOC + IDLE
-                void'(bq.pop_back);
-            end
-
-            rx_sink.clear_expected_queue;
-            rx_sink.build_valid_frame_expected_queue(bq);
-
-            // $display("sending: %p", seqs);
-            // $display("expecting: %p", expected);
-
-            pause_n_source.send_sequence_queue(seqs);
-            rx_sink.wait_for_expected_empty(seqs.size * 128 * 2);
+            expected = RecvTransType::new_random_transaction($urandom_range(0, 100), 1'b0);
+            trans = new(expected.convert_to_pcd_sequence_queue);
+            send_data_verify_result(trans, expected);
         end
 
         // 3) Test X -> Z error cases
-        //$display("Running test 3");
-        seqs = '{PCDBitSequence_Z,  // SOC
-                 PCDBitSequence_X,  // 1
-                 PCDBitSequence_Z,  // error
-                 PCDBitSequence_Z,  // ignored
-                 PCDBitSequence_X,  // ignored
-                 PCDBitSequence_Y,  // ignored
-                 PCDBitSequence_X,  // ignored
-                 PCDBitSequence_Y,  // EOC
-                 PCDBitSequence_Y}; // EOC
+        $display("Running test 3");
+        trans = new('{PCDBitSequence_Z,     // SOC
+                      PCDBitSequence_X,     // 1
+                      PCDBitSequence_Z,     // error
+                      PCDBitSequence_Z,     // ignored
+                      PCDBitSequence_X,     // ignored
+                      PCDBitSequence_Y,     // ignored
+                      PCDBitSequence_X,     // ignored
+                      PCDBitSequence_Y,     // EOC
+                      PCDBitSequence_Y});   // EOC
 
-        rx_sink.clear_expected_queue;
-        rx_sink.add_expected_soc_event;
-        rx_sink.add_expected_data_events('{1'b1});
-        rx_sink.add_expected_error_event;
-        rx_sink.add_expected_eoc_full_byte_event(1'b0);
-
-        pause_n_source.send_sequence_queue(seqs);
-        rx_sink.wait_for_expected_empty(seqs.size * 128 * 2);
+        expected = new('{}, 1'b1);
+        send_data_verify_result(trans, expected);
     endtask
 
-
     initial begin
-        //pause_n_source.set_sequence_timings(4, 12, 6, 0);
+        analogue_sim_inst.init();
+        monitor = new (out_iface);
 
-        rx_sink.initialise;
+        send_queue = '{};
+        recv_queue = '{};
+
+        analogue_sim_inst.start(send_queue);
+        monitor.start(recv_queue);
 
         // reset for 5 ticks
         rst_n <= 1'b0;
@@ -196,10 +204,10 @@ module sequence_decode_tb;
         // check that this works even if it's slightly off for some reason.
 
         for (int bit_len = 126; bit_len <= 130; bit_len++) begin
-            pause_n_source.set_bit_length(bit_len);
+            analogue_sim_inst.set_bit_ticks(bit_len);
             for (int pause_len = 14; pause_len <= 50; pause_len++) begin
                 $display("Testing with bit_len = %d, pause_len = %d", bit_len, pause_len);
-                pause_n_source.set_pause_length(pause_len);
+                analogue_sim_inst.set_pause_ticks(pause_len);
                 run_tests;
             end
         end
