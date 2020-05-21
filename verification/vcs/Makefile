@@ -74,18 +74,40 @@ TB_SRC_DIR		= verification/tb
 VCS_DIR			= verification/vcs
 
 # src files
-SRCS	= $(wildcard $(ROOT_DIR)/$(PKG_DIR)/*.sv) 					\
-		  $(wildcard $(ROOT_DIR)/$(SRC_DIR)/interfaces/*.sv) 		\
-		  $(wildcard $(ROOT_DIR)/$(SRC_DIR)/iso14443_2a/*.sv) 		\
-		  $(wildcard $(ROOT_DIR)/$(SRC_DIR)/iso14443_3a/*.sv) 		\
-		  $(wildcard $(ROOT_DIR)/$(SRC_DIR)/iso14443_4a/*.sv) 		\
-		  $(wildcard $(ROOT_DIR)/$(SRC_DIR)/*.sv) 					\
-		  $(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/pkg/*.sv) 			\
-		  $(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/*.sv) 				\
-		  $(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/bfms/*.sv) 			\
-		  $(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/iso14443_2a/*.sv) 	\
-		  $(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/iso14443_3a/*.sv)	\
-		  $(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/iso14443_4a/*.sv)
+SYNTH_SRCS	= 	$(wildcard $(ROOT_DIR)/$(PKG_DIR)/*.sv) 			\
+				$(wildcard $(ROOT_DIR)/$(SRC_DIR)/interfaces/*.sv) 	\
+				$(wildcard $(ROOT_DIR)/$(SRC_DIR)/iso14443_2a/*.sv) \
+				$(wildcard $(ROOT_DIR)/$(SRC_DIR)/iso14443_3a/*.sv) \
+				$(wildcard $(ROOT_DIR)/$(SRC_DIR)/iso14443_4a/*.sv) \
+				$(wildcard $(ROOT_DIR)/$(SRC_DIR)/*.sv)
+
+# TODO: write a script to find all files and put them in the correct order
+TB_BFM_SRCS =	$(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/pkg/*.sv) 							\
+				$(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/bfms/*.sv) 						\
+				$(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/bfms/interfaces/*.sv) 				\
+				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/transactions/transaction.sv				\
+				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/transactions/queue_transaction.sv		\
+				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/transactions/rx_bit_transaction.sv		\
+				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/transactions/rx_byte_transaction.sv		\
+				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/transactions/pcd_pause_n_transaction.sv	\
+				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/drivers/driver.sv 						\
+				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/drivers/rx_iface_driver.sv 				\
+				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/drivers/rx_bit_iface_driver.sv			\
+				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/drivers/rx_byte_iface_driver.sv			\
+				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/drivers/pcd_pause_n_driver.sv			\
+				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/monitors/monitor.sv 						\
+				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/monitors/rx_iface_monitor.sv 			\
+				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/monitors/rx_bit_iface_monitor.sv			\
+				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/monitors/rx_byte_iface_monitor.sv
+
+TB_SRCS	=	$(TB_BFM_SRCS)											\
+			$(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/*.sv) 				\
+			$(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/iso14443_2a/*.sv) 	\
+			$(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/iso14443_3a/*.sv)	\
+			$(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/iso14443_4a/*.sv)
+
+SRCS	= 	$(SYNTH_SRCS) \
+			$(TB_SRCS)
 
 # testbenches
 
