@@ -45,50 +45,52 @@ module bit_encoder_tb;
     bit_encoder dut (.*);
 
     // --------------------------------------------------------------
-    // The source for the in_iface
+    // The source driver / queue for the in_iface
     // --------------------------------------------------------------
 
-    tx_interface_source tx_source
-    (
-        .clk    (clk),
-        .iface  (in_iface)
-    );
+    // driver
+    tx_bit_iface_source_driver_pkg::TxBitIfaceSourceDriver driver;
+
+    // the send queue
+    typedef tx_bit_transaction_pkg::TxBitTransaction TransType;
+    TransType send_queue[$];
 
     // --------------------------------------------------------------
     // Clock generator
     // --------------------------------------------------------------
 
-    // Calculate our clock period in ps
-    localparam CLOCK_FREQ_HZ = 13560000; // 13.56MHz
-    localparam CLOCK_PERIOD_PS = 1000000000000.0 / CLOCK_FREQ_HZ;
-    initial begin
-        clk = 1'b0;
-        forever begin
-            #(int'(CLOCK_PERIOD_PS/2))
-            clk = ~clk;
-        end
-    end
+    clock_source clock_source_inst (.*);
 
     // --------------------------------------------------------------
     // Functions / Tasks
     // --------------------------------------------------------------
+    // just use an expected queue here. This is the only test that looks at
+    // the manchester encoded data, so there's no real need to have a full monitor
     logic expected [$];
-    task send_data (logic bq[$]);
+
+    task send_data_verify_result (TransType trans);
         // set up the expected queue
         expected.delete;
-        foreach (bq[i]) begin
-            repeat (64) expected.push_back(bq[i]);
-            repeat (64) expected.push_back(!bq[i]);
+        foreach (trans.data[i]) begin
+            repeat (64) expected.push_back(trans.data[i]);
+            repeat (64) expected.push_back(!trans.data[i]);
         end
 
         // sync to the clk
         @(posedge clk) begin end
 
-        // set enable and send the data
-        en <= 1'b1;
-        tx_source.send_frame(bq);
+        // prepare the data, and make sure it's ready to send
+        send_queue.push_back(trans);
+        repeat (4) @(posedge clk) begin end
 
-        // wait for the last tick and sync to the clk edge
+        // set enable
+        en <= 1'b1;
+
+        // the driver finishes processing the transaction half way through the bit time
+        // when req asserts and we have nothing left to send. However we have to wait
+        // for the rest of that bit time to finish before disabling the DUT.
+        // wait for the last_tick signal to assert
+        driver.wait_for_idle(trans.data.size() * 128);
         wait (last_tick) begin end
         @(posedge clk) begin end
 
@@ -117,8 +119,13 @@ module bit_encoder_tb;
     // --------------------------------------------------------------
 
     initial begin
+        automatic TransType trans = new();
+
         en <= 1'b0;
-        tx_source.initialise;
+
+        driver      = new(in_iface, 8, 130);
+        send_queue  = '{};
+        driver.start(send_queue);
 
         // reset for 5 ticks
         rst_n <= 1'b0;
@@ -127,27 +134,29 @@ module bit_encoder_tb;
         repeat (5) @(posedge clk) begin end
 
         // test just a single bit: 0
-        send_data('{1'b0});
+        trans.data = '{1'b0};
+        send_data_verify_result(trans);
         repeat (5) @(posedge clk) begin end
 
         // test just a single bit: 1
-        send_data('{1'b1});
+        trans.data = '{1'b1};
+        send_data_verify_result(trans);
         repeat (5) @(posedge clk) begin end
 
         // test two bits: 00
-        send_data('{1'b0, 1'b0});
+        trans.data = '{1'b0, 1'b0};
+        send_data_verify_result(trans);
         repeat (5) @(posedge clk) begin end
 
         // test two bits: 10
-        send_data('{1'b1, 1'b0});
+        trans.data = '{1'b1, 1'b0};
+        send_data_verify_result(trans);
         repeat (5) @(posedge clk) begin end
 
         // lots of tests of several bits
         repeat (1000) begin
-            automatic int num_bits = $urandom_range(1,10);
-            automatic logic bq [$] = '{};
-            repeat (num_bits) bq.push_back($urandom_range(1));
-            send_data(bq);
+            trans = TransType::new_random_transaction($urandom_range(1, 80));
+            send_data_verify_result(trans);
             repeat (5) @(posedge clk) begin end
         end
 

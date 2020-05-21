@@ -127,7 +127,7 @@ TBS		= sequence_decode_tb 			\
 		  subcarrier_tb 				\
 		  bit_encoder_tb 				\
 		  tx_tb 						\
-		  iso14443_2a_loopback_test		\
+		  iso14443_2a_tb				\
 		  frame_decode_tb 				\
 		  fdt_tb 						\
 		  frame_encode_tb				\
