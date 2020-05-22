@@ -251,6 +251,7 @@ all: analyse elaborate
 
 # Analyse files only if any of the sources have changed more recently than the AN.DB folder
 $(AN_DB_DIR): $(SRCS)
+	-@rm -rf $(AN_DB_DIR)
 	@echo -e "$(COLOUR_BLUE)Analysing because of changes in: $? $(COLOUR_NONE)\n"
 	@$(call ANALYSE)
 
