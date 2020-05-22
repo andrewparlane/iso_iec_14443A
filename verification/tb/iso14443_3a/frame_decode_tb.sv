@@ -47,51 +47,108 @@ module frame_decode_tb;
     frame_decode dut (.*);
 
     // --------------------------------------------------------------
+    // The driver / queue for the in_iface
+    // --------------------------------------------------------------
+
+    // driver
+    rx_bit_iface_driver_pkg::RxBitIfaceDriver           driver;
+
+    // the send queue
+    typedef rx_bit_transaction_pkg::RxBitTransaction    SendTransType;
+    SendTransType                                       send_queue[$];
+
+    // --------------------------------------------------------------
+    // The monitor for the out_iface
+    // --------------------------------------------------------------
+
+    rx_bit_iface_monitor_pkg::RxBitIfaceMonitor                 monitor;
+
+    // and the recv_queue
+    typedef rx_bit_transaction_pkg::RxMonitorBitTransaction     RecvTransType;
+    RecvTransType                                               recv_queue [$];
+
+    // --------------------------------------------------------------
     // Clock generator
     // --------------------------------------------------------------
 
-    // Calculate our clock period in ps
-    localparam CLOCK_FREQ_HZ = 13560000; // 13.56MHz
-    localparam CLOCK_PERIOD_PS = 1000000000000.0 / CLOCK_FREQ_HZ;
-    initial begin
-        clk = 1'b0;
-        forever begin
-            #(int'(CLOCK_PERIOD_PS/2))
-            clk = ~clk;
+    clock_source clock_source_inst (.*);
+
+    // --------------------------------------------------------------
+    // Tasks / Functions
+    // --------------------------------------------------------------
+
+    typedef enum
+    {
+        ErrorType_NONE,
+        ErrorType_FLIPPED_PARITY,
+        ErrorType_MISSING_LAST_PARITY,
+        ErrorType_INPUT_ERROR
+    } ErrorType;
+
+    logic check_last_bit;
+
+    task do_test(int num_bits, ErrorType err = ErrorType_NONE);
+        automatic SendTransType send_trans;
+        automatic RecvTransType expected;
+        automatic int           timeout;
+
+        // generate the data to send without parity bits, which is what we expect to receive out.
+        send_trans  = SendTransType::new_random_transaction(num_bits);
+        expected    = new(send_trans.data, (err != ErrorType_NONE) || (num_bits <= 0));
+
+        // add the parity bits
+        send_trans.add_parity();
+
+        if (err == ErrorType_MISSING_LAST_PARITY) begin: missingLastParity
+            // remove the final bit
+            lastBitIsParity: assert((num_bits % 8) == 0)
+                else $fatal(0, "ErrorType_MISSING_LAST_PARITY can only be used when the last bit is a parity bit");
+            void'(send_trans.pop_back);
         end
-    end
 
-    // --------------------------------------------------------------
-    // The source for the in_iface
-    // --------------------------------------------------------------
+        if (err == ErrorType_FLIPPED_PARITY) begin
+            // randomly flip a parity bit
+            // every 9th bit is a parity bit
+            automatic int corrupt_bit = ($urandom_range(1, (num_bits / 8)) * 9) - 1;
+            send_trans.data[corrupt_bit] = !send_trans.data[corrupt_bit];
+        end
 
-    rx_interface_source rx_source
-    (
-        .clk    (clk),
-        .iface  (in_iface)
-    );
+        // check the last bit if we aren't expecting an error
+        check_last_bit = !expected.error;
 
-    // --------------------------------------------------------------
-    // The sink for the out_iface
-    // --------------------------------------------------------------
+        // get the driver to add an error if requested
+        driver.set_add_error(err == ErrorType_INPUT_ERROR);
 
-    rx_interface_sink rx_sink
-    (
-        .clk    (clk),
-        .iface  (out_iface)
-    );
+        // send it
+        timeout = driver.calculate_send_time(send_trans);
+        send_queue.push_back(send_trans);
+        monitor.wait_for_idle(16, timeout+100);
+
+        // verify
+        receivedOneTransaction:
+        assert (recv_queue.size() == 1) else $error("recv_queue.size() is %d, expecting 1", recv_queue.size());
+
+        if (recv_queue.size() != 0) begin: recvQueueNotEmpty
+            automatic RecvTransType recv = recv_queue.pop_front;
+            receivedExpected:
+            assert (recv.compare(expected))
+                else $error("Received %s, not as expected %p", recv.to_string, expected.to_string);
+        end
+
+        check_last_bit = 1'b0;
+    endtask
 
     // --------------------------------------------------------------
     // Test stimulus
     // --------------------------------------------------------------
-    logic check_last_bit;
 
     initial begin
-        automatic logic [7:0]   data[$];
-        automatic logic         bits[$];
-
-        rx_source.initialise;
-        rx_sink.initialise;
+        driver      = new(in_iface);
+        monitor     = new(out_iface);
+        send_queue  = '{};
+        recv_queue  = '{};
+        driver.start(send_queue);
+        monitor.start(recv_queue);
 
         // reset for 5 ticks
         rst_n <= 1'b0;
@@ -100,159 +157,46 @@ module frame_decode_tb;
         repeat (5) @(posedge clk) begin end
 
         // 1) Test an 8 bit frame with parity bit OK
-        //$display("Testing an 8 bit frame with parity bit OK");
-        data = frame_generator_pkg::generate_byte_queue(1);
-        bits = frame_generator_pkg::convert_message_to_bit_queue_for_rx(data);
-
-        rx_sink.clear_expected_queue;
-        rx_sink.build_valid_frame_expected_queue(bits);
-
-        bits = frame_generator_pkg::add_parity_to_bit_queue(bits);
-        check_last_bit = 1'b1;
-        rx_source.send_frame(bits);
-        rx_sink.wait_for_expected_empty(bits.size * 5 * 2);
+        $display("Testing an 8 bit frame with parity bit OK");
+        do_test(8);
 
         // 2) Test an 8 bit frame with parity FAIL
-        //$display("Testing an 8 bit frame with parity FAIL");
-        data = frame_generator_pkg::generate_byte_queue(1);
-        bits = frame_generator_pkg::convert_message_to_bit_queue_for_rx(data);
-
-        rx_sink.clear_expected_queue;
-        rx_sink.add_expected_soc_event;
-        rx_sink.add_expected_data_events(bits);
-        rx_sink.add_expected_error_event;
-        rx_sink.add_expected_eoc_full_byte_event(1'b0);
-
-        bits = frame_generator_pkg::add_parity_to_bit_queue(bits);
-        bits[$] = !bits[$]; // flip the parity bit
-
-        rx_source.send_frame(bits);
-        check_last_bit = 1'b0;
-        rx_sink.wait_for_expected_empty(bits.size * 5 * 2);
+        $display("Testing an 8 bit frame with parity FAIL");
+        do_test(8, ErrorType_FLIPPED_PARITY);
 
         // 3) Test an 8 bit frame with parity missing
-        //$display("Testing an 8 bit frame with parity bit missing");
-        data = frame_generator_pkg::generate_byte_queue(1);
-        bits = frame_generator_pkg::convert_message_to_bit_queue_for_rx(data);
-        rx_sink.clear_expected_queue;
-        rx_sink.add_expected_soc_event;
-        rx_sink.add_expected_data_events(bits);
-        rx_sink.add_expected_eoc_full_byte_event(1'b1);
+        $display("Testing an 8 bit frame with parity bit missing");
+        do_test(8, ErrorType_MISSING_LAST_PARITY);
 
-        // don't add parity bit
-
-        rx_source.send_frame(bits);
-        check_last_bit = 1'b1;
-        rx_sink.wait_for_expected_empty(bits.size * 5 * 2);
-
-        // 4) Test an 8 bit frame + parity with error in each location
-        //      before bit 0, bit 1, ... bit 7, parity bit, EOC
-
-        for (int i = 0; i < 10; i++) begin
-            //$display("Testing an 8 bit frame with an error at idx %d", i);
-
-            data = frame_generator_pkg::generate_byte_queue(1);
-            bits = frame_generator_pkg::convert_message_to_bit_queue_for_rx(data);
-
-            rx_sink.clear_expected_queue;
-            rx_sink.add_expected_soc_event;
-            if (i != 0) begin
-                rx_sink.add_expected_data_events(bits[0:(i < 8) ? i-1 : 7]);
-            end
-            if (i != 9) begin
-                rx_sink.add_expected_error_event;
-            end
-            rx_sink.add_expected_eoc_full_byte_event(i == 9);
-
-            bits = frame_generator_pkg::add_parity_to_bit_queue(bits);
-            check_last_bit = 1'b0;
-            rx_source.send_frame(bits, 0, i);
-            rx_sink.wait_for_expected_empty(bits.size * 5 * 2);
-        end
-
-        // 5) Test a 0 bit frame
-        //$display("Testing a 0 bit frame");
-        rx_sink.clear_expected_queue;
-        rx_sink.add_expected_soc_event;
-        rx_sink.add_expected_eoc_full_byte_event(1'b1);
-
-        check_last_bit = 1'b0;
-        rx_source.send_frame('{});
-        rx_sink.wait_for_expected_empty(100);
-
-        // 6) test 1 - 7 bit frames
-        for (int bitLen = 1; bitLen <= 7; bitLen++) begin
-            //$display("Testing a %d bit frame", bitLen);
-            data = frame_generator_pkg::generate_byte_queue(1);
-            bits = frame_generator_pkg::convert_message_to_bit_queue_for_rx(data, bitLen);
-
-            rx_sink.clear_expected_queue;
-            rx_sink.build_valid_frame_expected_queue(bits);
-
-            check_last_bit = 1'b1;
-            rx_source.send_frame(bits);
-            rx_sink.wait_for_expected_empty(bits.size * 5 * 2);
-        end
-
-        // repeat these tests a bunch of times
+        // 4) Test an 8 bit frame + error
+        $display("Testing 8 bit frame with errors");
         repeat (1000) begin
-            // 1 - 1000 bits (range is a bit arbitrary, but should be good enough)
-            automatic int       num_bits                = $urandom_range(1, 1000);
-            automatic int       num_bytes               = int'($ceil(num_bits / 8.0));
-            automatic int       num_bits_in_last_byte   = num_bits % 8;
+            do_test(8, ErrorType_INPUT_ERROR);
+        end
 
-            // 7) Test an N bit frame with parity OK
-            //$display("Testing a %d bit frame with parity bits OK", num_bits);
-            data = frame_generator_pkg::generate_byte_queue(num_bytes);
-            bits = frame_generator_pkg::convert_message_to_bit_queue_for_rx(data, num_bits_in_last_byte);
+        // 5) Test 0 to 7 bit frames
+        $display("Testing 0 to 7 bit frames");
+        for (int i = 0; i <= 7; i++) begin
+            do_test(i);
+        end
 
-            rx_sink.clear_expected_queue;
-            rx_sink.build_valid_frame_expected_queue(bits);
+        // 7) Test an N bit frame with parity OK
+        $display("Testing random length frames");
+        repeat (1000) begin
+            do_test($urandom_range(1, 80));
+        end
 
-            bits = frame_generator_pkg::add_parity_to_bit_queue(bits);
-            check_last_bit = 1'b1;
-            rx_source.send_frame(bits);
-            rx_sink.wait_for_expected_empty(bits.size * 5 * 2);
+        // 8) Test an N bit frame with parity FAIL
+        $display("Testing random length frames with parity fail");
+        repeat (1000) begin
+            do_test($urandom_range(8, 80), ErrorType_FLIPPED_PARITY);
+        end
 
-            // 8) Test an N bit frame with parity FAIL
-            if (num_bits > 8) begin
-                automatic int broken_parity_byte    = $urandom_range(num_bytes - 2);
-                //$display("Testing a %d bit frame with broken parity bit in byte %d", num_bits, broken_parity_byte);
-                data = frame_generator_pkg::generate_byte_queue(num_bytes);
-
-                bits = frame_generator_pkg::convert_message_to_bit_queue_for_rx(data, num_bits_in_last_byte);
-
-                rx_sink.clear_expected_queue;
-                rx_sink.add_expected_soc_event;
-                rx_sink.add_expected_data_events(bits[0:broken_parity_byte*8 + 7]);
-                rx_sink.add_expected_error_event;
-                rx_sink.add_expected_eoc_full_byte_event(1'b0);
-
-                bits = frame_generator_pkg::add_parity_to_bit_queue(bits);
-                bits[broken_parity_byte*9 + 8] = !bits[broken_parity_byte*9 + 8]; // break the parity bit
-                check_last_bit = 1'b0;
-                rx_source.send_frame(bits);
-                rx_sink.wait_for_expected_empty(bits.size * 5 * 2);
-            end
-
-            // 9) Test an N byte frame with last parity missing
-            num_bytes = $urandom_range(1, 100);
+        // 9) Test an N byte frame with last parity missing
+        $display("Testing frames with missing last parity bit");
+        repeat (1000) begin
             //$display("Testing a %d byte frame with last parity missing", num_bytes);
-            data = frame_generator_pkg::generate_byte_queue(num_bytes);
-            bits = frame_generator_pkg::convert_message_to_bit_queue_for_rx(data);
-
-            // expecting parity error on EOC
-            rx_sink.clear_expected_queue;
-            rx_sink.add_expected_soc_event;
-            rx_sink.add_expected_data_events(bits);
-            rx_sink.add_expected_eoc_full_byte_event(1'b1);
-
-            bits = frame_generator_pkg::add_parity_to_bit_queue(bits);
-            void'(bits.pop_back);   // remove the last bit
-
-            check_last_bit = 1'b1;
-            rx_source.send_frame(bits);
-            rx_sink.wait_for_expected_empty(bits.size * 5 * 2);
+            do_test($urandom_range(1, 10)*8, ErrorType_MISSING_LAST_PARITY);
         end
 
         repeat (5) @(posedge clk) begin end

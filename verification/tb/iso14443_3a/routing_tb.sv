@@ -25,6 +25,9 @@
 
 module routing_tb;
 
+    logic clk;
+    logic rst_n;
+
     // --------------------------------------------------------------
     // Ports to DUT
     // all named the same as in the DUT, so I can use .*
@@ -57,20 +60,7 @@ module routing_tb;
     // Clock generator
     // --------------------------------------------------------------
 
-    // Calculate our clock period in ps
-    localparam CLOCK_FREQ_HZ = 13560000; // 13.56MHz
-    localparam CLOCK_PERIOD_PS = 1000000000000.0 / CLOCK_FREQ_HZ;
-
-    logic clk;
-    logic rst_n;
-
-    initial begin
-        clk = 1'b0;
-        forever begin
-            #(int'(CLOCK_PERIOD_PS/2))
-            clk = ~clk;
-        end
-    end
+    clock_source clock_source_inst (.*);
 
     // --------------------------------------------------------------
     // Test stimulus
@@ -79,7 +69,8 @@ module routing_tb;
     initial begin: testStimulus
         automatic logic [2:0] routings[$] = '{3'b010, 3'b101, 3'b110, 3'b111};
         automatic int i = 0;
-        rst_n <= 1'b1;
+
+        rst_n = 1'b1;
 
         // test 4 cases:
         //  1) just to / from initialialisation

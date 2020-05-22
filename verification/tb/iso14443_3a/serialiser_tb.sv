@@ -43,77 +43,65 @@ module serialiser_tb;
     serialiser dut (.*);
 
     // --------------------------------------------------------------
+    // The driver / queue for the in_iface
+    // --------------------------------------------------------------
+
+    // driver
+    tx_byte_iface_source_driver_pkg::TxByteIfaceSourceDriver    source_driver;
+
+    // the send queue
+    typedef tx_byte_transaction_pkg::TxByteTransaction          SendTransType;
+    SendTransType                                               send_queue[$];
+
+    // --------------------------------------------------------------
+    // The monitor for the out_iface
+    // --------------------------------------------------------------
+
+    tx_bit_iface_monitor_pkg::TxBitIfaceMonitor         monitor;
+
+    // and the recv_queue
+    typedef tx_bit_transaction_pkg::TxBitTransaction    RecvTransType;
+    RecvTransType                                       recv_queue [$];
+
+    // sink driver
+    tx_iface_sink_driver_pkg::TxBitIfaceSinkDriver      sink_driver;
+
+    // --------------------------------------------------------------
     // Clock generator
     // --------------------------------------------------------------
 
-    // Calculate our clock period in ps
-    localparam CLOCK_FREQ_HZ = 13560000; // 13.56MHz
-    localparam CLOCK_PERIOD_PS = 1000000000000.0 / CLOCK_FREQ_HZ;
-    initial begin
-        clk = 1'b0;
-        forever begin
-            #(int'(CLOCK_PERIOD_PS/2))
-            clk = ~clk;
-        end
-    end
-
-    // --------------------------------------------------------------
-    // The source for the in_iface
-    // --------------------------------------------------------------
-
-    tx_interface_source tx_source
-    (
-        .clk    (clk),
-        .iface  (in_iface)
-    );
-
-    // --------------------------------------------------------------
-    // The sink for the out_iface
-    // --------------------------------------------------------------
-
-    tx_interface_sink tx_sink
-    (
-        .clk    (clk),
-        .iface  (out_iface)
-    );
+    clock_source clock_source_inst (.*);
 
     // --------------------------------------------------------------
     // Tasks
     // --------------------------------------------------------------
 
-    task send_frame (int num_bits);
-        automatic logic [7:0]   data                [$];
-        automatic logic         expected            [$];
-        automatic logic         last_bit_expected   [$];
-        automatic const int     num_bytes           = int'($ceil(num_bits / 8.0));
-        automatic const int     bits_in_first_byte  = num_bits % 8;
-        automatic const int     num_zeros           = (bits_in_first_byte == 0) ? 7 : bits_in_first_byte - 1'd1;
+    task send_data_verify_result (int num_bits);
+        automatic SendTransType     byte_trans;
+        automatic RecvTransType     expected;
 
-        // generate the data and expected queue (bit stream)
-        data        = frame_generator_pkg::generate_byte_queue(num_bytes);
-        expected    = frame_generator_pkg::convert_message_to_bit_queue_for_tx(data, bits_in_first_byte);
+        // generate byte transaction first (what we send)
+        byte_trans = SendTransType::new_random_transaction_bits(num_bits);
 
-        // generate the last_bit_expected queue
-        // we expect the first last_bit to come based on bits_in_first_byte
-        repeat(num_zeros) last_bit_expected.push_back(1'b0);
-        last_bit_expected.push_back(1'b1);
-        // then every 8 bits after that
-        repeat (num_bytes - 1) begin
-            repeat(7) last_bit_expected.push_back(1'b0);
-            last_bit_expected.push_back(1'b1);
-        end
-
-        // set the expected queues
-        tx_sink.set_expected_queue(expected, last_bit_expected);
+        // get the expected
+        expected    = new(byte_trans.convert_to_bit_queue);
 
         // send it
-        tx_source.send_frame(data, bits_in_first_byte);
+        send_queue.push_back(byte_trans);
 
-        // wait for us to receive it in the sink
-        tx_sink.wait_for_expected_empty(16);
+        // wait for it to be done
+        source_driver.wait_for_idle();
+        monitor.wait_for_idle(16, 32);
 
-        // wait a few more ticks
-        repeat (5) @(posedge clk) begin end
+        // verify
+        receivedOneTransaction:
+        assert (recv_queue.size() == 1) else $error("recv_queue.size() is %d, expecting 1", recv_queue.size());
+
+        if (recv_queue.size() != 0) begin: recvQueueNotEmpty
+            automatic RecvTransType recv = recv_queue.pop_front;
+            receivedExpected:
+            assert (recv.compare(expected)) else $error("Received %s, not as expected %p", recv.to_string, expected.to_string);
+        end
     endtask
 
     // --------------------------------------------------------------
@@ -121,10 +109,14 @@ module serialiser_tb;
     // --------------------------------------------------------------
 
     initial begin
-        tx_source.initialise;
-        tx_sink.initialise;
-
-        tx_sink.enable_expected_checking(1'b1, 1'b1);
+        source_driver   = new(in_iface, 32, 256);
+        sink_driver     = new(out_iface);
+        monitor         = new(out_iface);
+        send_queue      = '{};
+        recv_queue      = '{};
+        source_driver.start(send_queue);
+        sink_driver.start();
+        monitor.start(recv_queue);
 
         // reset for 5 ticks
         rst_n <= 1'b0;
@@ -132,20 +124,16 @@ module serialiser_tb;
         rst_n <= 1'b1;
         repeat (5) @(posedge clk) begin end
 
-        // 1) Test an 8 bit frame
-        $display("Testing an 8 bit frame");
-        send_frame(8);
-
-        // 2) Test 1 - 7 bit frames
-        for (int i = 1; i < 8; i++) begin
-            $display("Testing a %d bit frame", i);
-            send_frame(i);
+        // 1) Test 1 - 16 bit frames
+        $display("Testing 1-16 bit frames");
+        for (int i = 1; i <= 16; i++) begin
+            send_data_verify_result(i);
         end
 
-        // 3) send lots of random frames
+        // 2) send lots of random frames
         $display("Testing lots of frames");
         repeat (1000) begin
-            send_frame($urandom_range(1, 80));
+            send_data_verify_result($urandom_range(1,80));
         end
 
         repeat (5) @(posedge clk) begin end

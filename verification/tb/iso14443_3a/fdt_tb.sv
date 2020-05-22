@@ -41,19 +41,17 @@ module fdt_tb;
     // Clock generator
     // --------------------------------------------------------------
 
-    // Calculate our clock period in ps
     // Using 10MHz clock, so we can work with an integer period
     // avoiding timing errors generated due to the simulator only having ps accuracy
     // note: this won't be an issue in synthesis
-    localparam real CLOCK_FREQ_HZ    = 10000000.0; // 10MHz
-    localparam real CLOCK_PERIOD_PS  = 1000000000000.0 / CLOCK_FREQ_HZ;
-    initial begin
-        clk = 1'b0;
-        forever begin
-            #(int'(CLOCK_PERIOD_PS/2))
-            clk = ~clk;
-        end
-    end
+    localparam real CLOCK_FREQ_HZ = 10000000.0; // 10MHz
+    clock_source
+    #(
+        .CLOCK_FREQ_HZ (CLOCK_FREQ_HZ)
+    )
+    clock_source_inst (.*);
+
+    localparam real CLOCK_PERIOD_PS = 1000000000000.0 / CLOCK_FREQ_HZ;
 
     // --------------------------------------------------------------
     // DUT
@@ -79,6 +77,14 @@ module fdt_tb;
     // --------------------------------------------------------------
     // Event detector
     // --------------------------------------------------------------
+
+    // TODO: We could create an fdt monitor
+    //       we create a custom interface with two signals (pause_n) and tx_start
+    //       and produces an transaction that is the time / ticks between the
+    //       last falling edge of the pause_n and the rising edge of the second.
+    //       here we use trigger as tx_start, in other TBs we can use tx_out.
+    //       Then we only have to calculate the expected time / ticks and chek the
+    //       monitor's recv_queue
 
     // Timings, from ISO/IEC 14443-3:2016 section 6.2.1.1
     localparam int FDT_LAST_BIT_0 = 1172 - TIMING_ADJUST;
@@ -106,24 +112,27 @@ module fdt_tb;
     task timeout (output logic timedout);
         timedout <= 1'b0;
         fork
-            // process 1, wait for the trigger
             begin
-                wait (trigger) begin end
+                fork
+                    // process 1, wait for the trigger
+                    begin
+                        wait (trigger) begin end
+                    end
+
+                    // process 2, timeout after 3000 ticks
+                    // we use 3000 because the counter in the dut is 11 bits wide
+                    // so it will wrap every 2048 ticks (if left free running)
+                    begin
+                        repeat (3000) @(posedge clk) begin end
+                        timedout <= 1'b1;
+                    end
+                // finish as soon as any of these processes finish
+                join_any
+
+                // disable the remaining process
+                disable fork;
             end
-
-            // process 2, timeout after 3000 ticks
-            // we use 3000 because the counter in the dut is 11 bits wide
-            // so it will wrap every 2048 ticks (if left free running)
-            begin
-                repeat (3000) @(posedge clk) begin end
-                timedout <= 1'b1;
-            end
-        // finish as soon as any of these processes finish
-        join_any
-
-        // disable the remaining process
-        disable fork;
-
+        join
         // wait a little bit to make sure the trigger is still not asserted
         repeat (5) @(posedge clk) begin end
     endtask

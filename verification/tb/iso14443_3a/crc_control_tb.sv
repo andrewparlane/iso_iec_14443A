@@ -36,7 +36,7 @@ module crc_control_tb;
     logic           rx_crc_ok;
 
     logic           tx_append_crc;  // we only calculate the Tx CRC if we will use it
-    logic           fdt_trigger;    // we only start the CRC calculation on the fdt_trigger
+    logic           fdt_trigger;    // we only start the CRC calculation on the fdt_trigger for Tx
     logic [15:0]    crc;
 
     // interface
@@ -50,79 +50,72 @@ module crc_control_tb;
     crc_control dut (.*);
 
     // --------------------------------------------------------------
-    // The source for the rx_iface
-    // --------------------------------------------------------------
-    // we don't need a sink for the rx_iface because there are no signals
-    // that go in the other direction
-    rx_interface_source rx_source
-    (
-        .clk    (clk),
-        .iface  (rx_iface)
-    );
-
-    // --------------------------------------------------------------
-    // The source for the tx_iface
+    // The driver / queue for the rx_iface
     // --------------------------------------------------------------
 
-    tx_interface_source tx_source
-    (
-        .clk    (clk),
-        .iface  (tx_iface)
-    );
+    // driver
+    rx_bit_iface_driver_pkg::RxBitIfaceDriver           rx_driver;
+
+    // the send queue
+    typedef queue_transaction_pkg::ByteQueueTransaction ByteTransType;
+    typedef rx_bit_transaction_pkg::RxBitTransaction    RxTransType;
+    RxTransType                                         rx_send_queue[$];
 
     // --------------------------------------------------------------
-    // The sink for the tx_iface
+    // The driver / queue for the tx_iface
     // --------------------------------------------------------------
-    // since the tx_interface requires something to drive req we need a sink
-    // the crc_control module just snoops the bus, it is not a sink
-    tx_interface_sink tx_sink
-    (
-        .clk    (clk),
-        .iface  (tx_iface)
-    );
+
+    // source driver
+    tx_bit_iface_source_driver_pkg::TxBitIfaceSourceDriver  tx_source_driver;
+    // sink driver (drives req, because the crc_control snoops the tx bus)
+    tx_iface_sink_driver_pkg::TxIfaceSinkDriver
+    #(
+        .IfaceType(virtual tx_interface #(.BY_BYTE(0)))
+    )
+    tx_sink_driver;
+
+    // the send queue
+    typedef tx_bit_transaction_pkg::TxBitTransaction        TxTransType;
+    TxTransType                                             tx_send_queue[$];
 
     // --------------------------------------------------------------
     // Clock generator
     // --------------------------------------------------------------
 
-    // Calculate our clock period in ps
-    localparam CLOCK_FREQ_HZ = 13560000; // 13.56MHz
-    localparam CLOCK_PERIOD_PS = 1000000000000.0 / CLOCK_FREQ_HZ;
-    initial begin
-        clk = 1'b0;
-        forever begin
-            #(int'(CLOCK_PERIOD_PS/2))
-            clk = ~clk;
-        end
-    end
+    clock_source clock_source_inst (.*);
 
     // --------------------------------------------------------------
     // Functions / Tasks
     // --------------------------------------------------------------
 
+    task add_rx_data (ByteTransType byte_trans, inout int timeout, input corrupt_random_bit=1'b0);
+        automatic RxTransType   bit_trans       = new (byte_trans.convert_to_bit_queue);
+        automatic int           corrupt_bit_idx = $urandom_range(bit_trans.size()-1);
+
+        if (corrupt_random_bit) begin
+            bit_trans.data[corrupt_bit_idx] = !bit_trans.data[corrupt_bit_idx];
+        end
+
+        timeout += rx_driver.calculate_send_time(bit_trans);
+        rx_send_queue.push_back(bit_trans);
+    endtask
+
     // we need a task to send tx data, since we need to fire the fdt
-    task send_tx_data (logic bits [$]);
-        fork
+    task send_tx_data (ByteTransType byte_trans, logic fire_fdt=1'b1);
+        automatic TxTransType trans = new(byte_trans.convert_to_bit_queue);
+        tx_send_queue.push_back(trans);
 
-            // process 1 - fires the fdt trigger
-            begin
-                // we need the trigger to fire on the same tick as data_valid asserts
-                // so that the crc_control module has time to start the crc calculation
-                // before the first req comes in.
-                // An alternate option would be to make the tx_sink wait for a start signal
-                // before starting to request data
-                fdt_trigger <= 1'b1;
-                @(posedge clk) begin end
-                fdt_trigger <= 1'b0;
-            end
+        if (fire_fdt) begin
+            // fire FDT once data is ready to send
+            wait(tx_iface.data_valid) begin end
+            @(posedge clk) begin end
+            fdt_trigger <= 1'b1;
+            @(posedge clk) begin end
+            fdt_trigger <= 1'b0;
+        end
 
-            // process 2 - actually sends the data
-            begin
-                tx_source.send_frame(bits);
-            end
-
-        // block until both processes finish
-        join
+        // wait for the data to have been sent
+        tx_source_driver.wait_for_idle();   // guaranteed to go idle due to internal timeout
     endtask
 
     // --------------------------------------------------------------
@@ -135,14 +128,19 @@ module crc_control_tb;
     logic           check_crc_stable;
 
     initial begin: testStimulus
-        logic [7:0] data [$];
-        logic       bits [$];
+        automatic ByteTransType byte_trans;
+        automatic int           timeout;
 
-        rx_source.initialise;
-        tx_source.initialise;
-        tx_sink.initialise;
+        rx_driver           = new(rx_iface);
+        tx_source_driver    = new(tx_iface);
+        tx_sink_driver      = new(tx_iface);
 
-        tx_sink.enable_expected_checking(1'b0);
+        rx_send_queue       = '{};
+        tx_send_queue       = '{};
+
+        rx_driver.start(rx_send_queue);
+        tx_source_driver.start(tx_send_queue);
+        tx_sink_driver.start();
 
         check_tx_crc        = 1'b0;
         check_rx_crc_ok     = 1'b0;
@@ -168,19 +166,18 @@ module crc_control_tb;
         check_tx_crc        = 1'b0;
         check_crc_stable    = 1'b0;
 
-        data                = '{8'h00, 8'h00, 8'hA0, 8'h1E};
-        bits                = frame_generator_pkg::convert_message_to_bit_queue_for_rx(data);
-        rx_source.send_frame(bits);
-        repeat (5) @(posedge clk) begin end
+        timeout             = 0;
 
-        data                = '{8'h12, 8'h34, 8'h26, 8'hCF};
-        bits                = frame_generator_pkg::convert_message_to_bit_queue_for_rx(data);
-        rx_source.send_frame(bits);
-        repeat (5) @(posedge clk) begin end
+        byte_trans          = new('{8'h00, 8'h00, 8'hA0, 8'h1E});
+        add_rx_data(byte_trans, timeout);
 
-        data                = '{8'h63, 8'h63};
-        bits                = frame_generator_pkg::convert_message_to_bit_queue_for_rx(data);
-        rx_source.send_frame(bits);
+        byte_trans          = new('{8'h12, 8'h34, 8'h26, 8'hCF});
+        add_rx_data(byte_trans, timeout);
+
+        byte_trans          = new('{8'h63, 8'h63});
+        add_rx_data(byte_trans, timeout);
+
+        rx_driver.wait_for_idle(timeout + 100);
         repeat (5) @(posedge clk) begin end
 
         // 2) rx_crc_ok after sending random messages with CRC
@@ -191,14 +188,15 @@ module crc_control_tb;
         check_tx_crc        = 1'b0;
         check_crc_stable    = 1'b0;
 
+        timeout             = 0;
+
         repeat (1000) begin
-            automatic int num_bytes = $urandom_range(1, 20);
-            data                = frame_generator_pkg::generate_byte_queue(num_bytes);
-            data                = frame_generator_pkg::add_crc_to_message(data);
-            bits                = frame_generator_pkg::convert_message_to_bit_queue_for_rx(data);
-            rx_source.send_frame(bits);
-            repeat (5) @(posedge clk) begin end
+            byte_trans = ByteTransType::new_random_transaction($urandom_range(0, 10));
+            byte_trans.append_crc;
+            add_rx_data(byte_trans, timeout);
         end
+        rx_driver.wait_for_idle(timeout + 100);
+        repeat (5) @(posedge clk) begin end
 
         // 3) !rx_crc_ok after corrupting random bit in message
 
@@ -208,16 +206,18 @@ module crc_control_tb;
         check_tx_crc        = 1'b0;
         check_crc_stable    = 1'b0;
 
+        timeout             = 0;
+
         repeat (1000) begin
-            automatic int num_bytes     = $urandom_range(1, 20);
-            automatic int corrupt_bit   = $urandom_range(((num_bytes+2)*8) - 1);
-            data                = frame_generator_pkg::generate_byte_queue(num_bytes);
-            data                = frame_generator_pkg::add_crc_to_message(data);
-            bits                = frame_generator_pkg::convert_message_to_bit_queue_for_rx(data);
-            bits[corrupt_bit]   = !bits[corrupt_bit];
-            rx_source.send_frame(bits);
-            repeat (5) @(posedge clk) begin end
+            byte_trans = new();
+            byte_trans = ByteTransType::new_random_transaction($urandom_range(0, 10));
+            byte_trans.append_crc;
+
+            add_rx_data(byte_trans, timeout, 1'b1);
         end
+
+        rx_driver.wait_for_idle(timeout + 100);
+        repeat (5) @(posedge clk) begin end
 
         // 4) crc correct after sending:
         //  a) 8'h00, 8'h00                 - given as an example in ISO/IEC 14443-3:2016 Annex B
@@ -229,17 +229,13 @@ module crc_control_tb;
         tx_append_crc       = 1'b1;
         check_crc_stable    = 1'b0;
 
-        data                = '{8'h00, 8'h00};
-        bits                = frame_generator_pkg::convert_message_to_bit_queue_for_tx(data);
+        byte_trans          = new('{8'h00, 8'h00});
         expected_crc        = 16'h1EA0;
-        send_tx_data(bits);
-        repeat (5) @(posedge clk) begin end
+        send_tx_data(byte_trans);
 
-        data                = '{8'h12, 8'h34};
-        bits                = frame_generator_pkg::convert_message_to_bit_queue_for_tx(data);
+        byte_trans          = new('{8'h12, 8'h34});
         expected_crc        = 16'hCF26;
-        send_tx_data(bits);
-        repeat (5) @(posedge clk) begin end
+        send_tx_data(byte_trans);
 
         // 5) crc correct after sending random messages
 
@@ -250,11 +246,10 @@ module crc_control_tb;
         check_crc_stable    = 1'b0;
 
         repeat (1000) begin
-            automatic int num_bytes = $urandom_range(1, 20);
-            data                = frame_generator_pkg::generate_byte_queue(num_bytes);
-            bits                = frame_generator_pkg::convert_message_to_bit_queue_for_tx(data);
-            expected_crc        = frame_generator_pkg::calculate_crc(data);
-            send_tx_data(bits);
+            byte_trans = ByteTransType::new_random_transaction($urandom_range(1, 10));
+
+            expected_crc        = byte_trans.calculate_crc;
+            send_tx_data(byte_trans);
             repeat (5) @(posedge clk) begin end
         end
 
@@ -272,10 +267,10 @@ module crc_control_tb;
         // enter rx mode
         check_rx_crc_ok     = 1'b0;
         check_tx_crc        = 1'b0;
-        data                = frame_generator_pkg::generate_byte_queue(1);
-        bits                = frame_generator_pkg::convert_message_to_bit_queue_for_rx(data);
-        rx_source.send_frame(bits);
-        repeat (5) @(posedge clk) begin end
+        byte_trans = ByteTransType::new_random_transaction(1);
+        timeout             = 0;
+        add_rx_data(byte_trans, timeout);
+        rx_driver.wait_for_idle(timeout + 100);
 
         check_rx_crc_ok     = 1'b0;
         check_tx_crc        = 1'b0;
@@ -283,30 +278,26 @@ module crc_control_tb;
         check_crc_stable    = 1'b1;
 
         // check case a) fdt_trigger doesn't fire
-        data                = frame_generator_pkg::generate_byte_queue(5);
-        bits                = frame_generator_pkg::convert_message_to_bit_queue_for_tx(data);
-        tx_append_crc       = 1'b1; // tx_append_crc is 1
-        tx_source.send_frame(bits); // data_valid is 1
-                                    // no fdt
-        repeat (5) @(posedge clk) begin end
+        // Note: the data sends because the sink doesn't wait for fdt trigger
+        //       but the dut shouldn't calculate the CRC
+        byte_trans = ByteTransType::new_random_transaction($urandom_range(0, 10));
+        tx_append_crc       = 1'b1;         // tx_append_crc is 1
+        send_tx_data(byte_trans,            // data_valid is 1
+                     1'b0);                 // no fdt
+
 
         //  check case b) tx_append_crc is not asserted at the time of fdt_trigger
-        data                = frame_generator_pkg::generate_byte_queue(5);
-        bits                = frame_generator_pkg::convert_message_to_bit_queue_for_tx(data);
-        tx_append_crc       = 1'b0; // tx_append_crc is 0
-        send_tx_data(bits);         // data_valid is 1, fdt_trigger fires
-        repeat (5) @(posedge clk) begin end
+        tx_append_crc       = 1'b0;         // tx_append_crc is 0
+        send_tx_data(byte_trans);           // data_valid is 1, fdt_trigger fires
 
         //  check case c) tx_iface.data_valid is not asserted at the time of fdt_trigger
-        data                = frame_generator_pkg::generate_byte_queue(5);
-        bits                = frame_generator_pkg::convert_message_to_bit_queue_for_tx(data);
-        tx_append_crc       = 1'b1;     // tx_append_crc is 1
+        tx_append_crc       = 1'b1;         // tx_append_crc is 1
         @(posedge clk) begin end
-        fdt_trigger         <= 1'b1;    // fdt trigger fires, but data_valid is low
+        fdt_trigger         <= 1'b1;        // fdt trigger fires, but data_valid is low
         @(posedge clk) begin end
         fdt_trigger         <= 1'b0;
-        tx_source.send_frame(bits);     // data gets sent but fdt_trigger has already fired
-        repeat (5) @(posedge clk) begin end
+        send_tx_data(byte_trans,            // data gets sent but
+                     1'b0);                 // fdt_trigger has already fired
 
         // stop checking the crc is stable now
         check_crc_stable    = 1'b0;
@@ -322,48 +313,18 @@ module crc_control_tb;
 
         repeat (1000) begin
             begin // rx block
-                automatic int num_bytes = $urandom_range(1, 20);
-                data                = frame_generator_pkg::generate_byte_queue(num_bytes);
-                data                = frame_generator_pkg::add_crc_to_message(data);
-                bits                = frame_generator_pkg::convert_message_to_bit_queue_for_rx(data);
-                rx_source.send_frame(bits);
-                repeat (5) @(posedge clk) begin end
+                byte_trans = ByteTransType::new_random_transaction($urandom_range(0, 10));
+                byte_trans.append_crc;
+                timeout     = 0;
+                add_rx_data(byte_trans, timeout);
+                rx_driver.wait_for_idle(timeout + 100);
             end
             begin // tx block
-                automatic int num_bytes = $urandom_range(1, 20);
-                data                = frame_generator_pkg::generate_byte_queue(num_bytes);
-                bits                = frame_generator_pkg::convert_message_to_bit_queue_for_tx(data);
-                expected_crc        = frame_generator_pkg::calculate_crc(data);
-                send_tx_data(bits);
-                repeat (5) @(posedge clk) begin end
+                byte_trans      = ByteTransType::new_random_transaction($urandom_range(1, 10));
+                expected_crc    = byte_trans.calculate_crc;
+
+                send_tx_data(byte_trans);
             end
-        end
-
-        // 8) Loopback Tx -> Rx
-
-        $display("Testing looping back Tx to Rx");
-        check_rx_crc_ok     = 1'b1;
-        expect_rx_crc_ok    = 1'b1;
-        check_tx_crc        = 1'b1;
-        tx_append_crc       = 1'b1;
-        check_crc_stable    = 1'b0;
-
-        repeat (1000) begin
-            automatic int num_bytes = $urandom_range(1, 20);
-
-            // tx
-            data                = frame_generator_pkg::generate_byte_queue(num_bytes);
-            bits                = frame_generator_pkg::convert_message_to_bit_queue_for_tx(data);
-            expected_crc        = frame_generator_pkg::calculate_crc(data);
-            send_tx_data(bits);
-            repeat (5) @(posedge clk) begin end
-
-            // rx
-            data.push_back(crc[7:0]);
-            data.push_back(crc[15:8]);
-            bits                = frame_generator_pkg::convert_message_to_bit_queue_for_rx(data);
-            rx_source.send_frame(bits);
-            repeat (5) @(posedge clk) begin end
         end
 
         repeat (5) @(posedge clk) begin end

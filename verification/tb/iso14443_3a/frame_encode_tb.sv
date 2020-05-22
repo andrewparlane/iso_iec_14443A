@@ -48,72 +48,109 @@ module frame_encode_tb;
     frame_encode dut (.*);
 
     // --------------------------------------------------------------
-    // The source for the in_iface
+    // The driver / queue for the in_iface
     // --------------------------------------------------------------
 
-    tx_interface_source tx_source
-    (
-        .clk    (clk),
-        .iface  (in_iface)
-    );
+    // driver
+    tx_bit_iface_source_driver_pkg::TxBitIfaceSourceDriver  source_driver;
+
+    // the send queue
+    typedef tx_byte_transaction_pkg::TxByteTransaction      ByteTransType;
+    typedef tx_bit_transaction_pkg::TxBitTransaction        BitTransType;
+    BitTransType                                            send_queue[$];
 
     // --------------------------------------------------------------
-    // The sink for the out_iface
+    // The monitor for the out_iface
     // --------------------------------------------------------------
 
-    tx_interface_sink tx_sink
-    (
-        .clk    (clk),
-        .iface  (out_iface)
-    );
+    tx_bit_iface_monitor_pkg::TxBitIfaceMonitor         monitor;
+
+    // and the recv_queue
+    BitTransType                                        recv_queue [$];
+
+    // sink driver
+    tx_iface_sink_driver_pkg::TxBitIfaceSinkDriver      sink_driver;
 
     // --------------------------------------------------------------
     // Clock generator
     // --------------------------------------------------------------
 
-    // Calculate our clock period in ps
-    localparam CLOCK_FREQ_HZ = 13560000; // 13.56MHz
-    localparam CLOCK_PERIOD_PS = 1000000000000.0 / CLOCK_FREQ_HZ;
-    initial begin
-        clk = 1'b0;
-        forever begin
-            #(int'(CLOCK_PERIOD_PS/2))
-            clk = ~clk;
-        end
-    end
+    clock_source clock_source_inst (.*);
 
     // --------------------------------------------------------------
     // Functions / Tasks
     // --------------------------------------------------------------
 
-    task send_data (logic sq[$]);
-        // sync to clock edge
-        @(posedge clk)
+    typedef enum
+    {
+        ErrorType_NONE,
+        ErrorType_NO_FDT,
+        ErrorType_NO_SEND
+    } ErrorType;
 
-        fork
+    task do_test (int num_bits, ErrorType err = ErrorType_NONE);
+        automatic int           ticksBeforeFDT  = $urandom_range(16, 100);
+        automatic ByteTransType byte_trans;
+        automatic BitTransType  send_trans;
+        automatic BitTransType  expected;
 
-            // process 1 - fires the fdt trigger
-            begin
-                automatic int ticksBeforeFDT = $urandom_range(5, 100);
-                repeat (ticksBeforeFDT) @(posedge clk) begin end
-                fdt_trigger <= 1'b1;
-                @(posedge clk) begin end
-                fdt_trigger <= 1'b0;
+        // generate data to send (as byte trans first, in order to add the CRC)
+        byte_trans = ByteTransType::new_random_transaction_bits(num_bits);
+
+        // get the bit transaction to actually send (no CRC)
+        send_trans = new(byte_trans.convert_to_bit_queue);
+
+        // the expected transaction to receive may have a CRC
+        if (append_crc) begin
+            crc = byte_trans.calculate_crc;
+            byte_trans.append_crc;
+        end
+        expected = new(byte_trans.convert_to_bit_queue);
+
+        // and has parity bits
+        expected.add_parity(num_bits % 8);
+
+        // mark it as ready to send
+        if (err != ErrorType_NO_SEND) begin
+            send_queue.push_back(send_trans);
+        end
+
+        if (err != ErrorType_NO_FDT) begin
+            repeat (ticksBeforeFDT) @(posedge clk) begin end
+            fdt_trigger <= 1'b1;
+            @(posedge clk) begin end
+            fdt_trigger <= 1'b0;
+        end
+        else begin
+            // don't fire the FDT
+            // but that means our transaction will timeout
+            // so disable timeout errors
+            source_driver.set_enable_timeout_errors(1'b0);
+        end
+
+        // wait for idle
+        source_driver.wait_for_idle;
+        // could be sending the CRC = 2 bytes + parity bits = 18 bits
+        // sink_driver sends reqs every 16 ticks, so 288 ticks plus extra for latency
+        monitor.wait_for_idle(32, 512);
+
+        source_driver.set_enable_timeout_errors(1'b1);
+
+        // verify
+        if (err == ErrorType_NONE) begin: noError
+            receivedOneTransaction:
+            assert (recv_queue.size() == 1) else $error("recv_queue.size() is %d, expecting 1", recv_queue.size());
+
+            if (recv_queue.size() != 0) begin: recvQueueNotEmpty
+                automatic BitTransType recv = recv_queue.pop_front;
+                receivedExpected:
+                assert (recv.compare(expected)) else $error("Received %s, not as expected %p", recv.to_string, expected.to_string);
             end
-
-            // process 2 - actually sends the data
-            begin
-                tx_source.send_frame(sq);
-            end
-
-        // block until both processes finish
-        join
-
-        // wait for the expected queue to be empty or timeout
-        tx_sink.wait_for_expected_empty(500);
-
-        // wait a few more ticks to make sure nothing more comes through
-        repeat (100) @(posedge clk) begin end
+        end
+        else begin: hasError
+            receivedNoTransactions:
+            assert (recv_queue.size() == 0) else $error("recv_queue.size() is %d, expecting 0", recv_queue.size());
+        end
     endtask
 
     // --------------------------------------------------------------
@@ -121,15 +158,20 @@ module frame_encode_tb;
     // --------------------------------------------------------------
 
     initial begin
-        automatic logic [7:0] data[$];
-        automatic logic       bits[$];
-        automatic logic       temp[$];
-
         fdt_trigger <= 1'b0;
         append_crc  <= 1'b0;
 
-        tx_source.initialise;
-        tx_sink.initialise;
+        // 32 ticks idle between transactions
+        // 64 tick req timeout
+        // 256 tick first req timeout (for the fdt timer)
+        source_driver   = new(in_iface, 32, 64, 256);
+        sink_driver     = new(out_iface);
+        monitor         = new(out_iface);
+        send_queue      = '{};
+        recv_queue      = '{};
+        source_driver.start(send_queue);
+        sink_driver.start();
+        monitor.start(recv_queue);
 
         // reset for 5 ticks
         rst_n <= 1'b0;
@@ -140,81 +182,44 @@ module frame_encode_tb;
         // Stuff to test
         //  1) nothing sends until fdt_trigger fires
         $display("Testing no Tx before fdt");
-        tx_sink.clear_expected_queue;  // will assert if out_iface.data_valid asserts
-        in_iface.data_valid <= 1'b1;
-        fdt_trigger         <= 1'b0;
-        repeat (100) @(posedge clk) begin end
-        in_iface.data_valid <= 1'b0;
+        repeat (100) begin
+            do_test($urandom_range(1, 80), ErrorType_NO_FDT);
+        end
 
         //  2) nothing sends if in_iface.data_valid is low when fdt_trigger fires
         $display("Testing no Tx if in_iface.data_valid not asserted on fdt_trigger");
-        tx_sink.clear_expected_queue;  // will assert if out_iface.data_valid asserts
-        repeat (5) @(posedge clk) begin end
-        fdt_trigger         <= 1'b1;
-        @(posedge clk) begin end
-        fdt_trigger         <= 1'b0;
-        in_iface.data_valid <= 1'b1;
-        @(posedge clk) begin end
-        in_iface.data_valid <= 1'b0;
-        repeat (100) @(posedge clk) begin end
+        repeat (100) begin
+            do_test(1, ErrorType_NO_SEND);
+        end
 
         //  3) parity is correct (number of 1s is odd)
-        //      - implicitly checked by adding parity bits to expected queue
+        //      - implicitly checked by adding parity bits to expected transaction
 
         //  4) correct number of bits are sent
-        //      - implicity checked by adding all bits to the expected queue
+        //      - implicity checked by adding all bits to the expected transaction
 
         // send 8 bits of data, no crc
         $display("Testing sending 8 bits");
-        data = frame_generator_pkg::generate_byte_queue(1);
-        bits = frame_generator_pkg::convert_message_to_bit_queue_for_tx(data);
-        temp = frame_generator_pkg::add_parity_to_bit_queue(bits);
-        tx_sink.set_expected_queue(temp);
-        send_data(bits);
+        do_test(8);
 
         // send 1 - 8 bits of data, no crc
         for (int i = 1; i <= 8; i++) begin
             $display("Testing sending %d bits", i);
-            bits = frame_generator_pkg::generate_bit_queue(i);
-            temp = frame_generator_pkg::add_parity_to_bit_queue(bits, i);
-            tx_sink.set_expected_queue(temp);
-            send_data(bits);
+            do_test(i);
         end
 
-        //  5) multiple bytes send OK
+        //  5) multiple bytes send OK, no crc
         $display("Testing multi bytes");
-        repeat (10000) begin
-            automatic int bitsToSend = $urandom_range(9, 100);
-
-            //$display("sending %d bits", bitsToSend);
-
-            bits = frame_generator_pkg::generate_bit_queue(bitsToSend);
-            temp = frame_generator_pkg::add_parity_to_bit_queue(bits, bitsToSend % 8);
-            tx_sink.set_expected_queue(temp);
-
-            send_data(bits);
+        repeat (1000) begin
+            do_test($urandom_range(9, 80));
         end
 
         // 6) Test adding CRC
         // we only care about multiples of 8 bits here
         $display("Test adding CRC");
-        append_crc          = 1'b1;
-        repeat (10000) begin
-            automatic int bytes_to_send = $urandom_range(1, 10);
-            data    = frame_generator_pkg::generate_byte_queue(bytes_to_send);
-            crc     = frame_generator_pkg::calculate_crc(data);
-
-            // bit queue to send
-            bits    = frame_generator_pkg::convert_message_to_bit_queue_for_tx(data);
-
-            // expected
-            data.push_back(crc[7:0]);
-            data.push_back(crc[15:8]);
-            temp = frame_generator_pkg::convert_message_to_bit_queue_for_tx(data);
-            temp = frame_generator_pkg::add_parity_to_bit_queue(temp);
-            tx_sink.set_expected_queue(temp);
-
-            send_data(bits);
+        append_crc = 1'b1;
+        repeat (1000) begin
+            do_test($urandom_range(1, 10)*8);
         end
 
         repeat (5) @(posedge clk) begin end

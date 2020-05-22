@@ -30,19 +30,18 @@ module framing_tb;
     // all named the same as in the DUT, so I can use .*
     // --------------------------------------------------------------
 
-    logic           clk;
-    logic           rst_n;
+    logic                       clk;
+    logic                       rst_n;
 
-    logic           pause_n_synchronised;
+    logic                       pause_n_synchronised;
 
     rx_interface #(.BY_BYTE(0)) in_rx_iface (.*);
     rx_interface #(.BY_BYTE(0)) out_rx_iface_bits (.*);
     rx_interface #(.BY_BYTE(1)) out_rx_iface_bytes (.*);
-
-    logic           rx_crc_ok;
+    logic                       rx_crc_ok;
 
     tx_interface #(.BY_BYTE(1)) in_tx_iface (.*);
-    logic           tx_append_crc;
+    logic                       tx_append_crc;
 
     tx_interface #(.BY_BYTE(0)) out_tx_iface (.*);
 
@@ -62,69 +61,66 @@ module framing_tb;
     // Clock generator
     // --------------------------------------------------------------
 
-    // Calculate our clock period in ps
     // Using 10MHz clock, so we can work with an integer period
     // avoiding timing errors generated due to the simulator only having ps accuracy
     // note: this won't be an issue in synthesis
-    localparam real CLOCK_FREQ_HZ    = 10000000.0; // 10MHz
+    localparam real CLOCK_FREQ_HZ = 10000000.0; // 10MHz
+    clock_source
+    #(
+        .CLOCK_FREQ_HZ (CLOCK_FREQ_HZ)
+    )
+    clock_source_inst (.*);
+
     localparam real CLOCK_PERIOD_PS = 1000000000000.0 / CLOCK_FREQ_HZ;
-    initial begin
-        clk = 1'b0;
-        forever begin
-            #(int'(CLOCK_PERIOD_PS/2))
-            clk = ~clk;
-        end
-    end
 
     // --------------------------------------------------------------
-    // The source for the in_rx_iface
+    // The driver / queue for the in_rx_iface
     // --------------------------------------------------------------
 
-    rx_interface_source rx_source
-    (
-        .clk    (clk),
-        .iface  (in_rx_iface)
-    );
+    // driver
+    rx_bit_iface_driver_pkg::RxBitIfaceDriver           rx_driver;
+
+    // the send queue
+    typedef rx_byte_transaction_pkg::RxByteTransaction  RxByteTransType;
+    typedef rx_bit_transaction_pkg::RxBitTransaction    RxSendTransType;
+    RxSendTransType                                     rx_send_queue[$];
 
     // --------------------------------------------------------------
-    // The sink for the out_rx_iface_bits
+    // The monitors for the out_rx_iface_*
     // --------------------------------------------------------------
 
-    rx_interface_sink rx_sink_bits
-    (
-        .clk    (clk),
-        .iface  (out_rx_iface_bits)
-    );
+    rx_bit_iface_monitor_pkg::RxBitIfaceMonitor                 rx_bit_monitor;
+    rx_byte_iface_monitor_pkg::RxByteIfaceMonitor               rx_byte_monitor;
+
+    // and the recv_queue
+    typedef rx_bit_transaction_pkg::RxMonitorBitTransaction     RxRecvBitTransType;
+    typedef rx_byte_transaction_pkg::RxMonitorByteTransaction   RxRecvByteTransType;
+    RxRecvBitTransType                                          rx_recv_bit_queue   [$];
+    RxRecvByteTransType                                         rx_recv_byte_queue  [$];
 
     // --------------------------------------------------------------
-    // The sink for the out_rx_iface_bytes
+    // The driver / queue for the in_tx_iface
     // --------------------------------------------------------------
 
-    rx_interface_sink rx_sink_bytes
-    (
-        .clk    (clk),
-        .iface  (out_rx_iface_bytes)
-    );
+    // driver
+    tx_byte_iface_source_driver_pkg::TxByteIfaceSourceDriver    tx_source_driver;
+
+    // the send queue
+    typedef tx_byte_transaction_pkg::TxByteTransaction          TxSendTransType;
+    TxSendTransType                                             tx_send_queue[$];
 
     // --------------------------------------------------------------
-    // The source for the in_tx_iface
+    // The monitor and sink driver for the out_tx_iface
     // --------------------------------------------------------------
 
-    tx_interface_source tx_source
-    (
-        .clk    (clk),
-        .iface  (in_tx_iface)
-    );
+    tx_bit_iface_monitor_pkg::TxBitIfaceMonitor         tx_monitor;
 
-    // --------------------------------------------------------------
-    // The sink for the out_tx_iface
-    // --------------------------------------------------------------
+    // and the recv_queue
+    typedef tx_bit_transaction_pkg::TxBitTransaction    TxRecvTransType;
+    TxRecvTransType                                     tx_recv_queue [$];
 
-    tx_interface_sink tx_sink
-    (
-        .clk    (clk),
-        .iface  (out_tx_iface)
-    );
+    // sink driver
+    tx_iface_sink_driver_pkg::TxBitIfaceSinkDriver      tx_sink_driver;
 
     // --------------------------------------------------------------
     // FDT verification
@@ -157,85 +153,136 @@ module framing_tb;
     // --------------------------------------------------------------
     // Tasks and functions
     // --------------------------------------------------------------
+
+    typedef enum
+    {
+        RxErrorType_NONE,
+        RxErrorType_FLIPPED_PARITY,
+        RxErrorType_MISSING_LAST_PARITY,
+        RxErrorType_INPUT_ERROR,
+        RxErrorType_CORRUPT_DATA
+    } RxErrorType;
+
     logic check_rx_crc_ok;
     logic expect_rx_crc_ok;
 
-    task send_rx_frame (int num_bits, logic corrupt_data=1'b0);
-        automatic int           num_bytes           = int'($ceil(num_bits / 8.0));
-        automatic int           bits_in_last_byte   = num_bits % 8;
-        automatic logic [7:0]   data [$];
-        automatic logic         bits [$];
+    task send_rx_frame (int num_bits, RxErrorType err = RxErrorType_NONE);
+        automatic RxByteTransType       byte_trans;
+        automatic RxSendTransType       send_trans;
+        automatic RxRecvByteTransType   expected_bytes;
+        automatic RxRecvBitTransType    expected_bits;
+        automatic int                   timeout;
+        automatic logic                 expect_frame_error;
+
+        // We expect a frame error if err is anything other than none or corrupt_data
+        // in the corrupt_data case we expect the rx_crc_ok to be 1'b0
+        expect_frame_error = !((err == RxErrorType_NONE) ||
+                               (err == RxErrorType_CORRUPT_DATA));
+
+        // generate the transaction as an RxByteTransaction
+        byte_trans = RxByteTransType::new_random_transaction_bits(num_bits);
 
         // only check rx_crc_ok if we add the CRC to the data
         check_rx_crc_ok = 1'b0;
 
-        // generate the data
-        data = frame_generator_pkg::generate_byte_queue(num_bytes);
-
-        // add the CRC
-        if (bits_in_last_byte == 0) begin
-            // add the CRC if sending a whole number of bytes
-            data                = frame_generator_pkg::add_crc_to_message(data);
-            check_rx_crc_ok     = 1'b1;
-            expect_rx_crc_ok    = 1'b1;
+        // add the CRC if sending a whole number of bytes
+        if ((num_bits % 8) == 0) begin
+            byte_trans.append_crc;
+            num_bits            += 16;                      // so we can use num_bits later
+            check_rx_crc_ok     = !expect_frame_error;      // don't check if there going to be a frame error
+            expect_rx_crc_ok    = err == RxErrorType_NONE;
         end
 
         // corrupt the data?
-        if (corrupt_data) begin
-            automatic int byte_idx  = $urandom_range(0,num_bytes+1);
-            automatic int bit_idx   = $urandom_range(0,7);
-            data[byte_idx][bit_idx] = !data[byte_idx][bit_idx];
-            expect_rx_crc_ok        = 1'b0;
+        if (err == RxErrorType_CORRUPT_DATA) begin
+            automatic int idx               = $urandom_range(num_bits-1);
+            byte_trans.data[idx/8][idx%8]   = !byte_trans.data[idx/8][idx%8];
         end
 
-        bits = frame_generator_pkg::convert_message_to_bit_queue_for_rx(data, bits_in_last_byte);
+        // the out_rx_iface_bytes should receive the byte_trans
+        expected_bytes  = new(byte_trans.data,
+                              byte_trans.bits_in_last_byte,
+                              expect_frame_error);
 
-        // set up the expected queues
-        rx_sink_bits.build_valid_frame_expected_queue(bits);
-        rx_sink_bytes.build_valid_frame_expected_queue(data, bits_in_last_byte);
+        // get the bit transaction that we're going to send, we'll add parity bits to this later
+        send_trans      = new(byte_trans.convert_to_bit_queue);
 
-        //$display("sending data: %p", data);
-        //$display("bits: %p", bits);
-        //$display("bits + parity: %p", frame_generator_pkg::add_parity_to_bit_queue(bits));
+        // the out_rx_iface_bits should receive the send_trans without the parity bits
+        expected_bits   = new(send_trans.data,
+                              expect_frame_error);
 
-        // send the bits with the parity bits added
-        bits = frame_generator_pkg::add_parity_to_bit_queue(bits);
-        last_rx_bit = bits[$];
-        rx_source.send_frame(bits);
+        // add the parity bits to our send transaction
+        send_trans.add_parity;
 
-        // wait until we're done
-        rx_sink_bits.wait_for_expected_empty(16);
-        rx_sink_bytes.wait_for_expected_empty(16);
+        if (err == RxErrorType_MISSING_LAST_PARITY) begin: missingLastParity
+            // remove the final bit
+            lastBitIsParity: assert((num_bits % 8) == 0)
+                else $fatal(0, "RxErrorType_MISSING_LAST_PARITY can only be used when the last bit is a parity bit");
+            void'(send_trans.pop_back);
+        end
 
-        // wait a couple of clock ticks
-        repeat (20) @(posedge clk) begin end
+        if (err == RxErrorType_FLIPPED_PARITY) begin
+            // randomly flip a parity bit
+            // there are num_bits / 8 (rounded down) full bytes, hence num_bits / 8 parity bits.
+            // every 9th bit is a parity bit
+            automatic int corrupt_bit = ($urandom_range(1, (num_bits / 8)) * 9) - 1;
+            send_trans.data[corrupt_bit] = !send_trans.data[corrupt_bit];
+        end
+
+        // send it
+        last_rx_bit = send_trans.data[$];
+        timeout     = rx_driver.calculate_send_time(send_trans);
+        rx_driver.set_add_error(err == RxErrorType_INPUT_ERROR);
+        rx_send_queue.push_back(send_trans);
+        rx_bit_monitor.wait_for_idle(16, timeout+100);
+        rx_byte_monitor.wait_for_idle(16, 32);
+
+        // verify byte out iface
+        receivedOneByteTransaction:
+        assert (rx_recv_byte_queue.size() == 1) else $error("rx_recv_byte_queue.size() is %d, expecting 1", rx_recv_byte_queue.size());
+
+        if (rx_recv_byte_queue.size() != 0) begin: recvByteQueueNotEmpty
+            automatic RxRecvByteTransType recv = rx_recv_byte_queue.pop_front;
+            receivedExpected:
+            assert (recv.compare(expected_bytes))
+                else $error("Received %s, not as expected %p", recv.to_string, expected_bytes.to_string);
+        end
+
+        // verify bit out iface
+        receivedOneBitTransaction:
+        assert (rx_recv_bit_queue.size() == 1) else $error("rx_recv_bit_queue.size() is %d, expecting 1", rx_recv_bit_queue.size());
+
+        if (rx_recv_bit_queue.size() != 0) begin: recvBitQueueNotEmpty
+            automatic RxRecvBitTransType recv = rx_recv_bit_queue.pop_front;
+            receivedExpected:
+            assert (recv.compare(expected_bits))
+                else $error("Received %s, not as expected %p", recv.to_string, expected_bits.to_string);
+        end
     endtask
 
     // note: we'll never add the crc if num_bits is not a whole byte
     task send_tx_frame (int num_bits, logic add_crc);
-        automatic int           num_bytes           = int'($ceil(num_bits / 8.0));
-        automatic int           bits_in_first_byte  = num_bits % 8;
-        automatic logic [7:0]   data            [$];
-        automatic logic [7:0]   expected_data   [$];
-        automatic logic         expected_bits   [$];
+        automatic TxSendTransType send_trans;
+        automatic TxSendTransType expected_bytes;
+        automatic TxRecvTransType expected;
 
-        // generate the data
-        data = frame_generator_pkg::generate_byte_queue(num_bytes);
+        // generate a random byte transaction of length num_bits
+        send_trans = TxSendTransType::new_random_transaction_bits(num_bits);
 
-        // generate expected queue
-        // we expect the data + CRC with parity bits
+        // generate expected transaction based on send_trans
+        // start with a byte transaction, so we can append the CRC if required
+        expected_bytes = new(send_trans.data, send_trans.bits_in_first_byte);
+
         // the crc only gets added if add_crc and bits_in_first_byte == 0
-        if ((bits_in_first_byte == 0) && add_crc) begin
+        tx_append_crc <= 1'b0;
+        if (((num_bits % 8) == 0) && add_crc) begin
             tx_append_crc <= 1'b1;
-            expected_data = frame_generator_pkg::add_crc_to_message(data);
+            expected_bytes.append_crc;
         end
-        else begin
-            tx_append_crc <= 1'b0;
-            expected_data = data;
-        end
-        expected_bits = frame_generator_pkg::convert_message_to_bit_queue_for_tx(expected_data, bits_in_first_byte);
-        expected_bits = frame_generator_pkg::add_parity_to_bit_queue(expected_bits, bits_in_first_byte);
-        tx_sink.set_expected_queue(expected_bits);
+
+        // now we get the actual expected data as a bit transaction, and add the parity bits
+        expected = new(expected_bytes.convert_to_bit_queue);
+        expected.add_parity(expected_bytes.bits_in_first_byte);
 
         // The frame_encoder will never send until it gets the FDT trigger
         // which means we have to set the FDT timer running by pulsing pause_n_synchronised
@@ -243,18 +290,20 @@ module framing_tb;
         @(posedge clk) begin end
         pause_n_synchronised <= 1'b1;
 
-        // $display("sending data %p, bits_in_first_byte %d, adding crc %b (%x)",
-        //          data, bits_in_first_byte, tx_append_crc, frame_generator_pkg::calculate_crc(data));
-        // $display("expected %p", expected_bits);
-
         // send it
-        tx_source.send_frame(data, bits_in_first_byte);
+        tx_send_queue.push_back(send_trans);
+        tx_source_driver.wait_for_idle();
+        tx_monitor.wait_for_idle(32, 512);
 
-        // wait for the sink to have received it
-        tx_sink.wait_for_expected_empty(512);
+        // verify
+        receivedOneTransaction:
+        assert (tx_recv_queue.size() == 1) else $error("tx_recv_queue.size() is %d, expecting 1", tx_recv_queue.size());
 
-        // wait a couple of clock ticks
-        repeat (20) @(posedge clk) begin end
+        if (tx_recv_queue.size() != 0) begin: recvQueueNotEmpty
+            automatic TxRecvTransType recv = tx_recv_queue.pop_front;
+            receivedExpected:
+            assert (recv.compare(expected)) else $error("Received %s, not as expected %p", recv.to_string, expected.to_string);
+        end
     endtask
 
     // --------------------------------------------------------------
@@ -263,19 +312,30 @@ module framing_tb;
 
     initial begin
 
-        rx_source.initialise;
-        rx_sink_bits.initialise;
-        rx_sink_bytes.initialise;
-        tx_source.initialise;
-        tx_sink.initialise;
+        rx_driver           = new(in_rx_iface);
+        rx_bit_monitor      = new(out_rx_iface_bits);
+        rx_byte_monitor     = new(out_rx_iface_bytes);
+        // timeout between reqs is 256, to allow for an entire byte + parity to be sent out as bits
+        // timeout on first req is 512, to allow for the FDT
+        tx_source_driver    = new(in_tx_iface, 32, 256, 512);
+        tx_sink_driver      = new(out_tx_iface);
+        tx_monitor          = new(out_tx_iface);
+
+        rx_send_queue       = '{};
+        rx_recv_bit_queue   = '{};
+        rx_recv_byte_queue  = '{};
+        tx_send_queue       = '{};
+        tx_recv_queue       = '{};
+
+        rx_driver.start         (rx_send_queue);
+        rx_bit_monitor.start    (rx_recv_bit_queue);
+        rx_byte_monitor.start   (rx_recv_byte_queue);
+        tx_source_driver.start  (tx_send_queue);
+        tx_sink_driver.start    ();
+        tx_monitor.start        (tx_recv_queue);
 
         pause_n_synchronised    = 1'b1;
         tx_append_crc           = 1'b0;
-
-        /* rx_sink_bits.enable_expected_checking(1'b0);
-        rx_sink_bytes.enable_expected_checking(1'b0);
-        rx_sink_bits.enable_receive_queue(1'b1);
-        rx_sink_bytes.enable_receive_queue(1'b1); */
 
         // reset for 5 ticks
         rst_n <= 1'b0;
@@ -286,22 +346,39 @@ module framing_tb;
         // 1) rx + CRC
         $display("Testing Rx + CRC");
         repeat (1000) send_rx_frame($urandom_range(1, 10) * 8);
+
         // 2) rx ending in partial byte (no CRC)
         $display("Testing Rx ending with partial bytes");
         repeat (1000) send_rx_frame(($urandom_range(1, 10) * 8) + $urandom_range(1, 7));
+
         // 3) rx + CRC corrupted (bits and bytes)
         $display("Testing Rx + CRC with corrupted data");
-        repeat (1000) send_rx_frame($urandom_range(1, 10) * 8, 1'b1);
+        repeat (1000) send_rx_frame($urandom_range(1, 10) * 8, RxErrorType_CORRUPT_DATA);
 
-        // 4) tx without CRC (partial bytes + whole bytes)
+        // 4) rx with a flipped parity bit
+        $display("Testing Rx with a flipped parity bit");
+        repeat (1000) send_rx_frame($urandom_range(8, 80), RxErrorType_FLIPPED_PARITY);
+
+        // 5) rx with missing last parity bit
+        $display("Testing Rx with a missing last parity bit");
+        repeat (1000) send_rx_frame($urandom_range(1, 10)*8, RxErrorType_MISSING_LAST_PARITY);
+
+        // 6) rx with input errors
+        $display("Testing Rx with input errors");
+        repeat (1000) send_rx_frame($urandom_range(1, 80), RxErrorType_INPUT_ERROR);
+
+        // prepare for Tx by sending a small valid Rx frame, so that last_rx_bit will be correct
+        send_rx_frame(1);
+
+        // 7) tx without CRC (partial bytes + whole bytes)
         $display("Testing Tx without CRC");
-        repeat (1000) send_tx_frame(($urandom_range(0, 10) * 8) + $urandom_range(0, 7), 1'b0);
+        repeat (1000) send_tx_frame($urandom_range(1, 80), 1'b0);
 
-        // 5) tx with CRC
+        // 8) tx with CRC
         $display("Testing Tx + CRC");
         repeat (1000) send_tx_frame(($urandom_range(1, 10) * 8), 1'b1);
 
-        // 6) FDT time
+        // 9) FDT time
         // note that we test the FDT time in all the above cases too
         // but since we do all the Rx and then all the Tx, rx_last_bit is constant (per sim)
         // so we don another 1000 runs here, where rx_last_bit should toggle randomly
