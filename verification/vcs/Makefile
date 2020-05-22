@@ -90,15 +90,25 @@ TB_BFM_SRCS =	$(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/pkg/*.sv) 							\
 				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/transactions/rx_bit_transaction.sv		\
 				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/transactions/rx_byte_transaction.sv		\
 				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/transactions/pcd_pause_n_transaction.sv	\
+				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/transactions/tx_bit_transaction.sv		\
+				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/transactions/tx_byte_transaction.sv		\
 				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/drivers/driver.sv 						\
 				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/drivers/rx_iface_driver.sv 				\
 				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/drivers/rx_bit_iface_driver.sv			\
 				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/drivers/rx_byte_iface_driver.sv			\
+				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/drivers/tx_iface_source_driver.sv 		\
+				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/drivers/tx_bit_iface_source_driver.sv	\
+				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/drivers/tx_byte_iface_source_driver.sv	\
+				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/drivers/tx_iface_sink_driver.sv			\
 				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/drivers/pcd_pause_n_driver.sv			\
 				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/monitors/monitor.sv 						\
 				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/monitors/rx_iface_monitor.sv 			\
 				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/monitors/rx_bit_iface_monitor.sv			\
 				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/monitors/rx_byte_iface_monitor.sv		\
+				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/monitors/tx_iface_monitor.sv 			\
+				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/monitors/tx_bit_iface_monitor.sv			\
+				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/monitors/tx_byte_iface_monitor.sv		\
+				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/monitors/load_modulator_monitor.sv		\
 				$(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/bfms/analogue/*.sv)
 
 TB_SRCS	=	$(TB_BFM_SRCS)											\
