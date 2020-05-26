@@ -87,6 +87,13 @@ interface rx_interface
     // ------------------------------------------------------------------------
     // only for use in testbenches
 
+    function string to_string;
+        string s;
+        s = $sformatf("{soc: %b, eoc: %b, data_valid: %b, data_bits: %d, data: %x, error: %b}",
+                      soc, eoc, data_valid, data_bits, data, error);
+        return s;
+    endfunction
+
     generate
         if (USE_ASSERTS) begin: useAsserts
             function logic validate;
