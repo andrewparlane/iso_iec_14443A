@@ -32,23 +32,27 @@ module initialisation_tb
 
     // How many UID bits are variable (via the uid input port)?
     // defaults such that UID_FIXED has 2 bits
-    parameter int UID_INPUT_BITS  = ISO14443A_pkg::get_uid_bits(init_comms_pkg::get_uid_size(UID_SIZE_CODE)) - 2,
+    parameter int UID_INPUT_BITS  = ISO14443A_pkg::get_uid_bits(get_uid_size(UID_SIZE_CODE)) - 2,
 
     // don't overwrite this
-    parameter int UID_FIXED_BITS  = ISO14443A_pkg::get_uid_bits(init_comms_pkg::get_uid_size(UID_SIZE_CODE)) - UID_INPUT_BITS,
+    parameter int UID_FIXED_BITS  = ISO14443A_pkg::get_uid_bits(get_uid_size(UID_SIZE_CODE)) - UID_INPUT_BITS,
 
     // The fixed bits of the UID (defaults to 0)
     parameter logic [UID_FIXED_BITS-1:0]    UID_FIXED       = '0
 );
 
-    import init_comms_pkg::init_comms_class;
+    function ISO14443A_pkg::UIDSize get_uid_size (int code);
+        return (code == 0) ? ISO14443A_pkg::UIDSize_SINGLE :
+               (code == 1) ? ISO14443A_pkg::UIDSize_DOUBLE :
+                             ISO14443A_pkg::UIDSize_TRIPLE;
+    endfunction
 
     // --------------------------------------------------------------
     // Ports to DUT
     // all named the same as in the DUT, so I can use .*
     // --------------------------------------------------------------
 
-    localparam ISO14443A_pkg::UIDSize UID_SIZE = init_comms_pkg::get_uid_size(UID_SIZE_CODE);
+    localparam ISO14443A_pkg::UIDSize UID_SIZE = get_uid_size(UID_SIZE_CODE);
 
     logic                       clk;
     logic                       rst_n;
@@ -92,28 +96,74 @@ module initialisation_tb
     dut (.*);
 
     // --------------------------------------------------------------
-    // The source for the rx_iface
+    // UID
     // --------------------------------------------------------------
 
-    rx_interface_source rx_source
-    (
-        .clk    (clk),
-        .iface  (rx_iface_bits)
-    );
+    // our UID class instance
+    uid_pkg::FixedSizeUID
+    #(
+        .UID_SIZE       (UID_SIZE),
+        .UID_FIXED_BITS (UID_FIXED_BITS),
+        .UID_FIXED      (UID_FIXED)
+    ) picc_uid;
+
+    // updated manually when we change picc_uid, it'd be nice to automate this
+    logic [ISO14443A_pkg::get_uid_bits(UID_SIZE)-1:0] full_uid;
+
+    // assign the variable part of the UID from the full UID (this goes to the DUT)
+    assign uid_variable = full_uid[UID_INPUT_BITS-1:0];
 
     // --------------------------------------------------------------
-    // The sink for the tx_iface
+    // The driver / queue for the rx_iface_bits
     // --------------------------------------------------------------
 
-    tx_interface_sink tx_sink
-    (
-        .clk    (clk),
-        .iface  (tx_iface)
-    );
+    // driver
+    typedef rx_bit_iface_driver_pkg::RxBitIfaceDriver                   RxDriverType;
+    RxDriverType                                                        driver;
+
+    // The transaction generator
+    typedef rx_bit_transaction_pkg::RxBitTransaction                    RxTransType;
+    typedef rx_bit_transaction_generator_pkg::RxBitTransactionGenerator RxTransGenType;
+    RxTransGenType                                                      rx_trans_gen;
+
+    // the send queue
+    typedef RxTransType                                                 RxTransQueueType [$];
+    typedef wrapper_pkg::Wrapper #(.Type(RxTransQueueType))             RxQueueWrapperType;
+    RxQueueWrapperType                                                  send_queue;
+
+    // --------------------------------------------------------------
+    // The monitor for the tx_iface
+    // --------------------------------------------------------------
+
+    // monitor
+    typedef tx_byte_iface_monitor_pkg::TxByteIfaceMonitor                   TxMonitorType;
+    TxMonitorType                                                           monitor;
+
+    // Transaction generator
+    typedef tx_byte_transaction_pkg::TxByteTransaction                      TxTransType;
+    typedef tx_byte_transaction_generator_pkg::TxByteTransactionGenerator   TxTransGenType;
+    TxTransGenType                                                          tx_trans_gen;
+
+    // and the recv_queue
+    typedef TxTransType                                                     TxTransQueueType [$];
+    typedef wrapper_pkg::Wrapper #(.Type(TxTransQueueType))                 TxQueueWrapperType;
+    TxQueueWrapperType                                                      recv_queue;
+
+    // sink driver
+    tx_iface_sink_driver_pkg::TxByteIfaceSinkDriver                         sink_driver;
+
+    // --------------------------------------------------------------
+    // Clock generator
+    // --------------------------------------------------------------
+
+    clock_source clock_source_inst (.*);
 
     // --------------------------------------------------------------
     // The deserialiser as the source of the rx_iface_bytes
     // --------------------------------------------------------------
+    // we want the bits and bytes going into initialisation comms
+    // to match up. I could tweak the timings of an rx_byte_driver,
+    // but this seems easier, and matches how the DUT will be used
 
     deserialiser ds_inst
     (
@@ -124,120 +174,223 @@ module initialisation_tb
         .out_iface  (rx_iface)
     );
 
-    // --------------------------------------------------------------
-    // Clock generator
-    // --------------------------------------------------------------
+    // ----------------------------------------------------------------
+    // Extend CommsTestsSequence to do TB specific stuff
+    // ----------------------------------------------------------------
 
-    // Calculate our clock period in ps
-    localparam CLOCK_FREQ_HZ = 13560000; // 13.56MHz
-    localparam CLOCK_PERIOD_PS = 1000000000000.0 / CLOCK_FREQ_HZ;
-    initial begin
-        clk = 1'b0;
-        forever begin
-            #(int'(CLOCK_PERIOD_PS/2))
-            clk = ~clk;
-        end
-    end
-
-    // --------------------------------------------------------------
-    // Extend init_comms_pkg::init_comms_class and provide the
-    // testbench specific functions / tasks
-    // --------------------------------------------------------------
-
-    class initialisation_tb_class
+    class InitCommsTbSequence
+    extends comms_tests_sequence_pkg::CommsTestsSequence
     #(
-        // What sized UID do we use?
-        parameter ISO14443A_pkg::UIDSize        UID_SIZE,
-        // How many UID bits are variable?
-        parameter int                           UID_INPUT_BITS,
-        // How many UID bits are fixed?
-        parameter int                           UID_FIXED_BITS,
-        // The fixed bits of the UID (defaults to 0)
-        parameter logic [UID_FIXED_BITS-1:0]    UID_FIXED
-    )
-    extends init_comms_pkg::init_comms_class
-    #(
-        .UID_SIZE           (UID_SIZE),
-        .UID_INPUT_BITS     (UID_INPUT_BITS),
-        .UID_FIXED_BITS     (UID_FIXED_BITS),
-        .UID_FIXED          (UID_FIXED)
+        .RxTransType    (RxTransType),
+        .TxTransType    (TxTransType),
+        .RxDriverType   (RxDriverType),
+        .TxMonitorType  (TxMonitorType)
     );
 
-        task do_reset;
+        logic corrupt_crcs;
+
+        // constructor
+        function new(uid_pkg::UID               _picc_uid,
+                     RxTransGenType             _rx_trans_gen,
+                     TxTransGenType             _tx_trans_gen,
+                     RxQueueWrapperType         _rx_send_queue,
+                     TxQueueWrapperType         _tx_recv_queue,
+                     RxDriverType               _rx_driver,
+                     TxMonitorType              _tx_monitor,
+                     int                        _reply_timeout);
+            super.new(_picc_uid,
+                      _rx_trans_gen,
+                      _tx_trans_gen,
+                      _rx_send_queue,
+                      _tx_recv_queue,
+                      _rx_driver,
+                      _tx_monitor,
+                      _reply_timeout,
+                      100);             // TODO: Run optimised builds and test with more than 100 loops per test
+
+            corrupt_crcs = 1'b0;
+        endfunction
+
+        virtual task do_reset;
             rst_n <= 1'b0;
-            @(posedge clk) begin end
+            repeat (5) @(posedge clk) begin end
             rst_n <= 1'b1;
-            @(posedge clk) begin end
+            repeat (5) @(posedge clk) begin end
         endtask
 
-        task send_frame (MsgFromPCD msg);
-            automatic logic [15:0]  crc = frame_generator_pkg::calculate_crc(msg.data);
-            automatic logic         bits[$];
-            automatic int           error_in_bit = -1;
+        function void sequence_callback(EventCode ec, int arg=0);
+            //$display("callback: %s", ec.name);
 
-            rx_crc_ok <= 1'b0;
+            case (ec)
+                EventCode_SENDING:  begin
+                    // argument is an EventMessageID
+                    automatic EventMessageID    mid             = EventMessageID'(arg);
+                    // sending an Rx message, mark it as CRC OK
+                    // this isn't perfect as it will only be asserted once all the data
+                    // and the CRC have been received, but it's good enough for this test.
+                    // The correct behaviour will be tested in iso14443_3a_tb
+                    automatic logic set_crc = !corrupt_crcs;
 
-            if (msg.add_crc) begin
-                msg.data.push_back(crc[7:0]);
-                msg.data.push_back(crc[15:8]);
-            end
+                    //$display("message: %s", mid.name);
 
-            // get the bits to send
-            bits = frame_generator_pkg::convert_message_to_bit_queue_for_rx(msg.data, msg.bits_in_last_byte);
+                    case (mid)
+                        EventMessageID_REQA:                    rx_crc_ok = 1'b0;
+                        EventMessageID_WUPA:                    rx_crc_ok = 1'b0;
+                        EventMessageID_HLTA:                    rx_crc_ok = set_crc;
+                        EventMessageID_AC:                      rx_crc_ok = 1'b0;
+                        EventMessageID_SELECT:                  rx_crc_ok = set_crc;
+                        EventMessageID_RANDOM_NON_VALID:        rx_crc_ok = set_crc;
+                        EventMessageID_RATS:                    begin
+                            rx_crc_ok           = set_crc;
+                            // Fake the RATS signal from the part4 module
+                            // only valid if the CRC is not corrupt
+                            iso14443_4a_rats    = set_crc;
+                        end
+                        EventMessageID_PPS:                     rx_crc_ok = set_crc;
+                        EventMessageID_STD_S_DESELECT:          rx_crc_ok = set_crc;
+                        EventMessageID_STD_I_BLOCK_CHAINING:    rx_crc_ok = set_crc;
+                        EventMessageID_STD_I_BLOCK_NO_CHAINING: rx_crc_ok = set_crc;
+                        EventMessageID_STD_R_ACK:               rx_crc_ok = set_crc;
+                        EventMessageID_STD_R_NAK:               rx_crc_ok = set_crc;
+                        EventMessageID_STD_S_DESELECT:          rx_crc_ok = set_crc;
+                        EventMessageID_STD_S_PARAMETERS:        rx_crc_ok = set_crc;
+                        default:                                $error("Handle mid: %s", mid.name);
+                    endcase
+                end
+                EventCode_SENT: begin
+                    // clear the rx_crc_ok flag now that we are sent
+                    rx_crc_ok           = 1'b0;
 
-            // add an error?
-            if (msg.add_error) begin
-                error_in_bit = $urandom_range(0, bits.size); // not -1, the last error comes before the EOC
-            end
+                    // clear RATS too if it were set
+                    iso14443_4a_rats    = 1'b0;
+                end
+                EventCode_RECEIVED_OK: begin: ecRecevied
+                    // received a reply from the PICC.
+                    // argument is an EventMessageID
+                    automatic EventMessageID    mid             = EventMessageID'(arg);
+                    automatic logic             crc_expected    = 1'b1;
 
-            rx_source.send_frame(bits, 0, error_in_bit);
+                    //$display("message: %s", mid.name);
 
-            // CRC
-            if (msg.add_crc && !msg.add_error) begin
-                rx_crc_ok <= 1'b1;
-            end
-        endtask
+                    case (mid)
+                        EventMessageID_ATQA: begin
+                            // ATQA does not have a CRC
+                            crc_expected = 1'b0;
+                        end
+                        EventMessageID_AC_REPLY: begin
+                            // AC reply does not have a CRC
+                            crc_expected = 1'b0;
+                        end
+                        EventMessageID_SAK_NOT_COMPLETE:    begin end
+                        EventMessageID_SAK_COMPLETE:        begin end
+                        default: begin
+                            $error("Handle mid: %s", mid.name);
+                        end
+                    endcase
 
-        task recv_frame (output MsgFromPICC msg, input logic expect_timeout=1'b0);
-            // the tx_sink requestes new data every 5 ticks
-            // assuming it takes 20 ticks to start sending (will be less)
-            // max reply is AC reply with NVB = 0x20 -> 4 bytes UID + 1 byte BCC = 40 bits
-            // 40*5 + 20 = 220 ticks
-            // wait 500
-            if (!expect_timeout) begin
-                tx_sink.wait_for_rx_complete(500);
+                    // check the tx_append_crc signal is as expected
+                    // this check isn't good enough as is, since tx_append_crc asserting
+                    // after the frame has been sent out would not append a CRC.
+                    // So we have another assert that checks that tx_append_crc only changes
+                    // on the rising edge of tx_iface.data_valid
+                    crcAsExpecetd: assert (tx_append_crc == crc_expected)
+                        else $error("tx_append_crc %b expected %b after receiving %s",
+                                    tx_append_crc, crc_expected, mid.name);
+                end
+                EventCode_RECEIVED_ERROR: begin
+                    // nothing to do here
+                end
+                default: begin
+                    $error("Handle event: %s", ec.name);
+                end
+            endcase
+        endfunction
+
+        function void specific_target_callback(SpecificTargetEventCode ec, int arg=0);
+            if ((ec == SpecificTargetEventCode_ENTERED_STATE) ||
+                (ec == SpecificTargetEventCode_REMAINING_IN_STATE)) begin
+                automatic State state = State'(arg);
+                //$display("Event Code %s, %s", ec.name, state.name);
+                check_state(state);
             end
             else begin
-                // assume any rx will at least start within 50 ticks
-                repeat (50) @(posedge clk) begin end
+                $error("Unknown event code %s", ec.name);
             end
+        endfunction
 
-            msg.data                = tx_sink.get_and_clear_received_queue();
-            msg.bits_in_first_byte  = tx_sink.get_bits_in_first_byte();
-            msg.has_crc             = tx_append_crc;
-        endtask
+        function void comms_tests_callback(CommsTestsEventCode ec, int arg=0);
+            case (ec)
+                CommsTestsEventCode_SET_CORRUPT_CRC: begin
+                    // since we indicate CRCs are OK with rx_crc_ok we need to note not to do that
+                    // when we are sending corrupt CRCs
+                    corrupt_crcs = arg;
+                end
+                CommsTestsEventCode_SET_DRIVER_ERRORS: begin
+                end
+                default: begin
+                    $error("Unknown event code %s", ec.name);
+                end
+            endcase
+        endfunction
 
         function void check_state (State state);
             case (state)
-                State_IDLE:         isIdle:         assert ((dut.state == dut.State_IDLE)   && !dut.state_star) else $error("DUT not in correct state expected State_IDLE, 0 got %s, %b", dut.state.name, dut.state_star);
-                State_READY:        isReady:        assert ((dut.state == dut.State_READY)  && !dut.state_star) else $error("DUT not in correct state expected State_READY, 0 got %s, %b", dut.state.name, dut.state_star);
-                State_ACTIVE:       isActive:       assert ((dut.state == dut.State_ACTIVE) && !dut.state_star) else $error("DUT not in correct state expected State_ACTIVE, 0 got %s, %b", dut.state.name, dut.state_star);
-                State_HALT:         isHalt:         assert ((dut.state == dut.State_IDLE)   && dut.state_star)  else $error("DUT not in correct state expected State_IDLE, 1 got %s, %b", dut.state.name, dut.state_star);
-                State_READY_STAR:   isReadyStar:    assert ((dut.state == dut.State_READY)  && dut.state_star)  else $error("DUT not in correct state expected State_READY, 1 got %s, %b", dut.state.name, dut.state_star);
-                State_ACTIVE_STAR:  isActiveStar:   assert ((dut.state == dut.State_ACTIVE) && dut.state_star)  else $error("DUT not in correct state expected State_ACTIVE, 1 got %s, %b", dut.state.name, dut.state_star);
-                State_PROTOCOL:     isProtocol:     assert ((dut.state == dut.State_PROTOCOL))                  else $error("DUT not in correct state expected State_PROTOCOL, 1 got %s, %b", dut.state.name, dut.state_star);
+                State_IDLE:                 isIdle:         assert ((dut.state == dut.State_IDLE)   && !dut.state_star) else $error("DUT not in correct state expected State_IDLE, 0 got %s, %b", dut.state.name, dut.state_star);
+                State_READY:                isReady:        assert ((dut.state == dut.State_READY)  && !dut.state_star) else $error("DUT not in correct state expected State_READY, 0 got %s, %b", dut.state.name, dut.state_star);
+                State_ACTIVE:               isActive:       assert ((dut.state == dut.State_ACTIVE) && !dut.state_star) else $error("DUT not in correct state expected State_ACTIVE, 0 got %s, %b", dut.state.name, dut.state_star);
+                State_HALT:                 isHalt:         assert ((dut.state == dut.State_IDLE)   && dut.state_star)  else $error("DUT not in correct state expected State_IDLE, 1 got %s, %b", dut.state.name, dut.state_star);
+                State_READY_STAR:           isReadyStar:    assert ((dut.state == dut.State_READY)  && dut.state_star)  else $error("DUT not in correct state expected State_READY, 1 got %s, %b", dut.state.name, dut.state_star);
+                State_ACTIVE_STAR:          isActiveStar:   assert ((dut.state == dut.State_ACTIVE) && dut.state_star)  else $error("DUT not in correct state expected State_ACTIVE, 1 got %s, %b", dut.state.name, dut.state_star);
+                State_PROTOCOL_PPS_ALLOWED: isProtocol1:    assert ((dut.state == dut.State_PROTOCOL))                  else $error("DUT not in correct state expected State_PROTOCOL, 1 got %s, %b", dut.state.name, dut.state_star);
+                State_PROTOCOL_STD_COMMS:   isProtocol2:    assert ((dut.state == dut.State_PROTOCOL))                  else $error("DUT not in correct state expected State_PROTOCOL, 1 got %s, %b", dut.state.name, dut.state_star);
             endcase
         endfunction
+
+        // override send_rats_verify_reply as nothing responds to the RATS message
+        // we want to send it still as the DUT needs to receive a packet and see the iso14443_4a_rats
+        // signal asserting to transiction into State_PROTOCOL
+        task send_rats_verify_reply(logic [3:0] fsdi, logic [3:0] cid);
+            send_rats(fsdi, cid);
+            verify_no_reply;
+        endtask
+
+        // override send_std_s_deselect_verify_reply as nothing responds to the S(DESELECT) message
+        // we still send it, and verify that the DUT doesn't reply
+        // then we pulse the iso14443_4a_deselect signal. This is how it would work in
+        // the full design.
+        virtual task send_std_s_deselect_verify_reply(std_block_address_pkg::StdBlockAddress addr);
+            send_std_s_deselect(addr);
+            verify_no_reply;
+
+            iso14443_4a_deselect <= 1'b1;
+            @(posedge clk) begin end
+            iso14443_4a_deselect <= 1'b0;
+            @(posedge clk) begin end
+
+            // since the state change happens after the reply has been sent out
+            // we can't check for it during the send_std_s_deselect task as normal
+            // so we do it in the wait_for_and_verify_std_s_deselect() task.
+            // Except we don't call that here, so we need to manually register the state change
+            register_state_change(State_HALT);
+        endtask
+
+        // not used in this test
+        virtual function logic verify_dut_cid(logic [3:0] expected);
+            return 1'b1;
+        endfunction
+
+        // not used in this test
+        virtual function ByteQueue get_std_i_reply_inf(logic [7:0] inf [$]);
+            return '{};
+        endfunction
+
+        // not used in this test
+        virtual protected function void set_power_input(logic [1:0] _power);
+        endfunction
+
     endclass
 
-    initialisation_tb_class
-    #(
-        .UID_SIZE           (UID_SIZE),
-        .UID_INPUT_BITS     (UID_INPUT_BITS),
-        .UID_FIXED_BITS     (UID_FIXED_BITS),
-        .UID_FIXED          (UID_FIXED)
-    )
-    init_tb_class;
+    InitCommsTbSequence seq;
 
     // --------------------------------------------------------------
     // Test stimulus
@@ -247,14 +400,30 @@ module initialisation_tb
         iso14443_4a_deselect    <= 1'b0;
         iso14443_4a_rats        <= 1'b0;
 
-        rx_source.initialise;
-        tx_sink.initialise;
-        tx_sink.enable_expected_checking(1'b0);    // don't use the expected queue here
-        tx_sink.enable_receive_queue(1'b1);        // use the receive queue instead
+        driver          = new(rx_iface_bits);
+        monitor         = new(tx_iface);
+        sink_driver     = new(tx_iface);
 
-        init_tb_class   = new();
+        send_queue      = new('{});
+        recv_queue      = new('{});
 
-        init_tb_class.do_reset;
+        rx_trans_gen    = new(1'b1, 1'b0);  // auto append CRCs, but not parity bits
+        tx_trans_gen    = new(1'b0);        // don't auto add CRCs, we use tx_append_crc here
+
+        picc_uid        = new('x);
+
+        seq             = new(picc_uid,
+                              rx_trans_gen,
+                              tx_trans_gen,
+                              send_queue,
+                              recv_queue,
+                              driver,
+                              monitor,
+                              100);         // longest reply is 5 bytes, sink_driver uses 16 ticks between reqs
+
+        driver.start        (send_queue.data);
+        monitor.start       (recv_queue.data);
+        sink_driver.start   ();
 
         // repeat 10 times with different UIDs
         repeat (10) begin
@@ -262,47 +431,13 @@ module initialisation_tb
             //       For when running initialisation_tb_actual with UID_INPUT_BITS being small
 
             // randomise the variable part of the UID
-            uid_variable = init_tb_class.randomise_uid;
-            $display("UID_SIZE: %s, UID_INPUT_BITS: %d, UID_FIXED: 'b%b, Our UID: %h",
-                     UID_SIZE.name, UID_INPUT_BITS, UID_FIXED, init_tb_class.get_uid);
+            picc_uid.randomize;
+            full_uid = picc_uid.get_uid;
+            $display("NOTE: New UID: %s", picc_uid.to_string);
+            seq.do_reset;
 
-            // Run the normal tests
-            init_tb_class.run_all_initialisation_tests();
-
-            // Test the transitions into and out of the PROTOCOL state
-            $display("Transitions into and out of State_PROTOCOL");
-            repeat (1000) begin
-                // check we can get into the PROTOCOL state by asserting iso14443_4a_rats
-                // after sending a message from the ACTIVE / ACTIVE_STAR state.
-                init_tb_class.go_to_state(1'($urandom) ? init_tb_class.State_ACTIVE
-                                                       : init_tb_class.State_ACTIVE_STAR);
-                // the actual RATS message is handled in the iso14443_4a module
-                // all we care about here is that a message was recieved and the
-                // iso14443_4a_rats signal is asserted
-                init_tb_class.send_random;
-                iso14443_4a_rats <= 1'b1;
-                repeat (5) @(posedge clk) begin end
-                iso14443_4a_rats <= 1'b0;
-                init_tb_class.check_state(init_tb_class.State_PROTOCOL);
-
-                // check that there's no reply / state change to any message now
-                repeat (10) begin
-                    init_tb_class.send_msg(.REQA      (1'b1), .WUPA      (1'b1), .HLTA  (1'b1),
-                                           .AC        (1'b1), .nAC       (1'b1),
-                                           .SELECT    (1'b1), .nSELECT   (1'b1),
-                                           .random    (1'b1), .error     (1'b1));
-                    init_tb_class.check_no_reply;
-                    init_tb_class.check_state(init_tb_class.State_PROTOCOL);
-                end
-
-                // check that we can exit this state by asserting iso14443_4a_deselect
-                iso14443_4a_deselect <= 1'b1;
-                @(posedge clk) begin end
-                iso14443_4a_deselect <= 1'b0;
-
-                init_tb_class.check_no_reply;
-                init_tb_class.check_state(init_tb_class.State_HALT);
-            end
+            // Run the tests
+            seq.run_all_initialisation_tests();
         end
 
         repeat (5) @(posedge clk) begin end
@@ -326,6 +461,13 @@ module initialisation_tb
         @(posedge clk)
         $rose(rx_iface.soc) |=> !tx_iface.data_valid throughout rx_iface.eoc[->1])
         else $error("tx_iface.data_valid asserted during Rx");
+
+    // tx_append_crc should only change on the rising edge of tx_iface.data_valid
+    txAppendCRCOnlyOnPosedgeDataValid:
+    assert property (
+        @(posedge clk)
+        !$stable(tx_append_crc) |-> $rose(tx_iface.data_valid))
+        else $error("tx_append_crc changed not on a rising edge of tx_iface.data_valid");
 
     // check tag_active when the tag is in the active state
     tagActive:
