@@ -77,7 +77,7 @@ module sequence_decode
     // ---------------------------------------------------------------------
     //      IDLE        pause       N/A             N/A         |   Z (SOC)
     //
-    //      X           pause       23              58          |   ERROR   (note: this is Z -> Z, but that's not valid)
+    //      X           pause       23              58          |   ERROR   (note: this is X -> Z, but that's not valid)
     //      X           pause       87              122         |   X
     //      X           timeout     132                         |   Y
     //
