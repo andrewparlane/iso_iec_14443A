@@ -153,7 +153,8 @@ TBS		= sequence_decode_tb 			\
 		  initialisation_tb				\
 		  routing_tb					\
 		  iso14443_3a_tb				\
-		  iso14443_4a_tb
+		  iso14443_4a_tb				\
+		  iso14443a_top_tb
 
 # This is for TBs that need to do something custom, it's only used for list_tbs
 CUSTOM_TBS	= initialisation_tb_uid_single	\
