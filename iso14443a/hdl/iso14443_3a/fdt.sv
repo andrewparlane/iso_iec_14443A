@@ -48,7 +48,7 @@ module fdt
     //      parameter real TRIGGER_TO_MODULATION_EDGE_PS
     // specifically:
     //      parameter int TIMING_ADJUST = $rtoi((PCD_PAUSE_N_TO_SYNCHRONISED_PS +
-    //                                           TRIGGER_TO_MODULATION_EDGE_PS) / CLOCK_PERIOD_PS);
+    //                                           TRIGGER_TO_MODULATION_EDGE_PS) / MAX_CLOCK_PERIOD_PS);
 
     // PCD_PAUSE_N_TO_SYNCHRONISED_PS: This should be the time in ps between the start of
     // the rising edge of the analogue RF signal (see small circles in Figure 3 of
@@ -62,9 +62,12 @@ module fdt
 
     // TRIGGER_TO_MODULATION_EDGE_PS: This should be the time in ps between the rising edge
     // of the trigger output (of this module) and the load modulation activing.
-    // This is probably dominated by the frame_encode and x modules, (one tick to see the trigger,
-    // one tick to see the data_valid signal one tick to assert the output data.
-    // But there will be a slight delay due to the output buffering and in the AFE before
+    // This is probably dominated by internal delays in this IP core:
+    //      frame_encode:   out_iface.data_valid asserts 1 tick after fdt_trigger asserts
+    //      tx:             en asserts 1 tick after in_iface.data_valid asserts
+    //      bit_encode:     encoded_data asserts 1 tick after en asserts.
+    //      tx:             tx_out asserts 1 tick after encoded_data asserts
+    // But there will also be some delay due to output buffering and in the AFE before
     // the load modulation circuit activates.
 
     // Note: We can NOT trigger early, but we have a fair bit of leeway to trigger late.
@@ -74,6 +77,8 @@ module fdt
     //       Remember that the our clock can be 180 degrees out of phase with the PCD's clock
     //       depending on how long the pauses are and when the clock generator stops / starts
     //       producing the clock. So we should check both options and pick the smallest.
+    //       We also must use the MAX possible clock period since we don't know what the actual
+    //       input clock will be. That is 1/(13.56MHz - 7KHz).
 
     // TODO: We should run gate level simulations of the AFE + synchroniser.
     // TODO: We should run gate level simulations of the output buffer + AFE
