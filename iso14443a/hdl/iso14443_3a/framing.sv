@@ -26,7 +26,8 @@
 module framing
 #(
     // see fdt.sv
-    // we have already accounted for the time it takes between fdt_trigger firing and data_valid asserting
+    // we have already accounted for the time it takes between fdt_trigger firing
+    // and out_iface.data_valid asserting in the parameter passed to the fdt module
     parameter int FDT_TIMING_ADJUST
 )
 (
@@ -113,7 +114,8 @@ module framing
     logic fdt_trigger;
     fdt
     #(
-        // we use +1 because it takes one tick to see the FDT trigger before we assert data_valid
+        // we use +1 because it takes the frame_encode module one tick to see the
+        // FDT trigger before it asserts out_iface.data_valid
         .TIMING_ADJUST          (FDT_TIMING_ADJUST + 1)
     )
     fdt_inst
