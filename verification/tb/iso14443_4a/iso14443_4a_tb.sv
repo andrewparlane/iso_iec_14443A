@@ -128,7 +128,7 @@ module iso14443_4a_tb;
     // however we have no way to know when it will be the last data byte
     // so we set it on all data byte. This ensures it's set in the frame
     logic set_rx_crc_ok;
-    always @(posedge rx_iface.data_valid, negedge rst_n) begin
+    always_ff @(posedge rx_iface.data_valid, negedge rst_n) begin
         if (!rst_n) begin
             rx_crc_ok <= 1'b0;
         end
