@@ -39,8 +39,9 @@ module tx
     // data to send
     tx_interface.in_bit     in_iface,
 
-    // the Tx output signal is the manchester encoded data AND'ed with the subcarrier
-    output logic            tx_out
+    // the lm_out signal is the manchester encoded data AND'ed with the subcarrier
+    // which is sent to the load modulator
+    output logic            lm_out
 );
 
     enum
@@ -144,10 +145,10 @@ module tx
     // We register the output to prevent glitches reaching the load modulator
     always_ff @(posedge clk, negedge rst_n) begin
         if (!rst_n) begin
-            tx_out <= 1'b0;
+            lm_out <= 1'b0;
         end
         else begin
-            tx_out <= subcarrier & encoded_data;
+            lm_out <= subcarrier & encoded_data;
         end
     end
 

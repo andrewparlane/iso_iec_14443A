@@ -66,7 +66,7 @@ module fdt
     //      frame_encode:   out_iface.data_valid asserts 1 tick after fdt_trigger asserts
     //      tx:             en asserts 1 tick after in_iface.data_valid asserts
     //      bit_encode:     encoded_data asserts 1 tick after en asserts.
-    //      tx:             tx_out asserts 1 tick after encoded_data asserts
+    //      tx:             lm_out asserts 1 tick after encoded_data asserts
     // But there will also be some delay due to output buffering and in the AFE before
     // the load modulation circuit activates.
 

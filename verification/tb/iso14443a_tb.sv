@@ -70,9 +70,9 @@ module iso14443a_tb
     // I picked the minimum value here, as laid out in the comments in iso14443a.sv and fdt.sv
     // in reguards to the FDT_TIMING_ADJUST parameter
     localparam real PCD_PAUSE_N_TO_SYNCHRONISED_PS  = 258111;
-    localparam real TX_OUT_TO_MODULATION_EDGE_PS    = 0.0;  // we don't yet simulate any delays on the output
+    localparam real LM_OUT_TO_MODULATION_EDGE_PS    = 0.0;  // we don't yet simulate any delays on the output
     localparam int  FDT_TIMING_ADJUST               = $rtoi((PCD_PAUSE_N_TO_SYNCHRONISED_PS +
-                                                             TX_OUT_TO_MODULATION_EDGE_PS) /
+                                                             LM_OUT_TO_MODULATION_EDGE_PS) /
                                                             MAX_CLOCK_PERIOD_PS);
 
     // --------------------------------------------------------------
@@ -96,7 +96,7 @@ module iso14443a_tb
 
     logic [1:0]                 power_async;
     logic                       pause_n_async;
-    logic                       tx_out;
+    logic                       lm_out;
 
     rx_interface #(.BY_BYTE(1)) app_rx_iface (.*);
     tx_interface #(.BY_BYTE(1)) app_tx_iface (.*);
@@ -193,7 +193,7 @@ module iso14443a_tb
     AppTxTransType                                                          app_tx_send_queue [$];
 
     // --------------------------------------------------------------
-    // The monitor for the tx_out (load modulator) signal
+    // The monitor for the lm_out (load modulator) signal
     // --------------------------------------------------------------
 
     // monitor (produces TxBitTransactions)
@@ -212,7 +212,7 @@ module iso14443a_tb
 
     // interface
     load_modulator_iface                                                    lm_iface (.*);
-    assign lm_iface.lm = tx_out;
+    assign lm_iface.lm = lm_out;
 
     // --------------------------------------------------------------
     // FDT verification
@@ -239,13 +239,13 @@ module iso14443a_tb
             automatic longint expected;
 
             // wait for the start of the next Rx frame
-            // this ensure we don't check the fdt time on any tx_out pulses other than the first
+            // this ensure we don't check the fdt time on any lm_out pulses other than the first
             @(posedge pcd_pause_n) begin end
 
             // wait for the start of the reply
             // it doesn't matter if there was no reply to a message, we just get here on the next
             // actual reply. lastPCDPauseRise has been updated for the last rise of the last rx message
-            @(posedge tx_out) begin end
+            @(posedge lm_out) begin end
 
             diff        = $time - lastPCDPauseRiseTime;
             expected    = CLOCK_PERIOD_PS * (last_rx_bit ? FDT_LAST_BIT_1 : FDT_LAST_BIT_0);

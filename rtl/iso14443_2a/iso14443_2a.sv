@@ -46,8 +46,9 @@ module iso14443_2a
     rx_interface.out_bit    rx_iface,
     tx_interface.in_bit     tx_iface,
 
-    // tx_out is the manchester encoded data AND'ed with the subcarrier
-    output logic            tx_out
+    // lm_out is the manchester encoded data AND'ed with the subcarrier
+    // which is sent to the load modulator
+    output logic            lm_out
 );
 
     sequence_decode sd_inst
@@ -67,7 +68,7 @@ module iso14443_2a
 
         .in_iface               (tx_iface),
 
-        .tx_out                 (tx_out)
+        .lm_out                 (lm_out)
     );
 
 endmodule
