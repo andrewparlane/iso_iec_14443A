@@ -1,5 +1,5 @@
 /***********************************************************************
-        File: iso14443a_top.sv
+        File: iso14443a.sv
  Description: Top Level module for the ISO 14443A IP core
       Author: Andrew Parlane
 **********************************************************************/
@@ -25,7 +25,7 @@
 
 // SDC: create_clock - 13.56MHz +/- 7KHz + extra jitter?
 
-module iso14443a_top
+module iso14443a
 #(
     // Are we using single, double or triple UIDs
     parameter ISO14443A_pkg::UIDSize                                            UID_SIZE,

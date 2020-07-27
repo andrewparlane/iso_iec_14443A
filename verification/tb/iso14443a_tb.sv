@@ -1,6 +1,6 @@
 /***********************************************************************
-        File: iso14443a_top_tb.sv
- Description: Testbench for the iso14443a_top module.
+        File: iso14443a_tb.sv
+ Description: Testbench for the iso14443a module.
       Author: Andrew Parlane
 **********************************************************************/
 
@@ -23,7 +23,7 @@
 
 `timescale 1ps/1ps
 
-module iso14443a_top_tb
+module iso14443a_tb
 #(
     // can't work out how to change enum parameters via command line arguments
     // use integers instead
@@ -67,7 +67,7 @@ module iso14443a_top_tb
 
     // this was measured in simulation using the above values.
     // Since the PICC clock can be in phase or 180 degrees out of phase from the PCD clock
-    // I picked the minimum value here, as laid out in the comments in iso14443a_top.sv and fdt.sv
+    // I picked the minimum value here, as laid out in the comments in iso14443a.sv and fdt.sv
     // in reguards to the FDT_TIMING_ADJUST parameter
     localparam real PCD_PAUSE_N_TO_SYNCHRONISED_PS  = 258111;
     localparam real TX_OUT_TO_MODULATION_EDGE_PS    = 0.0;  // we don't yet simulate any delays on the output
@@ -106,7 +106,7 @@ module iso14443a_top_tb
     // DUT
     // --------------------------------------------------------------
 
-    iso14443a_top
+    iso14443a
     #(
         .UID_SIZE           (UID_SIZE),
         .UID_INPUT_BITS     (UID_INPUT_BITS),
@@ -270,7 +270,7 @@ module iso14443a_top_tb
 
     logic expect_app_resend_last;
 
-    class ISO14443a_TopTbSequence
+    class ISO14443a_TbSequence
     extends comms_tests_sequence_pkg::CommsTestsSequence
     #(
         .RxTransType    (RxTransType),
@@ -552,7 +552,7 @@ module iso14443a_top_tb
         endtask
     endclass
 
-    ISO14443a_TopTbSequence seq;
+    ISO14443a_TbSequence seq;
 
     // --------------------------------------------------------------
     // Test stimulus
