@@ -5,7 +5,7 @@
 ************************************************************************/
 
 /*
- * This file is part of https://github.com/andrewparlane/fiuba_thesis/blob/master/LICENSE
+ * This file is part of https://github.com/andrewparlane/iso_iec_14443A
  * Copyright (c) 2020 Andrew Parlane.
  *
  * This is free software: you can redistribute it and/or modify it under
