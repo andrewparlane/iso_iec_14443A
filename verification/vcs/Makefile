@@ -70,6 +70,7 @@ ROOT_DIR		= ../..
 # relative to ROOT_DIR
 SRC_DIR			= iso14443a/hdl
 PKG_DIR			= $(SRC_DIR)/pkg
+BFM_SRC_DIR		= verification/bfms
 TB_SRC_DIR		= verification/tb
 VCS_DIR			= verification/vcs
 
@@ -82,56 +83,55 @@ SYNTH_SRCS	= 	$(wildcard $(ROOT_DIR)/$(PKG_DIR)/*.sv) 			\
 				$(wildcard $(ROOT_DIR)/$(SRC_DIR)/*.sv)
 
 # TODO: write a script to find all files and put them in the correct order
-TB_BFM_SRCS =	$(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/pkg/*.sv) 												\
-				$(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/bfms/interfaces/*.sv) 									\
-				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/helper/wrapper.sv											\
-				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/helper/uid.sv												\
-				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/helper/std_block_address.sv									\
-				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/helper/target.sv												\
-				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/transactions/transaction.sv									\
-				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/transactions/queue_transaction.sv							\
-				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/transactions/rx_bit_transaction.sv							\
-				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/transactions/rx_byte_transaction.sv							\
-				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/transactions/pcd_pause_n_transaction.sv						\
-				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/transactions/tx_bit_transaction.sv							\
-				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/transactions/tx_byte_transaction.sv							\
-				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/transaction_generators/transaction_generator.sv				\
-				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/transaction_generators/rx_transaction_generator.sv			\
-				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/transaction_generators/rx_byte_transaction_generator.sv		\
-				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/transaction_generators/rx_bit_transaction_generator.sv		\
-				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/transaction_generators/rx_pause_transaction_generator.sv		\
-				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/transaction_generators/tx_transaction_generator.sv			\
-				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/transaction_generators/tx_byte_transaction_generator.sv		\
-				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/transaction_generators/tx_bit_transaction_generator.sv		\
-				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/sequences/sequence.sv										\
-				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/sequences/specific_target_sequence.sv						\
-				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/sequences/comms_tests_sequence.sv							\
-				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/drivers/driver.sv 											\
-				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/drivers/rx_iface_driver.sv 									\
-				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/drivers/rx_bit_iface_driver.sv								\
-				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/drivers/rx_byte_iface_driver.sv								\
-				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/drivers/tx_iface_source_driver.sv 							\
-				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/drivers/tx_bit_iface_source_driver.sv						\
-				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/drivers/tx_byte_iface_source_driver.sv						\
-				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/drivers/tx_iface_sink_driver.sv								\
-				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/drivers/pcd_pause_n_driver.sv								\
-				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/monitors/monitor.sv 											\
-				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/monitors/rx_iface_monitor.sv 								\
-				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/monitors/rx_bit_iface_monitor.sv								\
-				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/monitors/rx_byte_iface_monitor.sv							\
-				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/monitors/tx_iface_monitor.sv 								\
-				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/monitors/tx_bit_iface_monitor.sv								\
-				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/monitors/tx_byte_iface_monitor.sv							\
-				$(ROOT_DIR)/$(TB_SRC_DIR)/bfms/monitors/load_modulator_monitor.sv							\
-				$(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/bfms/analogue/*.sv)
+TB_BFM_SRCS =	$(wildcard $(ROOT_DIR)/$(BFM_SRC_DIR)/interfaces/*.sv) 									\
+				$(ROOT_DIR)/$(BFM_SRC_DIR)/helper/wrapper.sv											\
+				$(ROOT_DIR)/$(BFM_SRC_DIR)/helper/uid.sv												\
+				$(ROOT_DIR)/$(BFM_SRC_DIR)/helper/std_block_address.sv									\
+				$(ROOT_DIR)/$(BFM_SRC_DIR)/helper/target.sv												\
+				$(ROOT_DIR)/$(BFM_SRC_DIR)/transactions/transaction.sv									\
+				$(ROOT_DIR)/$(BFM_SRC_DIR)/transactions/queue_transaction.sv							\
+				$(ROOT_DIR)/$(BFM_SRC_DIR)/transactions/rx_bit_transaction.sv							\
+				$(ROOT_DIR)/$(BFM_SRC_DIR)/transactions/rx_byte_transaction.sv							\
+				$(ROOT_DIR)/$(BFM_SRC_DIR)/transactions/pcd_pause_n_transaction.sv						\
+				$(ROOT_DIR)/$(BFM_SRC_DIR)/transactions/tx_bit_transaction.sv							\
+				$(ROOT_DIR)/$(BFM_SRC_DIR)/transactions/tx_byte_transaction.sv							\
+				$(ROOT_DIR)/$(BFM_SRC_DIR)/transaction_generators/transaction_generator.sv				\
+				$(ROOT_DIR)/$(BFM_SRC_DIR)/transaction_generators/rx_transaction_generator.sv			\
+				$(ROOT_DIR)/$(BFM_SRC_DIR)/transaction_generators/rx_byte_transaction_generator.sv		\
+				$(ROOT_DIR)/$(BFM_SRC_DIR)/transaction_generators/rx_bit_transaction_generator.sv		\
+				$(ROOT_DIR)/$(BFM_SRC_DIR)/transaction_generators/rx_pause_transaction_generator.sv		\
+				$(ROOT_DIR)/$(BFM_SRC_DIR)/transaction_generators/tx_transaction_generator.sv			\
+				$(ROOT_DIR)/$(BFM_SRC_DIR)/transaction_generators/tx_byte_transaction_generator.sv		\
+				$(ROOT_DIR)/$(BFM_SRC_DIR)/transaction_generators/tx_bit_transaction_generator.sv		\
+				$(ROOT_DIR)/$(BFM_SRC_DIR)/sequences/sequence.sv										\
+				$(ROOT_DIR)/$(BFM_SRC_DIR)/sequences/specific_target_sequence.sv						\
+				$(ROOT_DIR)/$(BFM_SRC_DIR)/sequences/comms_tests_sequence.sv							\
+				$(ROOT_DIR)/$(BFM_SRC_DIR)/drivers/driver.sv 											\
+				$(ROOT_DIR)/$(BFM_SRC_DIR)/drivers/rx_iface_driver.sv 									\
+				$(ROOT_DIR)/$(BFM_SRC_DIR)/drivers/rx_bit_iface_driver.sv								\
+				$(ROOT_DIR)/$(BFM_SRC_DIR)/drivers/rx_byte_iface_driver.sv								\
+				$(ROOT_DIR)/$(BFM_SRC_DIR)/drivers/tx_iface_source_driver.sv 							\
+				$(ROOT_DIR)/$(BFM_SRC_DIR)/drivers/tx_bit_iface_source_driver.sv						\
+				$(ROOT_DIR)/$(BFM_SRC_DIR)/drivers/tx_byte_iface_source_driver.sv						\
+				$(ROOT_DIR)/$(BFM_SRC_DIR)/drivers/tx_iface_sink_driver.sv								\
+				$(ROOT_DIR)/$(BFM_SRC_DIR)/drivers/pcd_pause_n_driver.sv								\
+				$(ROOT_DIR)/$(BFM_SRC_DIR)/monitors/monitor.sv 											\
+				$(ROOT_DIR)/$(BFM_SRC_DIR)/monitors/rx_iface_monitor.sv 								\
+				$(ROOT_DIR)/$(BFM_SRC_DIR)/monitors/rx_bit_iface_monitor.sv								\
+				$(ROOT_DIR)/$(BFM_SRC_DIR)/monitors/rx_byte_iface_monitor.sv							\
+				$(ROOT_DIR)/$(BFM_SRC_DIR)/monitors/tx_iface_monitor.sv 								\
+				$(ROOT_DIR)/$(BFM_SRC_DIR)/monitors/tx_bit_iface_monitor.sv								\
+				$(ROOT_DIR)/$(BFM_SRC_DIR)/monitors/tx_byte_iface_monitor.sv							\
+				$(ROOT_DIR)/$(BFM_SRC_DIR)/monitors/load_modulator_monitor.sv							\
+				$(wildcard $(ROOT_DIR)/$(BFM_SRC_DIR)/analogue/*.sv)
 
-TB_SRCS	=	$(TB_BFM_SRCS)											\
-			$(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/*.sv) 				\
+TB_SRCS	=	$(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/*.sv) 				\
 			$(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/iso14443_2a/*.sv) 	\
 			$(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/iso14443_3a/*.sv)	\
 			$(wildcard $(ROOT_DIR)/$(TB_SRC_DIR)/iso14443_4a/*.sv)
 
-SRCS	= 	$(SYNTH_SRCS) \
+SRCS	= 	$(SYNTH_SRCS)	\
+			$(TB_BFM_SRCS)	\
 			$(TB_SRCS)
 
 # testbenches
