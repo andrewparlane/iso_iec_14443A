@@ -59,8 +59,8 @@ module iso14443a
     //                                       otherwise it's between 1 and 2 ticks after the end
     //                                       of pause is detected.
     //
-    //      TX_OUT_TO_MODULATION_EDGE_PS   - This should be the time in ps between the rising edge of
-    //                                       the tx_out signal and the load modulator activating.
+    //      LM_OUT_TO_MODULATION_EDGE_PS   - This should be the time in ps between the rising edge of
+    //                                       the lm_out signal and the load modulator activating.
     //                                       Which includes any output buffering, and propagation delays
     //                                       in the analogue front end.
     //
@@ -71,7 +71,7 @@ module iso14443a
     // clock period and rounded DOWN. (MAX clock period and rounded DOWN, due to the same reason as
     // above).
     //
-    // FDT_TIMING_ADJUST = $rtoi((PCD_PAUSE_N_TO_SYNCHRONISED_PS + TX_OUT_TO_MODULATION_EDGE_PS)
+    // FDT_TIMING_ADJUST = $rtoi((PCD_PAUSE_N_TO_SYNCHRONISED_PS + LM_OUT_TO_MODULATION_EDGE_PS)
     //                              / MAX_CLOCK_PERIOD_PS);
     // where MAX_CLOCK_PERIOD_PS is 1/(13.56MHz - 7KHz) = 73,784.4 ps
     //
@@ -115,9 +115,9 @@ module iso14443a
     // This signal is synchronised before use
     input                       pause_n_async,
 
-    // tx_out is the manchester encoded data AND'ed with the subcarrier
+    // lm_out is the manchester encoded data AND'ed with the subcarrier
     // this should be connected to the load modulator
-    output logic                tx_out,
+    output logic                lm_out,
 
     // The interface with the application.
     // The INF field of received STD I-Blocks is forwarded to the app on the app_rx_iface.
@@ -197,7 +197,7 @@ module iso14443a
         .rx_iface               (part2_to_part3_rx_iface),
         .tx_iface               (part3_to_part2_tx_iface),
 
-        .tx_out                 (tx_out)
+        .lm_out                 (lm_out)
     );
 
     // ========================================================================

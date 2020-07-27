@@ -35,8 +35,9 @@ module tx_tb;
 
     tx_interface #(.BY_BYTE(0)) in_iface(.*);
 
-    // the Tx output signal is the manchester encoded data AND'ed with the subcarrier
-    logic       tx_out;
+    // the lm_out signal is the manchester encoded data AND'ed with the subcarrier
+    // which is sent to the load modulator
+    logic       lm_out;
 
     // --------------------------------------------------------------
     // DUT
@@ -56,7 +57,7 @@ module tx_tb;
     TransType send_queue[$];
 
     // --------------------------------------------------------------
-    // The monitor for the load modulator (tx_out)
+    // The monitor for the load modulator (lm_out)
     // --------------------------------------------------------------
 
     // monitor
@@ -67,7 +68,7 @@ module tx_tb;
 
     // interface
     load_modulator_iface lm_iface (.*);
-    assign lm_iface.lm = tx_out;
+    assign lm_iface.lm = lm_out;
 
     // --------------------------------------------------------------
     // Clock generator

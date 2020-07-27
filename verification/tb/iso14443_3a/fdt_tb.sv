@@ -82,7 +82,7 @@ module fdt_tb;
     //       we create a custom interface with two signals (pause_n) and tx_start
     //       and produces an transaction that is the time / ticks between the
     //       last falling edge of the pause_n and the rising edge of the second.
-    //       here we use trigger as tx_start, in other TBs we can use tx_out.
+    //       here we use trigger as tx_start, in other TBs we can use lm_out.
     //       Then we only have to calculate the expected time / ticks and chek the
     //       monitor's recv_queue
 

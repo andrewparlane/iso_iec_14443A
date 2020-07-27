@@ -38,7 +38,7 @@ module iso14443_2a_tb;
     rx_interface #(.BY_BYTE(0)) rx_iface(.*);
     tx_interface #(.BY_BYTE(0)) tx_iface(.*);
 
-    logic       tx_out;
+    logic       lm_out;
 
     // --------------------------------------------------------------
     // DUT
@@ -98,7 +98,7 @@ module iso14443_2a_tb;
 
     // interface
     load_modulator_iface lm_iface (.*);
-    assign lm_iface.lm = tx_out;
+    assign lm_iface.lm = lm_out;
 
     // --------------------------------------------------------------
     // The loopback
