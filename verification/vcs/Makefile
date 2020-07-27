@@ -68,7 +68,7 @@ REMOTE_PATH		= ~/desired/destination
 ROOT_DIR		= ../..
 
 # relative to ROOT_DIR
-SRC_DIR			= iso14443a/hdl
+SRC_DIR			= rtl
 PKG_DIR			= $(SRC_DIR)/pkg
 BFM_SRC_DIR		= verification/bfms
 TB_SRC_DIR		= verification/tb
