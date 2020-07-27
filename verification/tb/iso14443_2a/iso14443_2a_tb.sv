@@ -103,7 +103,7 @@ module iso14443_2a_tb;
     // --------------------------------------------------------------
     // The loopback
     // --------------------------------------------------------------
-    always @(posedge clk, negedge rst_n) begin
+    always_ff @(posedge clk, negedge rst_n) begin
         if (!rst_n) begin
             tx_send_queue = '{};
         end
@@ -125,7 +125,7 @@ module iso14443_2a_tb;
     // --------------------------------------------------------------
     int check_count;
 
-    always @(posedge clk, negedge rst_n) begin: verificationBlock
+    always_ff @(posedge clk, negedge rst_n) begin: verificationBlock
         if (!rst_n) begin
             check_count = 0;
         end
