@@ -39,7 +39,7 @@ module synchroniser
 
     logic [WIDTH-1:0] tmp;
 
-    always @(posedge clk, negedge rst_n) begin
+    always_ff @(posedge clk, negedge rst_n) begin
         if (!rst_n) begin
             tmp <= RESET_VAL;
             q   <= RESET_VAL;
