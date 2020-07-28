@@ -1,4 +1,25 @@
 # ----------------------------------------------------------------------------------
+#        File: Makefile
+# Description: Makefile to build and run testbenches with VCS
+#      Author: Andrew Parlane
+# ----------------------------------------------------------------------------------
+
+# This file is part of https://github.com/andrewparlane/iso_iec_14443a
+# Copyright (c) 2020 Andrew Parlane.
+#
+# This is free software: you can redistribute it and/or modify it under
+# the terms of the GNU General Public License as published by the Free
+# Software Foundation, version 3.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this code. If not, see <http://www.gnu.org/licenses/>.
+
+# ----------------------------------------------------------------------------------
 # Tested with Synopsys VCS on micro0.fi.uba.ar:
 # 	vcs script version : O-2018.09
 #	Compiler version = VCS-MX O-2018.09-SP2_Full64
