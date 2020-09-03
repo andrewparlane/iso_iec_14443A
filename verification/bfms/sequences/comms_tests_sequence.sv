@@ -26,6 +26,7 @@
 package comms_tests_sequence_pkg;
 
     import std_block_address_pkg::StdBlockAddress;
+    import rx_byte_transaction_pkg::RxByteTransaction;
 
     // virtual because the TB must override several functions/tasks:
     //      do_reset
@@ -38,6 +39,13 @@ package comms_tests_sequence_pkg;
         type RxTransType,
         type TxTransType,
 
+        // This must be / extend TransactionGenerator
+        type TransGenType   = transaction_generator_pkg::TransactionGenerator,
+
+        // These must extend TransactionConverter
+        type RxTransConvType,
+        type TxTransConvType,
+
         // This must extend RxDriver
         type RxDriverType,
 
@@ -46,10 +54,13 @@ package comms_tests_sequence_pkg;
     )
     extends specific_target_sequence_pkg::SpecificTargetSequence
     #(
-        .RxTransType    (RxTransType),
-        .TxTransType    (TxTransType),
-        .RxDriverType   (RxDriverType),
-        .TxMonitorType  (TxMonitorType)
+        .RxTransType        (RxTransType),
+        .TxTransType        (TxTransType),
+        .TransGenType       (TransGenType),
+        .RxTransConvType    (RxTransConvType),
+        .TxTransConvType    (TxTransConvType),
+        .RxDriverType       (RxDriverType),
+        .TxMonitorType      (TxMonitorType)
     );
         typedef enum
         {
@@ -109,8 +120,10 @@ package comms_tests_sequence_pkg;
 
         // constructor
         function new(uid_pkg::UID               _picc_uid,
-                     RxTransGenType             _rx_trans_gen,
-                     TxTransGenType             _tx_trans_gen,
+                     TransGenType               _rx_trans_gen,
+                     TransGenType               _tx_trans_gen,
+                     RxTransConvType            _rx_trans_conv,
+                     TxTransConvType            _tx_trans_conv,
                      RxQueueWrapperType         _rx_send_queue,
                      TxQueueWrapperType         _tx_recv_queue,
                      RxDriverType               _rx_driver,
@@ -120,6 +133,8 @@ package comms_tests_sequence_pkg;
             super.new(_picc_uid,
                       _rx_trans_gen,
                       _tx_trans_gen,
+                      _rx_trans_conv,
+                      _tx_trans_conv,
                       _rx_send_queue,
                       _tx_recv_queue,
                       _rx_driver,
@@ -233,13 +248,13 @@ package comms_tests_sequence_pkg;
         // ====================================================================
 
         // we override this, so we can randomise the power signal
-        virtual task send_transaction (RxTransType trans, EventMessageID mid);
+        virtual task send_transaction (RxByteTransaction byte_trans, EventMessageID mid);
             if (randomise_power) begin
                 automatic logic [1:0] power = 2'($urandom);
                 set_power_input(power);
                 picc_target.set_power(power);
             end
-            super.send_transaction(trans, mid);
+            super.send_transaction(byte_trans, mid);
         endtask
 
         virtual task send_random_non_valid;

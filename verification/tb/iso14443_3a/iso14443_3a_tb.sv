@@ -119,10 +119,9 @@ module iso14443_3a_tb
     typedef rx_bit_iface_driver_pkg::RxBitIfaceDriver                   RxDriverType;
     RxDriverType                                                        rx_driver;
 
-    // The transaction generator
-    typedef rx_bit_transaction_pkg::RxBitTransaction                    RxInTransType;
-    typedef rx_bit_transaction_generator_pkg::RxBitTransactionGenerator RxInTransGenType;
-    RxInTransGenType                                                    rx_in_trans_gen;
+    // Rx Transactions
+    typedef rx_bit_transaction_pkg::RxBitTransaction                        RxInTransType;
+    typedef rx_transaction_converter_pkg::RxByteToBitTransactionConverter   RxTransConvType;
 
     // the send queue
     typedef RxInTransType                                               RxInTransQueueType [$];
@@ -137,8 +136,6 @@ module iso14443_3a_tb
 
     // the transaction generator for verifying received messages
     typedef rx_byte_transaction_pkg::RxMonitorByteTransaction               RxOutTransType;
-    typedef rx_byte_transaction_generator_pkg::RxByteTransactionGenerator   RxOutTransGenType;
-    RxOutTransGenType                                                       rx_out_trans_gen;
 
     // and the recv_queue
     RxOutTransType                                                          rx_recv_queue [$];
@@ -151,10 +148,9 @@ module iso14443_3a_tb
     typedef tx_bit_iface_monitor_pkg::TxBitIfaceMonitor                 TxMonitorType;
     TxMonitorType                                                       tx_monitor;
 
-    // Transaction generator
-    typedef tx_bit_transaction_pkg::TxBitTransaction                    TxOutTransType;
-    typedef tx_bit_transaction_generator_pkg::TxBitTransactionGenerator TxTransGenType;
-    TxTransGenType                                                      tx_trans_gen;
+    // Tx Transactions
+    typedef tx_bit_transaction_pkg::TxBitTransaction                        TxOutTransType;
+    typedef tx_transaction_converter_pkg::TxByteToBitTransactionConverter   TxTransConvType;
 
     // and the recv_queue
     typedef TxOutTransType                                              TxOutTransQueueType [$];
@@ -242,10 +238,12 @@ module iso14443_3a_tb
     class ISO14443_3aTbSequence
     extends comms_tests_sequence_pkg::CommsTestsSequence
     #(
-        .RxTransType    (RxInTransType),
-        .TxTransType    (TxOutTransType),
-        .RxDriverType   (RxDriverType),
-        .TxMonitorType  (TxMonitorType)
+        .RxTransType        (RxInTransType),
+        .TxTransType        (TxOutTransType),
+        .RxTransConvType    (RxTransConvType),
+        .TxTransConvType    (TxTransConvType),
+        .RxDriverType       (RxDriverType),
+        .TxMonitorType      (TxMonitorType)
     );
 
         // should we be checking rx_crc_ok?
@@ -260,10 +258,15 @@ module iso14443_3a_tb
         logic           check_rx_to_14443_4a;
         RxOutTransType  expected_rx_to_14443_4a;
 
+        // Transaction generators for app level messages
+        TransGenType    app_rx_trans_gen;
+
         // constructor
         function new(uid_pkg::UID               _picc_uid,
-                     RxTransGenType             _rx_trans_gen,
-                     TxTransGenType             _tx_trans_gen,
+                     TransGenType               _rx_trans_gen,
+                     TransGenType               _tx_trans_gen,
+                     RxTransConvType            _rx_conv_gen,
+                     TxTransConvType            _tx_conv_gen,
                      RxQueueWrapperType         _rx_send_queue,
                      TxQueueWrapperType         _tx_recv_queue,
                      RxDriverType               _rx_driver,
@@ -272,6 +275,8 @@ module iso14443_3a_tb
             super.new(_picc_uid,
                       _rx_trans_gen,
                       _tx_trans_gen,
+                      _rx_conv_gen,
+                      _tx_conv_gen,
                       _rx_send_queue,
                       _tx_recv_queue,
                       _rx_driver,
@@ -281,6 +286,9 @@ module iso14443_3a_tb
 
             corrupt_crcs            = 1'b0;
             check_rx_to_14443_4a    = 1'b0;
+
+            // the messages will contain the CRC at this point
+            app_rx_trans_gen        = new(1'b1);
         endfunction
 
         virtual task do_reset;
@@ -438,7 +446,7 @@ module iso14443_3a_tb
             // note: this check only occurs if a packet is expected on that interface
             //       and one has actually been received
             check_rx_to_14443_4a    = 1'b1;
-            expected_rx_to_14443_4a = RxOutTransType::create_from_rx_byte_transaction(rx_out_trans_gen.generate_rats(fsdi, cid));
+            expected_rx_to_14443_4a = RxOutTransType::create_from_rx_byte_transaction(app_rx_trans_gen.generate_rats(fsdi, cid));
 
             send_rats(fsdi, cid);
             verify_no_reply;
@@ -454,7 +462,7 @@ module iso14443_3a_tb
             // note: this check only occurs if a packet is expected on that interface
             //       and one has actually been received
             check_rx_to_14443_4a    = 1'b1;
-            expected_rx_to_14443_4a = RxOutTransType::create_from_rx_byte_transaction(rx_out_trans_gen.generate_pps(cid, p1_present, dsi, dri));
+            expected_rx_to_14443_4a = RxOutTransType::create_from_rx_byte_transaction(app_rx_trans_gen.generate_pps(cid, p1_present, dsi, dri));
 
             send_pps(cid, p1_present, dsi, dri);
             verify_no_reply;
@@ -471,7 +479,7 @@ module iso14443_3a_tb
             // note: this check only occurs if a packet is expected on that interface
             //       and one has actually been received
             check_rx_to_14443_4a    = 1'b1;
-            expected_rx_to_14443_4a = RxOutTransType::create_from_rx_byte_transaction(rx_out_trans_gen.generate_std_s_deselect(addr));
+            expected_rx_to_14443_4a = RxOutTransType::create_from_rx_byte_transaction(app_rx_trans_gen.generate_std_s_deselect_for_rx(addr));
 
             send_std_s_deselect(addr);
             verify_no_reply;
@@ -506,14 +514,13 @@ module iso14443_3a_tb
                 // keep the length low, as the framing module will add 2 bytes of CRC
                 // and we want out reply_timeout to be as low as possible since
                 // that is directly related to simulation speed.
-                automatic TxInTransType     tx_send_trans   = TxInTransType::new_random_transaction($urandom_range(1,3), 0);
-                automatic TxOutTransType    tx_expected;
+                automatic TxInTransType tx_send_trans   = TxInTransType::new_random_transaction($urandom_range(1,3), 0);
+                automatic TxInTransType tx_expected     = new(tx_send_trans.data, tx_send_trans.bits_in_first_byte);
 
                 go_to_state(1'($urandom) ? State_PROTOCOL_PPS_ALLOWED : State_PROTOCOL_STD_COMMS);
 
                 // set whether we add a CRC or not to the Tx message
                 tx_append_crc_14443_4a = 1'($urandom);
-                tx_trans_gen.set_auto_append_crc(tx_append_crc_14443_4a);
 
                 // The FDT won't fire unless we send an Rx packet first
                 send_random_non_valid;
@@ -521,9 +528,12 @@ module iso14443_3a_tb
                 // fake a transmit from the part4 block
                 tx_send_queue.push_back(tx_send_trans);
 
-                // verify it's received
-                tx_expected = tx_trans_gen.generate_from_byte_transaction(tx_send_trans);
-                wait_for_and_verify_trans(tx_expected, int'(EventMessageID_RANDOM_NON_VALID));
+                // add the CRC if needed
+                if (tx_append_crc_14443_4a) begin
+                    tx_expected.append_crc;
+                end
+
+                wait_for_and_verify_trans(tx_expected, int'(EventMessageID_RANDOM_NON_VALID), "APP Tx");
 
                 // confirm our state hasn't changed
                 register_no_state_change;
@@ -556,7 +566,11 @@ module iso14443_3a_tb
     // --------------------------------------------------------------
 
     initial begin
-        automatic int reply_timeout;
+        automatic transaction_generator_pkg::TransactionGenerator   rx_trans_gen;
+        automatic transaction_generator_pkg::TransactionGenerator   tx_trans_gen;
+        automatic RxTransConvType                                   rx_trans_conv;
+        automatic TxTransConvType                                   tx_trans_conv;
+        automatic int                                               reply_timeout;
 
         tx_append_crc_14443_4a  = 1'b0;
         iso14443_4a_deselect    = 1'b0;
@@ -574,9 +588,11 @@ module iso14443_3a_tb
         rx_recv_queue       = '{};
         tx_send_queue       = '{};
 
-        rx_in_trans_gen     = new(1'b1, 1'b1);  // auto append CRCs, and add parity bits
-        rx_out_trans_gen    = new(1'b1);        // CRC stays in the message
-        tx_trans_gen        = new(1'b1, 1'b1);  // Tx messages have CRCs and parity bits
+        rx_trans_gen        = new(1'b1);    // Rx messages must have CRCs applied
+        tx_trans_gen        = new(1'b1);    // Tx messages will have CRCs applied
+
+        rx_trans_conv       = new(1'b1);    // Rx messages must have parity bits
+        tx_trans_conv       = new(1'b1);    // Tx messages will have parity bits
 
         picc_uid            = new('x);
 
@@ -585,8 +601,10 @@ module iso14443_3a_tb
         // then the FDT takes ~130 ticks to fire (in the worst case)
         reply_timeout   = 1024;
         seq             = new(picc_uid,
-                              rx_in_trans_gen,
+                              rx_trans_gen,
                               tx_trans_gen,
+                              rx_trans_conv,
+                              tx_trans_conv,
                               rx_send_queue,
                               tx_recv_queue,
                               rx_driver,

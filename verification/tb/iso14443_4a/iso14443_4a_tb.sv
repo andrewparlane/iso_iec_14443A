@@ -63,10 +63,9 @@ module iso14443_4a_tb;
     typedef rx_byte_iface_driver_pkg::RxByteIfaceDriver                     RxDriverType;
     RxDriverType                                                            rx_driver;
 
-    // The transaction generator
+    // Rx Transactions
     typedef rx_byte_transaction_pkg::RxByteTransaction                      RxInTransType;
-    typedef rx_byte_transaction_generator_pkg::RxByteTransactionGenerator   RxTransGenType;
-    RxTransGenType                                                          rx_trans_gen;
+    typedef rx_transaction_converter_pkg::RxByteToByteTransactionConverter  RxTransConvType;
 
     // the send queue
     typedef RxInTransType                                                   RxInTransQueueType [$];
@@ -104,8 +103,7 @@ module iso14443_4a_tb;
 
     // Transaction generator
     typedef tx_byte_transaction_pkg::TxByteTransaction                      TxOutTransType;
-    typedef tx_byte_transaction_generator_pkg::TxByteTransactionGenerator   TxTransGenType;
-    TxTransGenType                                                          tx_trans_gen;
+    typedef tx_transaction_converter_pkg::TxByteToByteTransactionConverter  TxTransConvType;
 
     // and the recv_queue
     typedef TxOutTransType                                                  TxOutTransQueueType [$];
@@ -148,10 +146,12 @@ module iso14443_4a_tb;
     class ISO14443_4aTbSequence
     extends comms_tests_sequence_pkg::CommsTestsSequence
     #(
-        .RxTransType    (RxInTransType),
-        .TxTransType    (TxOutTransType),
-        .RxDriverType   (RxDriverType),
-        .TxMonitorType  (TxMonitorType)
+        .RxTransType        (RxInTransType),
+        .TxTransType        (TxOutTransType),
+        .RxTransConvType    (RxTransConvType),
+        .TxTransConvType    (TxTransConvType),
+        .RxDriverType       (RxDriverType),
+        .TxMonitorType      (TxMonitorType)
     );
 
         // should we be setting rx_crc_ok?
@@ -166,8 +166,10 @@ module iso14443_4a_tb;
         logic [7:0] app_last_sent_inf [$];
 
         // constructor
-        function new(RxTransGenType             _rx_trans_gen,
-                     TxTransGenType             _tx_trans_gen,
+        function new(TransGenType               _rx_trans_gen,
+                     TransGenType               _tx_trans_gen,
+                     RxTransConvType            _rx_trans_conv,
+                     TxTransConvType            _tx_trans_conv,
                      RxQueueWrapperType         _rx_send_queue,
                      TxQueueWrapperType         _tx_recv_queue,
                      RxDriverType               _rx_driver,
@@ -180,6 +182,8 @@ module iso14443_4a_tb;
             super.new(dummy_uid,
                       _rx_trans_gen,
                       _tx_trans_gen,
+                      _rx_trans_conv,
+                      _tx_trans_conv,
                       _rx_send_queue,
                       _tx_recv_queue,
                       _rx_driver,
@@ -519,7 +523,11 @@ module iso14443_4a_tb;
     // --------------------------------------------------------------
 
     initial begin
-        automatic int reply_timeout;
+        automatic transaction_generator_pkg::TransactionGenerator   rx_trans_gen;
+        automatic transaction_generator_pkg::TransactionGenerator   tx_trans_gen;
+        automatic RxTransConvType                                   rx_trans_conv;
+        automatic TxTransConvType                                   tx_trans_conv;
+        automatic int                                               reply_timeout;
 
         rx_driver           = new(rx_iface);
         app_rx_monitor      = new(app_rx_iface);
@@ -533,14 +541,19 @@ module iso14443_4a_tb;
         app_rx_recv_queue   = '{};
         app_tx_send_queue   = '{};
 
-        rx_trans_gen     = new(1'b1);   // auto append CRCs
-        tx_trans_gen     = new(1'b0);   // Tx messages don't have CRCs at this point
+        rx_trans_gen        = new(1'b1);    // Rx messages must have CRCs applied
+        tx_trans_gen        = new(1'b0);    // Tx messages will not have CRCs applied
+
+        rx_trans_conv       = new;
+        tx_trans_conv       = new;
 
         // longest valid reply is a STD I-Block with a max of 10 byte INF.
         // and a 2 byte header (PCB + CID). the tx_sink_driver reqs every 16 ticks
         reply_timeout   = 256;
         seq             = new(rx_trans_gen,
                               tx_trans_gen,
+                              rx_trans_conv,
+                              tx_trans_conv,
                               rx_send_queue,
                               tx_recv_queue,
                               rx_driver,
