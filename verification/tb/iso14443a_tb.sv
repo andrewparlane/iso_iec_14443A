@@ -159,12 +159,11 @@ module iso14443a_tb
     // --------------------------------------------------------------
 
     // driver, note the actual driver is in the analogue_sim above
-    typedef pcd_pause_n_driver_pkg::PCDPauseNDriver                         RxDriverType;
+    typedef pcd_pause_n_driver_pkg::PCDPauseNDriver                             RxDriverType;
 
-    // The transaction generator
-    typedef pcd_pause_n_transaction_pkg::PCDPauseNTransaction               RxTransType;
-    typedef rx_pause_transaction_generator_pkg::RxPauseTransactionGenerator RxTransGenType;
-    RxTransGenType                                                          rx_trans_gen;
+    // Rx Transactions
+    typedef pcd_pause_n_transaction_pkg::PCDPauseNTransaction                   RxTransType;
+    typedef rx_transaction_converter_pkg::RxByteToPCDPauseNTransactionConverter RxTransConvType;
 
     // the send queue
     typedef RxTransType                                                     RxTransQueueType [$];
@@ -200,10 +199,9 @@ module iso14443a_tb
     typedef load_modulator_monitor_pkg::LoadModulatorMonitor                TxMonitorType;
     TxMonitorType                                                           tx_monitor;
 
-    // Transaction generator
+    // Tx Transactions
     typedef tx_bit_transaction_pkg::TxBitTransaction                        TxTransType;
-    typedef tx_bit_transaction_generator_pkg::TxBitTransactionGenerator     TxTransGenType;
-    TxTransGenType                                                          tx_trans_gen;
+    typedef tx_transaction_converter_pkg::TxByteToBitTransactionConverter   TxTransConvType;
 
     // and the recv_queue
     typedef TxTransType                                                     TxTransQueueType [$];
@@ -273,10 +271,12 @@ module iso14443a_tb
     class ISO14443a_TbSequence
     extends comms_tests_sequence_pkg::CommsTestsSequence
     #(
-        .RxTransType    (RxTransType),
-        .TxTransType    (TxTransType),
-        .RxDriverType   (RxDriverType),
-        .TxMonitorType  (TxMonitorType)
+        .RxTransType        (RxTransType),
+        .TxTransType        (TxTransType),
+        .RxTransConvType    (RxTransConvType),
+        .TxTransConvType    (TxTransConvType),
+        .RxDriverType       (RxDriverType),
+        .TxMonitorType      (TxMonitorType)
     );
         // we need to know if the last sent message was a valid STD I-Block for the DUT.
         // Then if an R(ACK/NAK) is sent with the wronge block number we can verify app_resend_last
@@ -288,8 +288,10 @@ module iso14443a_tb
 
         // constructor
         function new(uid_pkg::UID               _picc_uid,
-                     RxTransGenType             _rx_trans_gen,
-                     TxTransGenType             _tx_trans_gen,
+                     TransGenType               _rx_trans_gen,
+                     TransGenType               _tx_trans_gen,
+                     RxTransConvType            _rx_trans_conv,
+                     TxTransConvType            _tx_trans_conv,
                      RxQueueWrapperType         _rx_send_queue,
                      TxQueueWrapperType         _tx_recv_queue,
                      RxDriverType               _rx_driver,
@@ -299,6 +301,8 @@ module iso14443a_tb
             super.new(_picc_uid,
                       _rx_trans_gen,
                       _tx_trans_gen,
+                      _rx_trans_conv,
+                      _tx_trans_conv,
                       _rx_send_queue,
                       _tx_recv_queue,
                       _rx_driver,
@@ -559,7 +563,11 @@ module iso14443a_tb
     // --------------------------------------------------------------
 
     initial begin
-        automatic int reply_timeout;
+        automatic transaction_generator_pkg::TransactionGenerator   rx_trans_gen;
+        automatic transaction_generator_pkg::TransactionGenerator   tx_trans_gen;
+        automatic RxTransConvType                                   rx_trans_conv;
+        automatic TxTransConvType                                   tx_trans_conv;
+        automatic int                                               reply_timeout;
 
         power_async             = 2'b00;
         expect_app_resend_last  = 1'b0;
@@ -590,8 +598,11 @@ module iso14443a_tb
         app_rx_recv_queue   = '{};
         app_tx_send_queue   = '{};
 
-        rx_trans_gen        = new(1'b1, 1'b1);  // auto append CRCs, and add parity bits
-        tx_trans_gen        = new(1'b1, 1'b1);  // Tx messages have CRCs and parity bits
+        rx_trans_gen        = new(1'b1);    // Rx messages must have CRCs applied
+        tx_trans_gen        = new(1'b1);    // Tx messages will have CRCs applied
+
+        rx_trans_conv       = new(1'b1);    // Rx messages must have parity bits
+        tx_trans_conv       = new(1'b1);    // Tx messages will have parity bits
 
         picc_uid            = new('x);
 
@@ -606,6 +617,8 @@ module iso14443a_tb
         seq             = new(picc_uid,
                               rx_trans_gen,
                               tx_trans_gen,
+                              rx_trans_conv,
+                              tx_trans_conv,
                               rx_send_queue,
                               tx_recv_queue,
                               analogue_sim_inst.driver,

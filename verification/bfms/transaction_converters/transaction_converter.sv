@@ -1,6 +1,6 @@
 /***********************************************************************
-        File: rx_byte_transaction_generator.sv
- Description: class for generation of Rx Byte transactions
+        File: transaction_converter.sv
+ Description: Base class for conversion of Rx / Tx transactions
       Author: Andrew Parlane
 **********************************************************************/
 
@@ -23,28 +23,15 @@
 
 `timescale 1ps/1ps
 
-package rx_byte_transaction_generator_pkg;
+package transaction_converter_pkg;
 
-    class RxByteTransactionGenerator
+    virtual class TransactionConverter
     #(
-        // must extend QueueTransaction
-        type TransType = rx_byte_transaction_pkg::RxByteTransaction
-    )
-    extends rx_transaction_generator_pkg::RxTransactionGenerator
-    #(
-        .TransType  (TransType)
+        type InputTransType,
+        type OutputTransType
     );
 
-        typedef ByteTransType NativeTransType;
-
-        function new (logic _auto_add_crc);
-            super.new(_auto_add_crc);
-        endfunction
-
-        virtual protected function BaseTransType convert(ByteTransType trans);
-            // NativeTransType == ByteTransType
-            return trans;
-        endfunction
+        pure virtual function OutputTransType convert(InputTransType trans);
 
     endclass
 

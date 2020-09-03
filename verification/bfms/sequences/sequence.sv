@@ -26,6 +26,8 @@
 package sequence_pkg;
 
     import std_block_address_pkg::StdBlockAddress;
+    import rx_byte_transaction_pkg::RxByteTransaction;
+    import tx_byte_transaction_pkg::TxByteTransaction;
 
     // This base class is designed so that we can send any PCD -> PICC message
     // and verify the reply. It is not designed to test the intricacies of every module.
@@ -40,6 +42,13 @@ package sequence_pkg;
         // These must extend QueueTransaction
         type RxTransType,
         type TxTransType,
+
+        // This must be / extend TransactionGenerator
+        type TransGenType   = transaction_generator_pkg::TransactionGenerator,
+
+        // These must extend TransactionConverter
+        type RxTransConvType,
+        type TxTransConvType,
 
         // This must extend RxDriver
         type RxDriverType,
@@ -92,19 +101,11 @@ package sequence_pkg;
             EventMessageID_UNKNOWN
         } EventMessageID;
 
-        // Our transaction generators
-        typedef rx_transaction_generator_pkg::RxTransactionGenerator
-        #(
-            .TransType(RxTransType)
-        ) RxTransGenType;
-
-        typedef tx_transaction_generator_pkg::TxTransactionGenerator
-        #(
-            .TransType(TxTransType)
-        ) TxTransGenType;
-
-        RxTransGenType rx_trans_gen;
-        TxTransGenType tx_trans_gen;
+        // Our transaction generator and converters
+        TransGenType        rx_trans_gen;
+        TransGenType        tx_trans_gen;
+        RxTransConvType     rx_trans_conv;
+        TxTransConvType     tx_trans_conv;
 
         // The send_queue and recv_queue
         // They are wrapped in classes so that we can store a reference to them
@@ -125,15 +126,19 @@ package sequence_pkg;
         int             reply_timeout;
 
         // constructor
-        function new(RxTransGenType             _rx_trans_gen,
-                     TxTransGenType             _tx_trans_gen,
-                     RxQueueWrapperType         _rx_send_queue,
-                     TxQueueWrapperType         _tx_recv_queue,
-                     RxDriverType               _rx_driver,
-                     TxMonitorType              _tx_monitor,
-                     int                        _reply_timeout);
+        function new(TransGenType           _rx_trans_gen,
+                     TransGenType           _tx_trans_gen,
+                     RxTransConvType        _rx_trans_conv,
+                     TxTransConvType        _tx_trans_conv,
+                     RxQueueWrapperType     _rx_send_queue,
+                     TxQueueWrapperType     _tx_recv_queue,
+                     RxDriverType           _rx_driver,
+                     TxMonitorType          _tx_monitor,
+                     int                    _reply_timeout);
             rx_trans_gen    = _rx_trans_gen;
             tx_trans_gen    = _tx_trans_gen;
+            rx_trans_conv   = _rx_trans_conv;
+            tx_trans_conv   = _tx_trans_conv;
             rx_send_queue   = _rx_send_queue;
             tx_recv_queue   = _tx_recv_queue;
             rx_driver       = _rx_driver;
@@ -163,7 +168,11 @@ package sequence_pkg;
         // Sending tasks
         // ====================================================================
 
-        virtual task send_transaction (RxTransType trans, EventMessageID mid);
+        virtual task send_transaction (RxByteTransaction byte_trans, EventMessageID mid);
+            automatic RxTransType trans = rx_trans_conv.convert(byte_trans);
+            //$display("byte_trans: %s", byte_trans.to_string);
+            //$display("trans: %s", trans.to_string);
+
             // push it to the send queue
             rx_send_queue.data.push_back(trans);
             callback_message(EventCode_SENDING, mid);
@@ -186,8 +195,8 @@ package sequence_pkg;
         endtask
 
         virtual task send_ac_select(int level, int uid_bits, logic [31:0] uid, logic toggle_last_bcc_bit=1'b0);
-            /* $display("send_ac_select level %d, uid_bits %d, uid %x, toggle_last_bcc_bit %b",
-                     level, uid_bits, uid, toggle_last_bcc_bit); */
+            //$display("send_ac_select level %d, uid_bits %d, uid %x, toggle_last_bcc_bit %b",
+            //         level, uid_bits, uid, toggle_last_bcc_bit);
             send_transaction(rx_trans_gen.generate_ac_select(level, uid_bits, uid, toggle_last_bcc_bit),
                              (uid_bits == 32) ? EventMessageID_SELECT
                                               : EventMessageID_AC);
@@ -212,28 +221,28 @@ package sequence_pkg;
         endtask
 
         virtual task send_std_i_block(StdBlockAddress addr, logic chaining, logic block_num, logic [7:0] inf [$]);
-            send_transaction(rx_trans_gen.generate_std_i_block(addr, chaining, block_num, inf),
+            send_transaction(rx_trans_gen.generate_std_i_block_for_rx(addr, chaining, block_num, inf),
                              chaining ? EventMessageID_STD_I_BLOCK_CHAINING
                                       : EventMessageID_STD_I_BLOCK_NO_CHAINING);
         endtask
 
         virtual task send_std_r_ack(StdBlockAddress addr, logic block_num);
-            send_transaction(rx_trans_gen.generate_std_r_ack(addr, block_num),
+            send_transaction(rx_trans_gen.generate_std_r_ack_for_rx(addr, block_num),
                              EventMessageID_STD_R_ACK);
         endtask
 
         virtual task send_std_r_nak(StdBlockAddress addr, logic block_num);
-            send_transaction(rx_trans_gen.generate_std_r_nak(addr, block_num),
+            send_transaction(rx_trans_gen.generate_std_r_nak_for_rx(addr, block_num),
                              EventMessageID_STD_R_NAK);
         endtask
 
         virtual task send_std_s_deselect(StdBlockAddress addr);
-            send_transaction(rx_trans_gen.generate_std_s_deselect(addr),
+            send_transaction(rx_trans_gen.generate_std_s_deselect_for_rx(addr),
                              EventMessageID_STD_S_DESELECT);
         endtask
 
         virtual task send_std_s_parameters(StdBlockAddress addr, logic [7:0] inf [$]);
-            send_transaction(rx_trans_gen.generate_std_s_parameters(addr, inf),
+            send_transaction(rx_trans_gen.generate_std_s_parameters_for_rx(addr, inf),
                              EventMessageID_STD_S_PARAMETERS);
         endtask
 
@@ -269,14 +278,14 @@ package sequence_pkg;
             noReply: assert(!reply_ready) else $error("Expecting no reply, but got %s", reply.to_string);
         endtask
 
-        virtual task wait_for_and_verify_trans(TxTransType expected, int msgType);
+        virtual task wait_for_and_verify_trans(TxByteTransaction expected, int msgType, string trans_name="unknown");
             automatic TxTransType   reply;
             automatic logic         reply_ready;
 
             wait_for_reply(reply_ready, reply);
 
             if (reply_ready) begin
-                void'(verify_trans(reply, expected, msgType));
+                void'(verify_trans(reply, expected, msgType, trans_name));
             end
         endtask
 
@@ -287,14 +296,14 @@ package sequence_pkg;
         //       as the base class for all ISO/IEC 14443A comms tests. There could be no target
         //       present, or the target could be in the wrong state for a message, etc..
 
-        virtual function logic verify_trans(TxTransType recv_trans, TxTransType expected, int msgType);
-            // generate the expected transaction
-            automatic logic res = recv_trans.compare(expected);
+        virtual function logic verify_trans(TxTransType recv_trans, TxByteTransaction byte_expected, int msgType, string trans_name="unknown");
+            automatic TxTransType   expected    = tx_trans_conv.convert(byte_expected);
+            automatic logic         res         = recv_trans.compare(expected);
 
             transAsExpected:
             assert (res)
-            else $error("Transaction not as expected, received %s expected %s",
-                        recv_trans.to_string, expected.to_string);
+            else $error("Transaction %s not as expected, received %s expected %s",
+                        trans_name, recv_trans.to_string, expected.to_string);
 
             sequence_callback(res ? EventCode_RECEIVED_OK : EventCode_RECEIVED_ERROR,
                               msgType);

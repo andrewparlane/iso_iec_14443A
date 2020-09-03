@@ -26,6 +26,7 @@
 package specific_target_sequence_pkg;
 
     import std_block_address_pkg::StdBlockAddress;
+    import tx_byte_transaction_pkg::TxByteTransaction;
 
     // This class provides functions / tasks to target a particular tag
     // hence it contains the tag's UID and CID.
@@ -45,6 +46,13 @@ package specific_target_sequence_pkg;
         type RxTransType,
         type TxTransType,
 
+        // This must be / extend TransactionGenerator
+        type TransGenType   = transaction_generator_pkg::TransactionGenerator,
+
+        // These must extend TransactionConverter
+        type RxTransConvType,
+        type TxTransConvType,
+
         // This must extend RxDriver
         type RxDriverType,
 
@@ -53,10 +61,13 @@ package specific_target_sequence_pkg;
     )
     extends sequence_pkg::Sequence
     #(
-        .RxTransType    (RxTransType),
-        .TxTransType    (TxTransType),
-        .RxDriverType   (RxDriverType),
-        .TxMonitorType  (TxMonitorType)
+        .RxTransType        (RxTransType),
+        .TxTransType        (TxTransType),
+        .TransGenType       (TransGenType),
+        .RxTransConvType    (RxTransConvType),
+        .TxTransConvType    (TxTransConvType),
+        .RxDriverType       (RxDriverType),
+        .TxMonitorType      (TxMonitorType)
     );
 
         typedef enum
@@ -104,8 +115,10 @@ package specific_target_sequence_pkg;
 
         // constructor
         function new(uid_pkg::UID               _picc_uid,
-                     RxTransGenType             _rx_trans_gen,
-                     TxTransGenType             _tx_trans_gen,
+                     TransGenType               _rx_trans_gen,
+                     TransGenType               _tx_trans_gen,
+                     RxTransConvType            _rx_trans_conv,
+                     TxTransConvType            _tx_trans_conv,
                      RxQueueWrapperType         _rx_send_queue,
                      TxQueueWrapperType         _tx_recv_queue,
                      RxDriverType               _rx_driver,
@@ -114,6 +127,8 @@ package specific_target_sequence_pkg;
 
             super.new(_rx_trans_gen,
                       _tx_trans_gen,
+                      _rx_trans_conv,
+                      _tx_trans_conv,
                       _rx_send_queue,
                       _tx_recv_queue,
                       _rx_driver,
@@ -500,98 +515,43 @@ package specific_target_sequence_pkg;
 
         virtual function logic verify_atqa(TxTransType recv_trans);
             // generate the expected transaction
-            automatic TxTransType   expected    = tx_trans_gen.generate_atqa(picc_target.uid.get_size);
-            automatic logic         res         = recv_trans.compare(expected);
-
-            atqaAsExpected:
-            assert (res)
-            else $error("ATQA not as expected, received %s expected %s",
-                        recv_trans.to_string, expected.to_string);
-
-            callback_message(res ? EventCode_RECEIVED_OK : EventCode_RECEIVED_ERROR,
-                             EventMessageID_ATQA);
-
-            return res;
+            automatic TxByteTransaction expected = tx_trans_gen.generate_atqa(picc_target.uid.get_size);
+            return verify_trans(recv_trans, expected, EventMessageID_ATQA, "ATQA");
         endfunction
 
         virtual function logic verify_ac_reply(TxTransType recv_trans, int sent_uid_bits);
             // generate the expected transaction
-            automatic TxTransType   expected    = tx_trans_gen.generate_ac_reply(sent_uid_bits, picc_target.uid.get_level(picc_target.get_select_level()));
-            automatic logic         res         = recv_trans.compare(expected);
-
-            acAsExpected:
-            assert (res)
-            else $error("AC reply not as expected, received %s expected %s",
-                        recv_trans.to_string, expected.to_string);
-
-            callback_message(res ? EventCode_RECEIVED_OK : EventCode_RECEIVED_ERROR,
-                             EventMessageID_AC_REPLY);
-
-            return res;
+            automatic TxByteTransaction expected = tx_trans_gen.generate_ac_reply(sent_uid_bits, picc_target.uid.get_level(picc_target.get_select_level()));
+            return verify_trans(recv_trans, expected, EventMessageID_AC_REPLY, "AC_REPLY");
         endfunction
 
         virtual function logic verify_sak(TxTransType recv_trans, logic uid_complete);
             // generate the expected transaction
-            automatic TxTransType   expected    = tx_trans_gen.generate_sak(uid_complete);
-            automatic logic         res         = recv_trans.compare(expected);
-
-            sakAsExpected:
-            assert (res)
-            else $error("SAK not as expected, received %s expected %s",
-                        recv_trans.to_string, expected.to_string);
-
-            callback_message(res            ? EventCode_RECEIVED_OK         : EventCode_RECEIVED_ERROR,
-                             uid_complete   ? EventMessageID_SAK_COMPLETE   : EventMessageID_SAK_NOT_COMPLETE);
-
-            return res;
+            automatic TxByteTransaction expected = tx_trans_gen.generate_sak(uid_complete);
+            return verify_trans(recv_trans,
+                                expected,uid_complete ? EventMessageID_SAK_COMPLETE
+                                                      : EventMessageID_SAK_NOT_COMPLETE,
+                                "SAK");
         endfunction
 
         virtual function logic verify_ats(TxTransType recv_trans);
             // generate the expected transaction
-            automatic TxTransType   expected    = tx_trans_gen.generate_ats();
-            automatic logic         res         = recv_trans.compare(expected);
-
-            atsAsExpected:
-            assert (res)
-            else $error("ATS not as expected, received %s expected %s",
-                        recv_trans.to_string, expected.to_string);
-
-            callback_message(res ? EventCode_RECEIVED_OK : EventCode_RECEIVED_ERROR,
-                             EventMessageID_ATS);
-
-            return res;
+            automatic TxByteTransaction expected = tx_trans_gen.generate_ats();
+            return verify_trans(recv_trans, expected, EventMessageID_ATS, "ATS");
         endfunction
 
         virtual function logic verify_ppsr(TxTransType recv_trans);
             // generate the expected transaction
-            automatic TxTransType   expected    = tx_trans_gen.generate_ppsr(picc_target.get_cid());
-            automatic logic         res         = recv_trans.compare(expected);
-
-            ppsrAsExpected:
-            assert (res)
-            else $error("PPS not as expected, received %s expected %s",
-                        recv_trans.to_string, expected.to_string);
-
-            callback_message(res ? EventCode_RECEIVED_OK : EventCode_RECEIVED_ERROR,
-                             EventMessageID_PPSR);
-
-            return res;
+            automatic TxByteTransaction expected = tx_trans_gen.generate_ppsr(picc_target.get_cid());
+            return verify_trans(recv_trans, expected, EventMessageID_PPSR, "PPSR");
         endfunction
 
         virtual function logic verify_std_i_block(TxTransType recv_trans, StdBlockAddress send_addr, logic [7:0] send_inf [$]);
             // generate the expected transaction
             automatic StdBlockAddress   reply_addr      = picc_target.get_reply_addr(send_addr);
             automatic logic [7:0]       reply_inf [$]   = get_std_i_reply_inf(send_inf);
-            automatic TxTransType       expected        = tx_trans_gen.generate_std_i_block(reply_addr, 1'b0, picc_target.get_picc_block_num(), reply_inf);
-            automatic logic             res             = recv_trans.compare(expected);
-
-            iBlockAsExpected:
-            assert (res)
-            else $error("I-Block not as expected, received %s expected %s",
-                        recv_trans.to_string, expected.to_string);
-
-            callback_message(res ? EventCode_RECEIVED_OK : EventCode_RECEIVED_ERROR,
-                             EventMessageID_STD_I_BLOCK_NO_CHAINING);
+            automatic TxByteTransaction expected        = tx_trans_gen.generate_std_i_block_for_tx(reply_addr, 1'b0, picc_target.get_picc_block_num(), reply_inf);
+            automatic logic             res             = verify_trans(recv_trans, expected, EventMessageID_STD_I_BLOCK_NO_CHAINING, "STD-I (no chaining)");
 
             // ISO/IEC 14443-4:2016 section 7.5.4, Rule B
             // When an I-block or an R(ACK) block with a block number equal to the current block number
@@ -607,16 +567,8 @@ package specific_target_sequence_pkg;
         virtual function logic verify_std_r_ack(TxTransType recv_trans, StdBlockAddress send_addr);
             // generate the expected transaction
             automatic StdBlockAddress   reply_addr  = picc_target.get_reply_addr(send_addr);
-            automatic TxTransType       expected    = tx_trans_gen.generate_std_r_ack(reply_addr, picc_target.get_picc_block_num());
-            automatic logic             res         = recv_trans.compare(expected);
-
-            ackAsExpected:
-            assert (res)
-            else $error("R(ACK) not as expected, received %s expected %s",
-                        recv_trans.to_string, expected.to_string);
-
-            callback_message(res ? EventCode_RECEIVED_OK : EventCode_RECEIVED_ERROR,
-                             EventMessageID_STD_R_ACK);
+            automatic TxByteTransaction expected    = tx_trans_gen.generate_std_r_ack_for_tx(reply_addr, picc_target.get_picc_block_num());
+            automatic logic             res         = verify_trans(recv_trans, expected, EventMessageID_STD_R_ACK, "R(ACK)");
 
             // ISO/IEC 14443-4:2016 section 7.5.4, Rule B
             // When an I-block or an R(ACK) block with a block number equal to the current block number
@@ -679,16 +631,8 @@ package specific_target_sequence_pkg;
         virtual function logic verify_std_s_deselect(TxTransType recv_trans, StdBlockAddress send_addr);
             // generate the expected transaction
             automatic StdBlockAddress   reply_addr  = picc_target.get_reply_addr(send_addr);
-            automatic TxTransType       expected    = tx_trans_gen.generate_std_s_deselect(reply_addr);
-            automatic logic             res         = recv_trans.compare(expected);
-
-            deselectAsExpected:
-            assert (res)
-            else $error("S(DESELECT) not as expected, received %s expected %s",
-                        recv_trans.to_string, expected.to_string);
-
-            callback_message(res ? EventCode_RECEIVED_OK : EventCode_RECEIVED_ERROR,
-                             EventMessageID_STD_S_DESELECT);
+            automatic TxByteTransaction expected    = tx_trans_gen.generate_std_s_deselect_for_tx(reply_addr);
+            automatic logic             res         = verify_trans(recv_trans, expected, EventMessageID_STD_S_DESELECT, "S(DESELECT)");
 
             // we don't check that the addr mateches the PICC's because this is the reply from the PICC
             // either it's a valid S(DESELECT) reply, in which case great. Or it's some other msg

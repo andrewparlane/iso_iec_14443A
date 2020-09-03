@@ -121,10 +121,9 @@ module initialisation_tb
     typedef rx_bit_iface_driver_pkg::RxBitIfaceDriver                   RxDriverType;
     RxDriverType                                                        driver;
 
-    // The transaction generator
-    typedef rx_bit_transaction_pkg::RxBitTransaction                    RxTransType;
-    typedef rx_bit_transaction_generator_pkg::RxBitTransactionGenerator RxTransGenType;
-    RxTransGenType                                                      rx_trans_gen;
+    // Rx Transactions
+    typedef rx_bit_transaction_pkg::RxBitTransaction                        RxTransType;
+    typedef rx_transaction_converter_pkg::RxByteToBitTransactionConverter   RxTransConvType;
 
     // the send queue
     typedef RxTransType                                                 RxTransQueueType [$];
@@ -139,10 +138,9 @@ module initialisation_tb
     typedef tx_byte_iface_monitor_pkg::TxByteIfaceMonitor                   TxMonitorType;
     TxMonitorType                                                           monitor;
 
-    // Transaction generator
+    // Tx Transactions
     typedef tx_byte_transaction_pkg::TxByteTransaction                      TxTransType;
-    typedef tx_byte_transaction_generator_pkg::TxByteTransactionGenerator   TxTransGenType;
-    TxTransGenType                                                          tx_trans_gen;
+    typedef tx_transaction_converter_pkg::TxByteToByteTransactionConverter  TxTransConvType;
 
     // and the recv_queue
     typedef TxTransType                                                     TxTransQueueType [$];
@@ -181,18 +179,22 @@ module initialisation_tb
     class InitCommsTbSequence
     extends comms_tests_sequence_pkg::CommsTestsSequence
     #(
-        .RxTransType    (RxTransType),
-        .TxTransType    (TxTransType),
-        .RxDriverType   (RxDriverType),
-        .TxMonitorType  (TxMonitorType)
+        .RxTransType        (RxTransType),
+        .TxTransType        (TxTransType),
+        .RxTransConvType    (RxTransConvType),
+        .TxTransConvType    (TxTransConvType),
+        .RxDriverType       (RxDriverType),
+        .TxMonitorType      (TxMonitorType)
     );
 
         logic corrupt_crcs;
 
         // constructor
         function new(uid_pkg::UID               _picc_uid,
-                     RxTransGenType             _rx_trans_gen,
-                     TxTransGenType             _tx_trans_gen,
+                     TransGenType               _rx_trans_gen,
+                     TransGenType               _tx_trans_gen,
+                     RxTransConvType            _rx_trans_conv,
+                     TxTransConvType            _tx_trans_conv,
                      RxQueueWrapperType         _rx_send_queue,
                      TxQueueWrapperType         _tx_recv_queue,
                      RxDriverType               _rx_driver,
@@ -201,6 +203,8 @@ module initialisation_tb
             super.new(_picc_uid,
                       _rx_trans_gen,
                       _tx_trans_gen,
+                      _rx_trans_conv,
+                      _tx_trans_conv,
                       _rx_send_queue,
                       _tx_recv_queue,
                       _rx_driver,
@@ -397,6 +401,11 @@ module initialisation_tb
     // --------------------------------------------------------------
 
     initial begin
+        automatic transaction_generator_pkg::TransactionGenerator   rx_trans_gen;
+        automatic transaction_generator_pkg::TransactionGenerator   tx_trans_gen;
+        automatic RxTransConvType                                   rx_trans_conv;
+        automatic TxTransConvType                                   tx_trans_conv;
+
         iso14443_4a_deselect    <= 1'b0;
         iso14443_4a_rats        <= 1'b0;
 
@@ -407,14 +416,19 @@ module initialisation_tb
         send_queue      = new('{});
         recv_queue      = new('{});
 
-        rx_trans_gen    = new(1'b1, 1'b0);  // auto append CRCs, but not parity bits
-        tx_trans_gen    = new(1'b0);        // don't auto add CRCs, we use tx_append_crc here
+        rx_trans_gen        = new(1'b1);    // Rx messages must have CRCs applied
+        tx_trans_gen        = new(1'b0);    // Tx messages won't have CRCs added yet
+
+        rx_trans_conv       = new(1'b0);    // Rx messages should not have parity bits here
+        tx_trans_conv       = new;          // Tx messages are bytes so no parity bits
 
         picc_uid        = new('x);
 
         seq             = new(picc_uid,
                               rx_trans_gen,
                               tx_trans_gen,
+                              rx_trans_conv,
+                              tx_trans_conv,
                               send_queue,
                               recv_queue,
                               driver,
