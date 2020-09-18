@@ -68,6 +68,19 @@ package std_block_address_pkg;
             return res;
         endfunction
 
+        static function StdBlockAddress new_random;
+            automatic logic             has_cid = 1'($urandom);
+            automatic logic [3:0]       cid     = 4'($urandom);
+            automatic logic [1:0]       power   = 2'($urandom);
+            automatic logic             has_nad = 1'($urandom);
+            automatic logic [7:0]       nad     = 8'($urandom);
+            automatic StdBlockAddress   res;
+
+            res = new(has_cid, cid, power,
+                      has_nad, nad);
+            return res;
+        endfunction
+
     endclass
 
 endpackage
