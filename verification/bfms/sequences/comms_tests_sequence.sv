@@ -96,17 +96,6 @@ package comms_tests_sequence_pkg;
 
         typedef enum
         {
-            CID_NONE,                   // don't send a CID,    RATS uses CID=0
-            CID_15,                     // Use CID=15 (RFU)
-            CID_CURRENT,                // use the current CID
-            CID_RANDOM,                 // use any CID (0-14)
-            CID_RANDOM_NOT_ZERO,        // used for CID assignment, as CID=0 has special conotations
-            CID_RANDOM_NOT_CURRENT,     // use any other CID
-            CID_RANDOM_WITH_15          // use any CID (0-15)
-        } CidType;
-
-        typedef enum
-        {
             NAD_NONE,                   // No NAD
             NAD_PRESENT,                // Use a random NAD
             NAD_RANDOM                  // Randomly has a NAD or not
@@ -194,23 +183,6 @@ package comms_tests_sequence_pkg;
         // ====================================================================
         // CID / NAD / Address helper functions
         // ====================================================================
-
-        virtual protected function logic [3:0] get_cid_from_cid_type(CidType cid_type);
-            logic [3:0] cid;
-
-            case (cid_type)
-                CID_NONE:                   cid = 4'd0;
-                CID_15:                     cid = 4'd15;
-                CID_CURRENT:                cid = picc_target.get_cid;
-                CID_RANDOM:                 cid = 4'($urandom_range(0, 14));
-                CID_RANDOM_NOT_ZERO:        cid = 4'($urandom_range(1, 14));
-                CID_RANDOM_NOT_CURRENT:     std::randomize(cid) with {cid != picc_target.get_cid;};
-                CID_RANDOM_WITH_15:         cid = 4'($urandom_range(0, 15));
-                default:                    $error("cid_type %s (%d) not supported", cid_type.name, cid_type);
-            endcase
-
-            return cid;
-        endfunction
 
         virtual protected function logic get_has_nad_from_nad_type(NadType nad_type);
             case (nad_type)
@@ -588,15 +560,6 @@ package comms_tests_sequence_pkg;
                      .random            (random),           .error                  (error),
                      .cid_type          (cid_type),         .nad_type               (nad_type),
                      .wait_for_reply    (1'b1),             .expect_reply           (1'b0));
-        endtask
-
-        // ====================================================================
-        // State transistions
-        // ====================================================================
-
-        // the point of this is to let us specify the CID that we send in RATS
-        virtual task go_to_state_set_cid_from_type(State state, CidType cid_type);
-            go_to_state(state, 1'b1, get_cid_from_cid_type(cid_type));
         endtask
 
         // ====================================================================
@@ -1224,7 +1187,7 @@ package comms_tests_sequence_pkg;
                     // if we are in the TestType_STATE_STD_COMMS_ONCE
                     // then goto State_PROTOCOL_STD_COMMS once here
                     if (tests[testIdx] == TestType_STATE_STD_COMMS_ONCE) begin
-                        go_to_state_set_cid_from_type(State_PROTOCOL_STD_COMMS, set_cid_type);
+                        go_to_state(State_PROTOCOL_STD_COMMS, set_cid_type);
                         change_state_before_test = 1'b0;
                     end
 
@@ -1232,7 +1195,7 @@ package comms_tests_sequence_pkg;
                     $display("  Testing RATS is ignored");
                     repeat (num_loops_per_test) begin
                         if (change_state_before_test) begin
-                            go_to_state_set_cid_from_type(state, set_cid_type);
+                            go_to_state(state, set_cid_type);
                         end
 
                         // send a RATS any CID (!= 15)
@@ -1245,7 +1208,7 @@ package comms_tests_sequence_pkg;
                         $display("  Testing PPS is ignored");
                         repeat (num_loops_per_test) begin
                             if (change_state_before_test) begin
-                                go_to_state_set_cid_from_type(state, set_cid_type);
+                                go_to_state(state, set_cid_type);
                             end
 
                             // send a PPS
@@ -1260,7 +1223,7 @@ package comms_tests_sequence_pkg;
                         automatic logic [7:0] inf [$] = generate_inf(MsgType_PARAMETERS);
 
                         if (change_state_before_test) begin
-                            go_to_state_set_cid_from_type(state, set_cid_type);
+                            go_to_state(state, set_cid_type);
                         end
 
                         // send S(PARAMETERS)
@@ -1274,7 +1237,7 @@ package comms_tests_sequence_pkg;
                     if (change_state_before_test) begin
                         $display("  Testing S(DESELECT)");
                         repeat (num_loops_per_test) begin
-                            go_to_state_set_cid_from_type(state, set_cid_type);
+                            go_to_state(state, set_cid_type);
 
                             // send S(DESELECT)
                             send_std_s_deselect_verify_reply(get_std_block_address(send_cid_type));
@@ -1287,7 +1250,7 @@ package comms_tests_sequence_pkg;
                         automatic logic [7:0] inf [$] = generate_inf(MsgType_I_CHAINING);
 
                         if (change_state_before_test) begin
-                            go_to_state_set_cid_from_type(state, set_cid_type);
+                            go_to_state(state, set_cid_type);
                         end
 
                         // send I-block witch chaining enabled
@@ -1305,7 +1268,7 @@ package comms_tests_sequence_pkg;
                     repeat (num_loops_per_test) begin
                         automatic logic [7:0] inf [$] = generate_inf(MsgType_I);
                         if (change_state_before_test) begin
-                            go_to_state_set_cid_from_type(state, set_cid_type);
+                            go_to_state(state, set_cid_type);
                         end
 
                         // send I-block without chaining but with a NAD
@@ -1322,7 +1285,7 @@ package comms_tests_sequence_pkg;
                         automatic logic [7:0] inf [$] = generate_inf(MsgType_I);
 
                         if (change_state_before_test) begin
-                            go_to_state_set_cid_from_type(state, set_cid_type);
+                            go_to_state(state, set_cid_type);
                         end
 
                         //$display("sending I-block with inf: %p", inf);
@@ -1337,7 +1300,7 @@ package comms_tests_sequence_pkg;
                         automatic logic [7:0] inf [$] = generate_inf(MsgType_I);
 
                         if (change_state_before_test) begin
-                            go_to_state_set_cid_from_type(state, set_cid_type);
+                            go_to_state(state, set_cid_type);
                         end
 
                         // send I-block without chaining and no NAD
@@ -1358,7 +1321,7 @@ package comms_tests_sequence_pkg;
                         automatic logic [7:0] inf [$] = generate_inf(MsgType_I);
 
                         if (change_state_before_test) begin
-                            go_to_state_set_cid_from_type(state, set_cid_type);
+                            go_to_state(state, set_cid_type);
                         end
 
                         // send I-block without chaining and no NAD
@@ -1377,7 +1340,7 @@ package comms_tests_sequence_pkg;
                     $display("  Testing R(ACK) with current PCD block num");
                     repeat (num_loops_per_test) begin
                         if (change_state_before_test) begin
-                            go_to_state_set_cid_from_type(state, set_cid_type);
+                            go_to_state(state, set_cid_type);
                         end
 
                         // ISO/IEC 14443-4:2016 section 7.5.5.3 rule 13) states that
@@ -1402,7 +1365,7 @@ package comms_tests_sequence_pkg;
                     $display("  Testing R(NAK) with current PCD block num -> R(ACK)");
                     repeat (num_loops_per_test) begin
                         if (change_state_before_test) begin
-                            go_to_state_set_cid_from_type(state, set_cid_type);
+                            go_to_state(state, set_cid_type);
                         end
 
                         // ISO/IEC 14443-4:2016 section 7.5.5.3 rule 12) states that
@@ -1426,7 +1389,7 @@ package comms_tests_sequence_pkg;
                         automatic logic [7:0]   data        [$];
 
                         if (change_state_before_test) begin
-                            go_to_state_set_cid_from_type(state, set_cid_type);
+                            go_to_state(state, set_cid_type);
                         end
 
                         // first send random (valid message) I-block, R(NAK).
@@ -1479,7 +1442,7 @@ package comms_tests_sequence_pkg;
                     $display("  Testing invalid / errors");
                     repeat (num_loops_per_test) begin
                         if (change_state_before_test) begin
-                            go_to_state_set_cid_from_type(state, set_cid_type);
+                            go_to_state(state, set_cid_type);
                         end
 
                         // send either a random none-valid msg, or any valid one with a CRC fail / error
@@ -1495,7 +1458,7 @@ package comms_tests_sequence_pkg;
                     $display("  Testing CRC errors");
                     repeat (num_loops_per_test) begin
                         if (change_state_before_test) begin
-                            go_to_state_set_cid_from_type(state, set_cid_type);
+                            go_to_state(state, set_cid_type);
                         end
 
                         set_corrupt_crc(1'b1);
@@ -1513,7 +1476,7 @@ package comms_tests_sequence_pkg;
                     $display("  Testing not for us");
                     repeat (num_loops_per_test) begin
                         if (change_state_before_test) begin
-                            go_to_state_set_cid_from_type(state, set_cid_type);
+                            go_to_state(state, set_cid_type);
                         end
 
                         // send any STD block with CID not CURRENT
@@ -1530,7 +1493,7 @@ package comms_tests_sequence_pkg;
                         $display("  Testing no CID");
                         repeat (num_loops_per_test) begin
                             if (change_state_before_test) begin
-                                go_to_state_set_cid_from_type(state, set_cid_type);
+                                go_to_state(state, set_cid_type);
                             end
 
                             // send any STD block without a CID
@@ -1561,7 +1524,7 @@ package comms_tests_sequence_pkg;
                     if (change_state_before_test) begin
                         $display("  Testing PICC presence check Method 2 (before first I-Block exchange");
                         repeat (num_loops_per_test) begin
-                            go_to_state_set_cid_from_type(state, set_cid_type);
+                            go_to_state(state, set_cid_type);
 
                             // send an R(NAK) with block num 0, expect the reply to be
                             // R(ACK) with block num 1.
@@ -1588,7 +1551,7 @@ package comms_tests_sequence_pkg;
                     $display("  Testing initialisation comms are ignored");
                     repeat (num_loops_per_test) begin
                         if (change_state_before_test) begin
-                            go_to_state_set_cid_from_type(state, set_cid_type);
+                            go_to_state(state, set_cid_type);
                         end
 
                         send_init_comms_msg_verify_no_reply(.REQA      (1'b1), .WUPA      (1'b1),  .HLTA      (1'b1),

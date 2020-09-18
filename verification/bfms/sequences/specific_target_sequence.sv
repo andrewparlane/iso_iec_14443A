@@ -98,6 +98,17 @@ package specific_target_sequence_pkg;
             SpecificTargetEventCode_REMAINING_IN_STATE
         } SpecificTargetEventCode;
 
+        typedef enum
+        {
+            CID_NONE,                   // don't send a CID,    RATS uses CID=0
+            CID_15,                     // Use CID=15 (RFU)
+            CID_CURRENT,                // use the current CID
+            CID_RANDOM,                 // use any CID (0-14)
+            CID_RANDOM_NOT_ZERO,        // used for CID assignment, as CID=0 has special conotations
+            CID_RANDOM_NOT_CURRENT,     // use any other CID
+            CID_RANDOM_WITH_15          // use any CID (0-15)
+        } CidType;
+
         // Info about the target
         target_pkg::Target  picc_target;
 
@@ -159,6 +170,27 @@ package specific_target_sequence_pkg;
         // as the argument
         virtual protected function void specific_target_callback_state(SpecificTargetEventCode ec, State s);
             specific_target_callback(ec, int'(s));
+        endfunction
+
+        // ====================================================================
+        // CID / NAD / Address helper functions
+        // ====================================================================
+
+        virtual protected function logic [3:0] get_cid_from_cid_type(CidType cid_type);
+            logic [3:0] cid;
+
+            case (cid_type)
+                CID_NONE:                   cid = 4'd0;
+                CID_15:                     cid = 4'd15;
+                CID_CURRENT:                cid = picc_target.get_cid;
+                CID_RANDOM:                 cid = 4'($urandom_range(0, 14));
+                CID_RANDOM_NOT_ZERO:        cid = 4'($urandom_range(1, 14));
+                CID_RANDOM_NOT_CURRENT:     std::randomize(cid) with {cid != picc_target.get_cid;};
+                CID_RANDOM_WITH_15:         cid = 4'($urandom_range(0, 15));
+                default:                    $error("cid_type %s (%d) not supported", cid_type.name, cid_type);
+            endcase
+
+            return cid;
         endfunction
 
         // ====================================================================
@@ -868,8 +900,9 @@ package specific_target_sequence_pkg;
             end
         endtask
 
-        virtual task go_to_state_protocol_pps_allowed(logic force_cid_change = 1'b0, logic [3:0] cid = 4'($urandom_range(14)));
-            if ((picc_state == State_PROTOCOL_PPS_ALLOWED) && !force_cid_change) begin
+        virtual task go_to_state_protocol_pps_allowed(CidType cid_type = CID_CURRENT);
+            if ((picc_state == State_PROTOCOL_PPS_ALLOWED) &&
+                (cid_type == CID_CURRENT)) begin
                 // already there
                 return;
             end
@@ -877,16 +910,18 @@ package specific_target_sequence_pkg;
             go_to_state_expect_rats;
 
             // send RATS with a random FSDI
-            send_rats_verify_reply(4'($urandom), cid);
+            send_rats_verify_reply(4'($urandom), get_cid_from_cid_type(cid_type));
         endtask
 
-        virtual task go_to_state_protocol_std_comms(logic force_cid_change = 1'b0, logic [3:0] cid = 4'($urandom_range(14)));
-            if ((picc_state == State_PROTOCOL_STD_COMMS) && !force_cid_change) begin
+        // if cid is -1 (default) we use a random (valid) CID
+        virtual task go_to_state_protocol_std_comms(CidType cid_type = CID_CURRENT);
+            if ((picc_state == State_PROTOCOL_STD_COMMS) &&
+                (cid_type == CID_CURRENT)) begin
                 // already there
                 return;
             end
 
-            go_to_state_protocol_pps_allowed(force_cid_change, cid);
+            go_to_state_protocol_pps_allowed(cid_type);
 
             // we can send any message at all at this point but we may as well send the PPS
             // We send DSI and DRI == 0 here, as the DUT does not support others
@@ -894,7 +929,8 @@ package specific_target_sequence_pkg;
             send_pps_verify_reply(1'($urandom), 0, 0);
         endtask
 
-        virtual task go_to_state (State state, logic force_cid_change = 1'b0, logic [3:0] cid = 4'($urandom_range(14)));
+        // if cid is -1 (default) we use a random (valid) CID
+        virtual task go_to_state (State state, CidType cid_type = CID_CURRENT);
             case (state)
                 State_IDLE:                 go_to_state_idle;
                 State_READY:                go_to_state_ready;
@@ -902,8 +938,8 @@ package specific_target_sequence_pkg;
                 State_HALT:                 go_to_state_halt;
                 State_READY_STAR:           go_to_state_ready_star;
                 State_ACTIVE_STAR:          go_to_state_active_star;
-                State_PROTOCOL_PPS_ALLOWED: go_to_state_protocol_pps_allowed(force_cid_change, cid);
-                State_PROTOCOL_STD_COMMS:   go_to_state_protocol_std_comms(force_cid_change, cid);
+                State_PROTOCOL_PPS_ALLOWED: go_to_state_protocol_pps_allowed(cid_type);
+                State_PROTOCOL_STD_COMMS:   go_to_state_protocol_std_comms(cid_type);
                 default:                    $fatal(0, "state: %s not supported", state.name);
             endcase
         endtask
