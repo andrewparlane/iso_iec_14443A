@@ -139,10 +139,10 @@ package comms_tests_sequence_pkg;
         // must be overriden by a child class
         // ====================================================================
         // defined in SpecificTargetSequence
-        //pure virtual task                do_reset;
-        //pure virtual function logic      verify_dut_cid      (logic [3:0] expected);
-        //pure virtual function ByteQueue  get_std_i_reply_inf (logic [7:0] inf [$]);
-        pure virtual protected function void set_power_input(logic [1:0] _power);
+        //pure virtual task                         do_reset;
+        //pure virtual function logic               verify_dut_cid      (logic [3:0] expected);
+        pure virtual protected function ByteQueue   get_std_i_reply_inf (logic [7:0] inf [$]);
+        pure virtual protected function void        set_power_input(logic [1:0] _power);
 
         // ====================================================================
         // Callbacks
@@ -441,7 +441,7 @@ package comms_tests_sequence_pkg;
                         MsgType_nSELECT:    verify_no_reply;
                         MsgType_RATS:       wait_for_and_verify_ats;
                         MsgType_PPS:        wait_for_and_verify_ppsr;
-                        MsgType_I:          wait_for_and_verify_std_i_block(addr, inf);
+                        MsgType_I:          wait_for_and_verify_std_i_block(addr, get_std_i_reply_inf(inf));
                         MsgType_I_CHAINING: verify_no_reply;
                         MsgType_ACK:        verify_no_reply;
                         MsgType_NAK:        wait_for_and_verify_std_r_ack(addr);
@@ -1282,7 +1282,8 @@ package comms_tests_sequence_pkg;
                     // 7a) Test valid I-blocks are forwarded to the app and the reply comes through
                     $display("  Testing valid I-blocks");
                     repeat (num_loops_per_test) begin
-                        automatic logic [7:0] inf [$] = generate_inf(MsgType_I);
+                        automatic logic [7:0] send_inf  [$] = generate_inf(MsgType_I);
+                        automatic logic [7:0] reply_inf [$] = get_std_i_reply_inf(send_inf);
 
                         if (change_state_before_test) begin
                             go_to_state(state, set_cid_type);
@@ -1291,7 +1292,7 @@ package comms_tests_sequence_pkg;
                         //$display("sending I-block with inf: %p", inf);
 
                         // send I-block without chaining and no NAD
-                        send_std_i_block_verify_reply(get_std_block_address(send_cid_type), inf);
+                        send_std_i_block_verify_reply(get_std_block_address(send_cid_type), send_inf, reply_inf);
                     end
 
                     // 7b) Test I-blocks with CRC fails

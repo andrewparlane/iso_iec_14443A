@@ -38,7 +38,6 @@ package specific_target_sequence_pkg;
 
     // virtual because the TB must override several functions/tasks:
     //      do_reset
-    //      get_std_i_reply_inf
     //      verify_dut_cid
     virtual class SpecificTargetSequence
     #(
@@ -156,7 +155,6 @@ package specific_target_sequence_pkg;
         // ====================================================================
         pure virtual task                do_reset;
         pure virtual function logic      verify_dut_cid      (logic [3:0] expected);
-        pure virtual function ByteQueue  get_std_i_reply_inf (logic [7:0] inf [$]);
 
         // ====================================================================
         // Callbacks
@@ -496,14 +494,14 @@ package specific_target_sequence_pkg;
             end
         endtask
 
-        virtual task wait_for_and_verify_std_i_block(StdBlockAddress send_addr, logic [7:0] send_inf [$]);
+        virtual task wait_for_and_verify_std_i_block(StdBlockAddress send_addr, logic [7:0] reply_inf [$]);
             automatic TxTransType   reply;
             automatic logic         reply_ready;
 
             wait_for_reply(reply_ready, reply);
 
             if (reply_ready) begin
-                void'(verify_std_i_block(reply, send_addr, send_inf));
+                void'(verify_std_i_block(reply, send_addr, reply_inf));
             end
         endtask
 
@@ -578,10 +576,9 @@ package specific_target_sequence_pkg;
             return verify_trans(recv_trans, expected, EventMessageID_PPSR, "PPSR");
         endfunction
 
-        virtual function logic verify_std_i_block(TxTransType recv_trans, StdBlockAddress send_addr, logic [7:0] send_inf [$]);
+        virtual function logic verify_std_i_block(TxTransType recv_trans, StdBlockAddress send_addr, logic [7:0] reply_inf [$]);
             // generate the expected transaction
             automatic StdBlockAddress   reply_addr      = picc_target.get_reply_addr(send_addr);
-            automatic logic [7:0]       reply_inf [$]   = get_std_i_reply_inf(send_inf);
             automatic TxByteTransaction expected        = tx_trans_gen.generate_std_i_block_for_tx(reply_addr, 1'b0, picc_target.get_picc_block_num(), reply_inf);
             automatic logic             res             = verify_trans(recv_trans, expected, EventMessageID_STD_I_BLOCK_NO_CHAINING, "STD-I (no chaining)");
 
@@ -714,9 +711,9 @@ package specific_target_sequence_pkg;
             wait_for_and_verify_ppsr;
         endtask
 
-        virtual task send_std_i_block_verify_reply(StdBlockAddress addr, logic [7:0] inf [$]);
-            send_std_i_block(addr, 1'b0, picc_target.get_pcd_block_num(), inf);
-            wait_for_and_verify_std_i_block(addr, inf);
+        virtual task send_std_i_block_verify_reply(StdBlockAddress addr, logic [7:0] send_inf [$], logic [7:0] reply_inf [$]);
+            send_std_i_block(addr, 1'b0, picc_target.get_pcd_block_num(), send_inf);
+            wait_for_and_verify_std_i_block(addr, reply_inf);
         endtask
 
         // Should only be called when the PCD's and PICC's block numbers are not equal
