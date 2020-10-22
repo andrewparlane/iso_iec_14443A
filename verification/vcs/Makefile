@@ -262,34 +262,35 @@ endef
 # The ELABORATE macro runs vcs to build the simv binary for the particular testbench
 # Takes one argument:
 #		1) The testbench module to run
-#		2) Name of the output simv file
+#		2) Name of the directory to put the generated files
 #		3) List of additional VCS arguments, e.g. "-pvalue+WIDTH=32 -pvalue+FOO=BAR" without the quotes
 define ELABORATE
 	$(eval TB_NAME  = $(call strip, $(1)))
-	$(eval OUT_NAME = $(call strip, $(2)))
-	echo -e "$(COLOUR_BLUE)elaborating $(TB_NAME) with arguments $(3) as $(OUT_NAME)$(COLOUR_NONE)\n"
-	$(call COLOURISE, vcs $(VCS_ARGS) work.$(TB_NAME) $(3) -o $(OUT_NAME))
+	$(eval DIR_NAME = $(call strip, $(2)))
+	mkdir -p $(DIR_NAME)
+	echo -e "$(COLOUR_BLUE)elaborating $(TB_NAME) with arguments $(3) as $(DIR_NAME)/simv $(COLOUR_NONE)\n"
+	$(call COLOURISE, vcs $(VCS_ARGS) work.$(TB_NAME) $(3) -o $(DIR_NAME)/simv)
 endef
 
 # The RUN_SIM macro runs the simv binary produced by vcs.
 # Takes one argument:
-#		1) The testbench module name to run
+#		1) The directory containing the simv to run
 # Has different behaviour depending on if we set INTERACTIVE=1 or not
 # In interactive mode we don't colourise the output.
 # In batch mode we run the do.tcl script
 ifndef INTERACTIVE
 # batch mode
 define RUN_SIM
-	$(eval TB_NAME = $(call strip, $(1)))
-	echo -e "$(COLOUR_BLUE)Simulating $(TB_NAME)$(COLOUR_NONE)\n"
-	$(call COLOURISE, ./$(TB_NAME)_simv $(SIMV_ARGS) -do do.tcl)
+	$(eval DIR_NAME = $(call strip, $(1)))
+	echo -e "$(COLOUR_BLUE)Simulating $(DIR_NAME)$(COLOUR_NONE)\n"
+	$(call COLOURISE, ./$(DIR_NAME)/simv $(SIMV_ARGS) -do do.tcl)
 endef
 else
 # interactive mode
 define RUN_SIM
-	$(eval TB_NAME = $(call strip, $(1)))
-	echo -e "$(COLOUR_BLUE)Simulating $(TB_NAME)$(COLOUR_NONE)\n"
-	./$(TB_NAME)_simv $(SIMV_ARGS)
+	$(eval DIR_NAME = $(call strip, $(1)))
+	echo -e "$(COLOUR_BLUE)Simulating $(DIR_NAME)$(COLOUR_NONE)\n"
+	./$(DIR_NAME)/simv $(SIMV_ARGS)
 endef
 endif
 
@@ -320,17 +321,17 @@ $(AN_DB_DIR): $(SRCS)
 	@echo -e "$(COLOUR_BLUE)Analysing because of changes in: $? $(COLOUR_NONE)\n"
 	@$(call ANALYSE)
 
-# Elaborate rules, of the format sequence_decode_tb_simv:
-$(patsubst %,%_simv,$(TBS)): $(AN_DB_DIR)
-	@$(call ELABORATE, $(subst _simv,,$@), $@)
+# Elaborate rules, of the format sequence_decode_tb/simv:
+$(patsubst %,%_sim/simv,$(TBS)): $(AN_DB_DIR)
+	@$(call ELABORATE, $(subst _sim/simv,,$@), $(subst /simv,,$@))
 
 # Simulation rules
-%: %_simv
-	@$(call RUN_SIM, $@)
+%: %_sim/simv
+	@$(call RUN_SIM, $@_sim)
 
 # PHONY rules
 analyse: $(AN_DB_DIR)
-elaborate: $(patsubst %,%_simv,$(TBS))
+elaborate: $(patsubst %,%_sim/simv,$(TBS))
 
 # Rule to always force making a target
 .FORCE:
@@ -342,23 +343,23 @@ elaborate: $(patsubst %,%_simv,$(TBS))
 # we set UID_SIZE_CODE to 0,1,2 depending on single, double, triple.
 # we set UID_INPUT_BITS to a random number, such that the number of fixed bits is 1 - 4.
 # we set UID_FIXED to a random number between 0 and 15 (4 bits)
-initialisation_tb_uid_single_simv: $(AN_DB_DIR) .FORCE
-	@$(call ELABORATE, initialisation_tb, $@, -pvalue+initialisation_tb.UID_SIZE_CODE=0 -pvalue+initialisation_tb.UID_INPUT_BITS=$(call strip, $(call RANDOM, 28, 31)) -pvalue+initialisation_tb.UID_FIXED=$(call strip, $(call RANDOM, 0, 15)))
+initialisation_tb_uid_single_sim/simv: $(AN_DB_DIR) .FORCE
+	@$(call ELABORATE, initialisation_tb, $(subst /simv,,$@), -pvalue+initialisation_tb.UID_SIZE_CODE=0 -pvalue+initialisation_tb.UID_INPUT_BITS=$(call strip, $(call RANDOM, 28, 31)) -pvalue+initialisation_tb.UID_FIXED=$(call strip, $(call RANDOM, 0, 15)))
 
-initialisation_tb_uid_double_simv: $(AN_DB_DIR) .FORCE
-	@$(call ELABORATE, initialisation_tb, $@, -pvalue+initialisation_tb.UID_SIZE_CODE=1 -pvalue+initialisation_tb.UID_INPUT_BITS=$(call strip, $(call RANDOM, 52, 55)) -pvalue+initialisation_tb.UID_FIXED=$(call strip, $(call RANDOM, 0, 15)))
+initialisation_tb_uid_double_sim/simv: $(AN_DB_DIR) .FORCE
+	@$(call ELABORATE, initialisation_tb, $(subst /simv,,$@), -pvalue+initialisation_tb.UID_SIZE_CODE=1 -pvalue+initialisation_tb.UID_INPUT_BITS=$(call strip, $(call RANDOM, 52, 55)) -pvalue+initialisation_tb.UID_FIXED=$(call strip, $(call RANDOM, 0, 15)))
 
-initialisation_tb_uid_triple_simv: $(AN_DB_DIR) .FORCE
-	@$(call ELABORATE, initialisation_tb, $@, -pvalue+initialisation_tb.UID_SIZE_CODE=2 -pvalue+initialisation_tb.UID_INPUT_BITS=$(call strip, $(call RANDOM, 76, 79)) -pvalue+initialisation_tb.UID_FIXED=$(call strip, $(call RANDOM, 0, 15)))
+initialisation_tb_uid_triple_sim/simv: $(AN_DB_DIR) .FORCE
+	@$(call ELABORATE, initialisation_tb, $(subst /simv,,$@), -pvalue+initialisation_tb.UID_SIZE_CODE=2 -pvalue+initialisation_tb.UID_INPUT_BITS=$(call strip, $(call RANDOM, 76, 79)) -pvalue+initialisation_tb.UID_FIXED=$(call strip, $(call RANDOM, 0, 15)))
 
-iso14443_3a_tb_uid_single_simv: $(AN_DB_DIR) .FORCE
-	@$(call ELABORATE, iso14443_3a_tb, $@, -pvalue+iso14443_3a_tb.UID_SIZE_CODE=0 -pvalue+iso14443_3a_tb.UID_INPUT_BITS=$(call strip, $(call RANDOM, 28, 31)) -pvalue+iso14443_3a_tb.UID_FIXED=$(call strip, $(call RANDOM, 0, 15)))
+iso14443_3a_tb_uid_single_sim/simv: $(AN_DB_DIR) .FORCE
+	@$(call ELABORATE, iso14443_3a_tb, $(subst /simv,,$@), -pvalue+iso14443_3a_tb.UID_SIZE_CODE=0 -pvalue+iso14443_3a_tb.UID_INPUT_BITS=$(call strip, $(call RANDOM, 28, 31)) -pvalue+iso14443_3a_tb.UID_FIXED=$(call strip, $(call RANDOM, 0, 15)))
 
-iso14443_3a_tb_uid_double_simv: $(AN_DB_DIR) .FORCE
-	@$(call ELABORATE, iso14443_3a_tb, $@, -pvalue+iso14443_3a_tb.UID_SIZE_CODE=1 -pvalue+iso14443_3a_tb.UID_INPUT_BITS=$(call strip, $(call RANDOM, 52, 55)) -pvalue+iso14443_3a_tb.UID_FIXED=$(call strip, $(call RANDOM, 0, 15)))
+iso14443_3a_tb_uid_double_sim/simv: $(AN_DB_DIR) .FORCE
+	@$(call ELABORATE, iso14443_3a_tb, $(subst /simv,,$@), -pvalue+iso14443_3a_tb.UID_SIZE_CODE=1 -pvalue+iso14443_3a_tb.UID_INPUT_BITS=$(call strip, $(call RANDOM, 52, 55)) -pvalue+iso14443_3a_tb.UID_FIXED=$(call strip, $(call RANDOM, 0, 15)))
 
-iso14443_3a_tb_uid_triple_simv: $(AN_DB_DIR) .FORCE
-	@$(call ELABORATE, iso14443_3a_tb, $@, -pvalue+iso14443_3a_tb.UID_SIZE_CODE=2 -pvalue+iso14443_3a_tb.UID_INPUT_BITS=$(call strip, $(call RANDOM, 76, 79)) -pvalue+iso14443_3a_tb.UID_FIXED=$(call strip, $(call RANDOM, 0, 15)))
+iso14443_3a_tb_uid_triple_sim/simv: $(AN_DB_DIR) .FORCE
+	@$(call ELABORATE, iso14443_3a_tb, $(subst /simv,,$@), -pvalue+iso14443_3a_tb.UID_SIZE_CODE=2 -pvalue+iso14443_3a_tb.UID_INPUT_BITS=$(call strip, $(call RANDOM, 76, 79)) -pvalue+iso14443_3a_tb.UID_FIXED=$(call strip, $(call RANDOM, 0, 15)))
 
 # This test should be run with the values we want to fabricate with
 # TODO: UPDATE THESE VALUES
@@ -371,11 +372,11 @@ UID_INPUT_BITS 	= 4
 UID_FIXED		= 251653232
 
 # Don't need to rebuild these each time, as these values are fixed (should run make clean if we change them here)
-initialisation_tb_actual_simv: $(AN_DB_DIR)
-	@$(call ELABORATE, initialisation_tb, $@, -pvalue+initialisation_tb.UID_SIZE_CODE=$(UID_SIZE_CODE) -pvalue+initialisation_tb.UID_INPUT_BITS=$(UID_INPUT_BITS) -pvalue+initialisation_tb.UID_FIXED=$(UID_FIXED))
+initialisation_tb_actual_sim/simv: $(AN_DB_DIR)
+	@$(call ELABORATE, initialisation_tb, $(subst /simv,,$@), -pvalue+initialisation_tb.UID_SIZE_CODE=$(UID_SIZE_CODE) -pvalue+initialisation_tb.UID_INPUT_BITS=$(UID_INPUT_BITS) -pvalue+initialisation_tb.UID_FIXED=$(UID_FIXED))
 
-iso14443_3a_tb_actual_simv: $(AN_DB_DIR)
-	@$(call ELABORATE, iso14443_3a_tb, $@, -pvalue+iso14443_3a_tb.UID_SIZE_CODE=$(UID_SIZE_CODE) -pvalue+iso14443_3a_tb.UID_INPUT_BITS=$(UID_INPUT_BITS) -pvalue+iso14443_3a_tb.UID_FIXED=$(UID_FIXED))
+iso14443_3a_tb_actual_sim/simv: $(AN_DB_DIR)
+	@$(call ELABORATE, iso14443_3a_tb, $(subst /simv,,$@), -pvalue+iso14443_3a_tb.UID_SIZE_CODE=$(UID_SIZE_CODE) -pvalue+iso14443_3a_tb.UID_INPUT_BITS=$(UID_INPUT_BITS) -pvalue+iso14443_3a_tb.UID_FIXED=$(UID_FIXED))
 
 # output TBS each on it's own line
 list_tbs:
@@ -385,8 +386,7 @@ list_tbs:
 all_tbs: $(TBS) $(CUSTOM_TBS)
 
 clean:
-	-@rm ???*_simv
-	-@rm -rf ???*_simv.daidir/
+	-@rm -rf *_sim/
 	-@rm -rf $(ROOT_DIR)/$(WORK_DIR)
 	-@rm -rf csrc/
 
@@ -398,10 +398,10 @@ clean:
 
 # We push (overwriting all files) the src files, testbenches and the VCS dir.
 # We delete any file on the server that doesn't exist locally
-# except for: work/ csrc/ and *_simv*
+# except for: work/ csrc/ and *_sim/
 # Which means we don't need to rebuild everything each time
 push_to_remote:
-	cd $(ROOT_DIR) && rsync -rRv --delete --exclude $(VCS_DIR)/work/ --exclude $(VCS_DIR)/csrc/  --exclude $(VCS_DIR)/*_simv* $(SRC_DIR) $(BFM_SRC_DIR) $(TB_SRC_DIR) $(VCS_DIR) $(REMOTE_SERVER):$(REMOTE_PATH)
+	cd $(ROOT_DIR) && rsync -rRv --delete --exclude $(VCS_DIR)/work/ --exclude $(VCS_DIR)/csrc/  --exclude $(VCS_DIR)/*_sim/ $(SRC_DIR) $(BFM_SRC_DIR) $(TB_SRC_DIR) $(VCS_DIR) $(REMOTE_SERVER):$(REMOTE_PATH)
 
 # ssh to the remote server and cd to the VCS dir
 # we use -Y so we can launch graphical apps
