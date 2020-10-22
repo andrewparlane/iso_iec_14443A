@@ -435,7 +435,7 @@ clean:
 # except for: work/ csrc/ and *_sim/
 # Which means we don't need to rebuild everything each time
 push_to_remote:
-	cd $(ROOT_DIR) && rsync -rRv --delete --exclude $(VCS_DIR)/work/ --exclude $(VCS_DIR)/csrc/  --exclude $(VCS_DIR)/*_sim/ $(SRC_DIR) $(BFM_SRC_DIR) $(TB_SRC_DIR) $(VCS_DIR) $(REMOTE_SERVER):$(REMOTE_PATH)
+	cd $(ROOT_DIR) && rsync -rRv --delete --exclude $(VCS_DIR)/work/ --exclude $(VCS_DIR)/csrc/ --exclude $(VCS_DIR)/\*_sim/ $(SRC_DIR) $(BFM_SRC_DIR) $(TB_SRC_DIR) $(VCS_DIR) $(REMOTE_SERVER):$(REMOTE_PATH)
 
 # Pull coverage reports, this deletes existing ones
 pull_reports_from_remote:
