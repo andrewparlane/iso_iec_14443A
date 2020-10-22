@@ -231,8 +231,12 @@ COLOURISE = (set -o pipefail; $(1) | $(COLOURISE_SED_ALL))
 
 # arguments to the various commands
 VLOGAN_ARGS	= -full64 +lint=all +warn=all -sverilog
-VCS_ARGS	= -full64 +lint=all,noSVA-DIU,noSVA-LDA,noSVA-ADORM,noSVA-NSVU,noSVA-AECASR +warn=all -assert enable_diag -debug_acc+all -ntb_opts check=all
-SIMV_ARGS	= -assert global_finish_maxfail=10 -cm assert -ucli
+
+VCS_ARGS	= -full64 +lint=all,noSVA-DIU,noSVA-LDA,noSVA-ADORM,noSVA-NSVU,noSVA-AECASR \
+			  +warn=all -assert enable_diag -debug_acc+all -ntb_opts check=all			\
+			  -cm line+cond+fsm+tgl+branch+assert
+
+SIMV_ARGS	= -assert global_finish_maxfail=10 -cm line+cond+fsm+tgl+branch+assert -ucli
 
 ifdef RANDOM_SEED
 	SIMV_ARGS 		+= +ntb_random_seed=$(RANDOM_SEED)
@@ -328,6 +332,7 @@ $(patsubst %,%_sim/simv,$(TBS)): $(AN_DB_DIR)
 # Simulation rules
 %: %_sim/simv
 	@$(call RUN_SIM, $@_sim)
+	@urg -dir $@_sim/simv.vdb -report $@_sim/report
 
 # PHONY rules
 analyse: $(AN_DB_DIR)
@@ -402,6 +407,11 @@ clean:
 # Which means we don't need to rebuild everything each time
 push_to_remote:
 	cd $(ROOT_DIR) && rsync -rRv --delete --exclude $(VCS_DIR)/work/ --exclude $(VCS_DIR)/csrc/  --exclude $(VCS_DIR)/*_sim/ $(SRC_DIR) $(BFM_SRC_DIR) $(TB_SRC_DIR) $(VCS_DIR) $(REMOTE_SERVER):$(REMOTE_PATH)
+
+# Pull coverage reports, this deletes existing ones
+pull_reports_from_remote:
+	-@rm -rf *_sim/
+	rsync -rRv $(REMOTE_SERVER):$(REMOTE_PATH)/$(VCS_DIR)/./*_sim/report .
 
 # ssh to the remote server and cd to the VCS dir
 # we use -Y so we can launch graphical apps
