@@ -78,6 +78,23 @@
 #	GUI:				running "make GUI=1 X" will start VCS with the -gui flag, opening DVE
 #	RANDOM_SEED=X:		set the random number generator's seed to X
 
+# Example use:
+#	On the local machine (if using VCS on a remote server) run:
+#		make push_to_remote
+#		make connect_to_remote
+#	On the remote machine:
+# 		To simulate the frame_decode_tb run:
+#			make frame_decode_tb
+#		Then to view the coverage report in DVE run:
+#			dve -dir frame_decode_tb/simv.vdb
+#		To simulate in the GUI (DVE) run (make sure you have X forwarding set up):
+#			make GUI=1 frame_decode_tb
+#		To simulate with a specific (e.g. 1234) random seed run:
+#			make RANDOM_SEED=1234 frame_decode_tb
+#	To view the reports on the local machine, on the local machine run:
+# 		make pull_reports_from_remote
+#		Then open frame_decode_tb/reports/dashboard.html
+
 # ----------------------------------------------------------------------------------
 # VARIABLES
 # ----------------------------------------------------------------------------------
