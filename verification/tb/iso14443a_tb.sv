@@ -84,8 +84,6 @@ module iso14443a_tb
 
     logic                       clk;
     logic                       rst_n;
-    logic                       rst_n_async;    // alias
-    assign rst_n_async = rst_n;
 
     // The variable part of the UID
     // should come from flash or dip switches / wire bonding / hardcoded
@@ -94,8 +92,8 @@ module iso14443a_tb
     // further investigation would be necesarry to be sure.
     logic [UID_INPUT_BITS-1:0]  uid_variable;
 
-    logic [1:0]                 power_async;
-    logic                       pause_n_async;
+    logic [1:0]                 power;
+    logic                       pause_n_synchronised;
     logic                       lm_out;
 
     rx_interface #(.BY_BYTE(1)) app_rx_iface (.*);
@@ -140,7 +138,7 @@ module iso14443a_tb
     // pause_n detector and the PCDPauseNDriver.
 
     localparam real CLOCK_FREQ_HZ       = 13560000.0;    // 13.56MHz
-    localparam real CLOCK_PERIOD_PS = 1000000000000.0 / CLOCK_FREQ_HZ;
+    localparam real CLOCK_PERIOD_PS     = 1000000000000.0 / CLOCK_FREQ_HZ;
     logic pcd_pause_n;
     analogue_sim
     #(
@@ -150,12 +148,12 @@ module iso14443a_tb
     (
         .picc_clk               (clk),
         .pcd_pause_n            (pcd_pause_n),          // used for FDT validation
-        .pause_n_async          (pause_n_async),        // goes to the DUT
-        .pause_n_synchronised   ()
+        .pause_n_async          (),
+        .pause_n_synchronised   (pause_n_synchronised)  // goes to the DUT
     );
 
     // --------------------------------------------------------------
-    // The driver / queue / etc... for the pause_n_async input
+    // The driver / queue / etc... for the pause_n_synchronised input
     // --------------------------------------------------------------
 
     // driver, note the actual driver is in the analogue_sim above
@@ -469,7 +467,7 @@ module iso14443a_tb
         endfunction
 
         virtual protected function void set_power_input(logic [1:0] _power);
-            power_async = _power;
+            power = _power;
         endfunction
 
         virtual function logic verify_dut_cid(logic [3:0] expected);
@@ -569,7 +567,7 @@ module iso14443a_tb
         automatic TxTransConvType                                   tx_trans_conv;
         automatic int                                               reply_timeout;
 
-        power_async             = 2'b00;
+        power                   = 2'b00;
         expect_app_resend_last  = 1'b0;
 
         // TODO: randomise some settings:
