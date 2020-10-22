@@ -83,10 +83,9 @@ module iso14443a
     // and as such stops during pause frames. It must not have any glitches.
     input                       clk,
 
-    // rst_n_async is an asynchronous active low reset.
-    // It passes through a reset synchroniser here.
-    // rst_n should be used everywhere else.
-    input                       rst_n_async,
+    // rst_n is an asynchronous active low reset, that has passed through a reset synchroniser
+    // so that the rising edge is synchronous to the clk.
+    input                       rst_n,
 
     // The variable part of the UID
     // should come from flash or dip switches / wire bonding / hardcoded
@@ -100,20 +99,20 @@ module iso14443a
     // it's power output as needed.
     //
     // The analogue block should pass the correct value in. It can change over time.
-    // and is synchronised here.
+    // and must be synchronised before being passed in.
     //
     // ISO/IEC 14443-4:2016 section 7.4 states:
     //      2'b00: PICC does not support the power level indiction
     //      2'b01: Insufficient power for full functionality
     //      2'b10: Sufficient power for full functionality
     //      2'b11: More than sufficient power for full functionality
-    input [1:0]                 power_async,
+    input [1:0]                 power,
 
-    // pause_n_async is an asynchronous input from the analogue block.
+    // pause_n_synchronised is an asynchronous input from the analogue block, that has passed
+    // through a reset synchroniser, so that the rising edge is synchronised to the clk.
     // It is essentially the digitized envelope of the carrier wave.
-    // When idle pause_n_async is a 1, when a pause is detected it's a 0.
-    // This signal is synchronised before use
-    input                       pause_n_async,
+    // When idle pause_n_synchronised is a 1, when a pause is detected it's 0.
+    input                       pause_n_synchronised,
 
     // lm_out is the manchester encoded data AND'ed with the subcarrier
     // this should be connected to the load modulator
@@ -128,57 +127,16 @@ module iso14443a
     output logic                app_resend_last
 );
 
+    // The version of this IP core
+    // can be accessed via heirarcical naming
+    localparam int ISO_IEC_14443A_VERSION = 1;
+
     // check the FDT_TIMING_ADJUST signal has been set
     generate
         if (FDT_TIMING_ADJUST < 0) begin
             synth_time_error fdt_timing_adjust_must_be_set(.*);
         end
     endgenerate
-
-    // ========================================================================
-    // Synchronisation of async signals
-    // ========================================================================
-
-    // syncronise our asynchronous reset
-    logic rst_n;
-    active_low_reset_synchroniser reset_synchroniser
-    (
-        .clk        (clk),
-        .rst_n_in   (rst_n_async),
-        .rst_n_out  (rst_n)
-    );
-
-    // The pause_n_async signal is asynchronous it can assert / deassert at any point
-    // during the clock cycle. Additionally the clock will not be running during
-    // a pause frame, and so pause_n_async <may> both assert and deassert between rising
-    // clock edges.
-
-    // To handle this we pass it through an active low reset synchroniser.
-    // When pause_n_async goes low, both FFDs in the synchroniser are reset to 0.
-    // Once pause_n_async goes high, a 1 is shifted through both FFDs. So two clock ticks
-    // later we detect the rising edge, indicating the end of the pause frame.
-
-    logic pause_n_synchronised;
-    active_low_reset_synchroniser pause_n_synchroniser
-    (
-        .clk        (clk),
-        .rst_n_in   (pause_n_async),
-        .rst_n_out  (pause_n_synchronised)
-    );
-
-    logic [1:0] power;
-    synchroniser
-    #(
-        .WIDTH      (2),
-        .RESET_VAL  (2'b00)
-    )
-    power_synch_inst
-    (
-        .clk        (clk),
-        .rst_n      (rst_n),
-        .d          (power_async),
-        .q          (power)
-    );
 
     // ========================================================================
     // ISO/IEC 14443-2A
