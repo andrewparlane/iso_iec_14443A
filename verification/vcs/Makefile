@@ -77,6 +77,8 @@
 #						user input in the UCLI. You can add breakpoints / step through, etc..
 #	GUI:				running "make GUI=1 X" will start VCS with the -gui flag, opening DVE
 #	RANDOM_SEED=X:		set the random number generator's seed to X
+#	DEBUG:				running "make DEBUUG=1 X" will start VCS with the -debug_acc+all argument
+#						this makes it slower to run, but provides more debug information.
 
 # Example use:
 #	On the local machine (if using VCS on a remote server) run:
@@ -91,6 +93,8 @@
 #			make GUI=1 frame_decode_tb
 #		To simulate with a specific (e.g. 1234) random seed run:
 #			make RANDOM_SEED=1234 frame_decode_tb
+#		To simulate in debug mode:
+#			make DEBUG=1 frame_decode_tb
 #	To view the reports on the local machine, on the local machine run:
 # 		make pull_reports_from_remote
 #		Then open frame_decode_tb/reports/dashboard.html
@@ -250,8 +254,16 @@ COLOURISE = (set -o pipefail; $(1) | $(COLOURISE_SED_ALL))
 VLOGAN_ARGS	= -full64 +lint=all +warn=all -sverilog
 
 VCS_ARGS	= -full64 +lint=all,noSVA-DIU,noSVA-LDA,noSVA-ADORM,noSVA-NSVU,noSVA-AECASR \
-			  +warn=all -assert enable_diag -debug_acc+all -ntb_opts check=all			\
+			  +warn=all -assert enable_diag -ntb_opts check=all							\
 			  -cm line+cond+fsm+tgl+branch+assert
+
+ifdef DEBUG
+	# full debug mode
+	VCS_ARGS	+= -debug_acc+all
+else
+	# release mode, leave the basic debug_access on, this lets us output our assertion report
+	VCS_ARGS	+= -debug_access
+endif
 
 SIMV_ARGS	= -assert global_finish_maxfail=10 -cm line+cond+fsm+tgl+branch+assert -ucli
 
