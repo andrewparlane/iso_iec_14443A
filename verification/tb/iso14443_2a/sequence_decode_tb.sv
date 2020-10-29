@@ -158,7 +158,7 @@ module sequence_decode_tb;
         end
 
         // 3) Test X -> Z error cases
-        $display("Running test 3");
+        //$display("Running test 3");
         trans = new('{PCDBitSequence_Z,     // SOC
                       PCDBitSequence_X,     // 1
                       PCDBitSequence_Z,     // error
