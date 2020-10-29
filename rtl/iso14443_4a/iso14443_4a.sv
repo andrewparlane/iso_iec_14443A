@@ -301,14 +301,14 @@ module iso14443_4a
 
     logic allow_pps;        // PPS may only come immediately after we have received RATS and sent our ATS
 
-    enum
+    enum logic [1:0]
     {
         Reply_ATS,
         Reply_PPSR,
         Reply_STANDARD_BLOCK
     } reply;
 
-    enum
+    enum logic [1:0]
     {
         // S()
         ReplyStdBlock_DESELECT,

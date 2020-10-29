@@ -91,6 +91,8 @@ interface tx_interface
     // ------------------------------------------------------------------------
     // only for use in testbenches
 
+`ifndef SYNTHESIS
+
     // for use with the bfms
     modport in_all
     (
@@ -142,5 +144,7 @@ interface tx_interface
                 else $error("data, data_valid or data_bits changed when not idle and not immediately after req");
         end
     endgenerate
+
+`endif  // SYNTHESIS
 
 endinterface
