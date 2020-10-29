@@ -61,7 +61,7 @@ module crc_control
     // The Rx CRC is OK if the CRC of all the bytes (including the CRC) is 0
     assign rx_crc_ok = (crc == 0);
 
-    enum
+    enum logic
     {
         CRC_Rx,
         CRC_Tx

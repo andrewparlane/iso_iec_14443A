@@ -29,7 +29,7 @@ package ISO14443A_pkg;
     // Bit sequences for PCD to PICC comms
     // See ISO/IEC 14443-2:2016 section 8.1.3.1
     // ========================================================================
-    typedef enum
+    typedef enum logic [1:0]
     {
         PCDBitSequence_ERROR,   // Invalid timings (or X -> Z)
         PCDBitSequence_X,       // pause frame in second half of bit time
@@ -41,14 +41,14 @@ package ISO14443A_pkg;
     // UID Sizes
     // See ISO/IEC 14443-3:2016 section 6.5.4
     // ========================================================================
-    typedef enum
+    typedef enum logic [1:0]
     {
         UIDSize_SINGLE,
         UIDSize_DOUBLE,
         UIDSize_TRIPLE
     } UIDSize;
 
-    function int get_uid_bits(UIDSize size);
+    function automatic int get_uid_bits(UIDSize size);
         case (size)
             UIDSize_SINGLE: return  4 * 8;
             UIDSize_DOUBLE: return  7 * 8;
@@ -95,7 +95,7 @@ package ISO14443A_pkg;
     // the same UID size and use the same bit frame anticollision field.
     // the bit frame anticollision field is arbitrary. We use bit 2.
     // defined as a function so we can pass UID_SIZE in. Will still be constant
-    function logic [15:0] ATQA(UIDSize size);
+    function automatic logic [15:0] ATQA(UIDSize size);
         case (size)
             UIDSize_SINGLE: return 16'h0004;
             UIDSize_DOUBLE: return 16'h0044;

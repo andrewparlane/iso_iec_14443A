@@ -331,7 +331,7 @@ module initialisation
     // ========================================================================
 
     // See ISO/IEC 14443-3:2016 section 6.3 PICC states
-    typedef enum
+    typedef enum logic [1:0]
     {
         //State_POWER_OFF,          // we don't use this, because if we are powered on
                                     // then there's an RF field, or it's just disabled
@@ -363,7 +363,7 @@ module initialisation
         end
     end
 
-    enum
+    enum logic [1:0]
     {
         Reply_NONE,
         Reply_ATQA,
@@ -607,6 +607,7 @@ module initialisation
         end
     endgenerate
 
+`ifndef SYNTHESIS
     // confirm the size of some structs used here
     // This may seems unecessary but I've seen this issue before.
     initial begin: acSelSizeChecks
@@ -617,5 +618,6 @@ module initialisation
         acSelSize:      assert ($bits(AntiCollisionSelectCommand) == 56)
                             else $fatal(1, "struct AntiCollisionSelectCommand is not of the correct size");
     end
+`endif  // SYNTHESIS
 
 endmodule

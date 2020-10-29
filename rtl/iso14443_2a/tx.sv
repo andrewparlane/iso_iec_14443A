@@ -44,7 +44,7 @@ module tx
     output logic            lm_out
 );
 
-    enum
+    enum logic [1:0]
     {
         State_IDLE,
         State_SOC,

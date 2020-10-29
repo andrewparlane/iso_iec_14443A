@@ -51,7 +51,7 @@ module frame_encode
     tx_interface.out_bit    out_iface
 );
 
-    enum
+    enum logic [2:0]
     {
         State_IDLE,
         State_DATA,

@@ -87,6 +87,8 @@ interface rx_interface
     // ------------------------------------------------------------------------
     // only for use in testbenches
 
+`ifndef SYNTHESIS
+
     function string to_string;
         string s;
         s = $sformatf("{soc: %b, eoc: %b, data_valid: %b, data_bits: %d, data: %x, error: %b}",
@@ -214,5 +216,7 @@ interface rx_interface
                 else $error("data_valid asserted for more than one tick");
         end
     endgenerate
+
+`endif  // SYNTHESIS
 
 endinterface
