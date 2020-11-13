@@ -27,20 +27,20 @@ module crc_control
 (
     // clk is our 13.56MHz input clock. It is recovered from the carrier wave,
     // and as such stops during pause frames. It must not have any glitches.
-    input                   clk,
+    input                       clk,
 
     // rst is our active low synchronised asynchronous reset signal
-    input                   rst_n,
+    input                       rst_n,
 
     // Rx interface
-    rx_interface.in_bit     rx_iface,
-    output logic            rx_crc_ok,
+    rx_interface.in_bit         rx_iface,
+    output logic                rx_crc_ok,
 
     // Tx interface
-    tx_interface.in_bit     tx_iface,
-    input                   tx_append_crc,  // we only calculate the Tx CRC if we will use it
-    input                   fdt_trigger,    // we only start the CRC calculation on the fdt_trigger
-    output logic [15:0]     crc
+    tx_interface.monitor_bit    tx_iface,
+    input                       tx_append_crc,  // we only calculate the Tx CRC if we will use it
+    input                       fdt_trigger,    // we only start the CRC calculation on the fdt_trigger
+    output logic [15:0]         crc
 );
 
     logic crc_start;
