@@ -62,6 +62,15 @@ interface tx_interface
         output  req
     );
 
+    // the crc_control just sniffs the bus, it does not drive any signal
+    modport monitor_bit
+    (
+        input   data,
+        input   data_valid,
+        input   last_bit_in_byte,
+        input   req
+    );
+
     modport in_byte
     (
         input   data,
