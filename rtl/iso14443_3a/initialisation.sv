@@ -222,7 +222,7 @@ module initialisation
             end
 
             if (rx_iface.data_valid) begin
-                if (rx_count != $bits(rx_count)'(RX_BUFF_LEN)) begin
+                if (rx_count != $unsigned($bits(rx_count)'(RX_BUFF_LEN))) begin
                     rx_buffer[rx_count]     <= rx_iface.data;
 
                     if ((rx_count == 1) && is_AC_SELECT) begin
