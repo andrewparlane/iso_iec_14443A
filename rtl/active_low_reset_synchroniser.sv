@@ -32,8 +32,6 @@
 // The D input to the first FFD is '1'.
 // The Q output of the second FFD is the synchronised reset signal.
 
-// SDC: set_false_path
-
 module active_low_reset_synchroniser
 (
     input               clk,
