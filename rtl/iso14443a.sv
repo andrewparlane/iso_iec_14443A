@@ -23,8 +23,6 @@
 
 `timescale 1ps/1ps
 
-// SDC: create_clock - 13.56MHz +/- 7KHz + extra jitter?
-
 module iso14443a
 #(
     // Are we using single, double or triple UIDs

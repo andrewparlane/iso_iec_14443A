@@ -23,8 +23,6 @@
 
 `timescale 1ps/1ps
 
-// SDC: set_false_path
-
 module synchroniser
 #(
     parameter               WIDTH       = 1,
