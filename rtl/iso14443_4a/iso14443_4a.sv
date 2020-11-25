@@ -187,7 +187,7 @@ module iso14443_4a
                         app_rx_iface.data_valid <= 1'b1;
                     end
 
-                    if (rx_count != $bits(rx_count)'(RX_BUFF_LEN)) begin
+                    if (rx_count != $unsigned($bits(rx_count)'(RX_BUFF_LEN))) begin
                         rx_buffer[rx_count] <= rx_iface.data;
                         rx_count            <= rx_count + 1'd1;
 
