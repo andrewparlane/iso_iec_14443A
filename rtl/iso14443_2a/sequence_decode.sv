@@ -60,66 +60,52 @@ module sequence_decode
     // We have a timer that counts the time between the rising edge of pause frames,
     // from that we can determine the current sequence. Since the clock stops during
     // pause frames, things are a bit more complicated.
-    // Pause frames according to ISO 14443-2A:2016 Table 4, have length between 6 and 41 clock
-    // ticks, but the analogue front end (AFE) will change these timings a bit.
-    // Adittionally to get a 6 tick pause, the reader would have to be doing something pretty
-    // horrendous.
 
     // A bit time is 128 ticks.
     // Sequence X is a pause frame starting 64 ticks into the bit time.
     // Sequence Y is a bit time without any pause frames.
     // Sequence Z is a pause frame starting 0 ticks into the bit time.
 
-    // See notes/rx_timings.* for info on how the below values are calculated
+    // in notes/rx_timings.png I have drawn timing diagrams for the various sequence combinations
+    // that we can see. For the PCD the number of ticks between rising edges of the pause_n
+    // is easily calculated. Since our clock stops for a certain number of ticks during a pause,
+    // that number will depend on the proporties of the AFE's clock recovery block and the
+    // characteristics of the carrier wave's envelope.
+    // Using the notes/rx_timings.ods spreadsheet I calculated the following parameters
+    // that let us determine the next sequence based on the value of a counter.
+    // I tried to support a wide a range of missing ticks during a pause as possible.
+    // In the end I found I can support a minimum of -3 missed ticks (clock doesn't stop
+    // and allows for some jitter on detecting the end of the pause) and 58 missed ticks
+    // (with no jitter).
+    // Decreasing the minimum missed ticks further (or the clock not stopping with more than 3 ticks
+    // of jitter detecting the end of pause) causes overlaps, so it wouldn't be clear which
+    // sequence came next.
+    // Increasing the maximum missed ticks further causes issues with timeouts occurring
+    // at the same time as pauses. Or pauses occuring one tick after timeouts (leading to
+    // us emitting two valid sequences in a row, which isn't permitted by my rx_iface).
+    // I have closed the gaps between the various ranges to reduce the hardware needed.
 
     // Cases:
     //      previous    event       counter min     counter max |   result
     // ---------------------------------------------------------------------
     //      IDLE        pause       N/A             N/A         |   Z (SOC)
     //
-    //      X           pause       23              58          |   ERROR   (note: this is X -> Z, but that's not valid)
-    //      X           pause       87              122         |   X
+    //      X           pause       0               68          |   ERROR   (X -> Z)
+    //      X           pause       69              131         |   X
     //      X           timeout     132                         |   Y
     //
-    //      Z           pause       87              122         |   Z
-    //      Z           pause       151             186         |   X
-    //      Z           timeout     196                         |   Y
-    //
-    //      Y           pause       19              54          |   z
-    //      Y           pause       83              118         |   x
-    //      Y           timeout     128                         |   IDLE
-
-    // To allow for a little flexibilitiy we widen these ranges a bit.
-    // and to reduce area I try to reuse comparators by merging similar limits
-    // and closing the gaps between the ranges
-
-    //      previous    event       counter min     counter max |   result
-    // ---------------------------------------------------------------------
-    //      IDLE        pause       N/A             N/A         |   Z (SOC)
-    //
-    //      X           pause       0               63          |   ERROR
-    //      X           pause       64              131         |   X
-    //      X           timeout     132                         |   Y
-    //
-    //      Z           pause       0               63          |   ERROR
-    //      Z           pause       64              131         |   Z
+    //      Z           pause       0               68          |   ERROR
+    //      Z           pause       69              131         |   Z
     //      Z           pause       132             195         |   X
     //      Z           timeout     196                         |   Y
     //
-    //      Y           pause       0               7           |   ERROR
-    //      Y           pause       8               63          |   z
-    //      Y           pause       64              131         |   x
-    //      Y           timeout     132                         |   IDLE
+    //      Y           pause        0              64          |   z
+    //      Y           pause       65              127         |   x
+    //      Y           timeout     128                         |   IDLE
 
     // Note: In the case of an ERROR we wait until we've had 3 bit periods of time
     //       without any pauses and then issue a Y, one bit time later we'll issue
     //       another Y and go idle. This allows us to issue the EOC
-
-    // TODO: Should I support various timings here?
-    //       The received pause length depends on the PCD and our analogue implementation.
-    //       If we fabricate and get these timings wrong, then we will be unable to receive data.
-    //       We could suupport 2 or 3 different sets of timings (short pulses, medium, long pulses)
-    //       and then switch which mode to use using wire bonding?
 
     // ------------------------------------------------------------------------
     // End of pause detector
@@ -165,30 +151,34 @@ module sequence_decode
         case (seq)
             PCDBitSequence_X: begin
                 // last sequence was an x
-                casez (counter)
-                    9'b000??????:   seq_on_pause = PCDBitSequence_ERROR;    // if (counter < 9'd64)
-                    default:        seq_on_pause = PCDBitSequence_X;        // else
-                endcase
+                if (counter <= 68) begin
+                    seq_on_pause = PCDBitSequence_ERROR;
+                end
+                else begin  // < 132 (times out on 132)
+                    seq_on_pause = PCDBitSequence_X;
+                end
             end
 
             PCDBitSequence_Z: begin
                 // last sequence was a Z
-                casez (counter)
-                    9'b000??????:   seq_on_pause = PCDBitSequence_ERROR;    // if (counter < 9'd64)
-                    9'b001??????:   seq_on_pause = PCDBitSequence_Z;
-                    9'b0100000??:   seq_on_pause = PCDBitSequence_Z;        // else if (counter < 9'd132)
-                    default:        seq_on_pause = PCDBitSequence_X;        // else
-                endcase
+                if (counter <= 68) begin
+                    seq_on_pause = PCDBitSequence_ERROR;
+                end
+                else if (counter <= 131) begin
+                    seq_on_pause = PCDBitSequence_Z;
+                end
+                else begin  // < 196 (times out on 196)
+                    seq_on_pause = PCDBitSequence_X;
+                end
             end
 
             PCDBitSequence_Y: begin
-                casez (counter)
-                    9'b000000???:   seq_on_pause = PCDBitSequence_ERROR;    // if (counter < 9'd8)
-                    9'b000001???:   seq_on_pause = PCDBitSequence_Z;
-                    9'b00001????:   seq_on_pause = PCDBitSequence_Z;
-                    9'b0001?????:   seq_on_pause = PCDBitSequence_Z;        // else if (counter < 9'd64)
-                    default:        seq_on_pause = PCDBitSequence_X;        // else
-                endcase
+                if (counter <= 64) begin
+                    seq_on_pause = PCDBitSequence_Z;
+                end
+                else begin // < 128 (times out on 128)
+                    seq_on_pause = PCDBitSequence_X;
+                end
             end
 
             // if the previous sequence wasn't a X, Y or Z, it must have bene an error
@@ -200,7 +190,7 @@ module sequence_decode
     // have we timed out?
     always_comb begin
         timed_out = ((seq == PCDBitSequence_X)     && (counter == 9'd132)) ||
-                    ((seq == PCDBitSequence_Y)     && (counter == 9'd132)) ||
+                    ((seq == PCDBitSequence_Y)     && (counter == 9'd128)) ||
                     ((seq == PCDBitSequence_Z)     && (counter == 9'd196)) ||
                     ((seq == PCDBitSequence_ERROR) && (counter == 9'd384));
     end
