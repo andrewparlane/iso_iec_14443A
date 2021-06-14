@@ -108,11 +108,12 @@ module analogue_sim
         driver.set_pause_ticks(_pause_ticks);
     endfunction
 
-    function void set_delays(int clock_stops_after_ps,
+    function void set_params(logic clock_stops,
+                             int clock_stops_after_ps,
                              int clock_starts_after_ps,
                              int pause_n_asserts_after_ps,
                              int pause_n_deasserts_after_ps);
-        clk_recovery_inst.set_delays(clock_stops_after_ps,      clock_starts_after_ps);
+        clk_recovery_inst.set_params(clock_stops, clock_stops_after_ps, clock_starts_after_ps);
         pause_detect_inst.set_delays(pause_n_asserts_after_ps,  pause_n_deasserts_after_ps);
     endfunction
 

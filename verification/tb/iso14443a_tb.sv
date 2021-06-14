@@ -578,7 +578,8 @@ module iso14443a_tb
         //      ...?
 
         analogue_sim_inst.init(512);    // inits the RxDriver
-        analogue_sim_inst.set_delays(CLOCK_STOPS_AFTER_PS,      CLOCK_STARTS_AFTER_PS,
+        analogue_sim_inst.set_params(1'b1,
+                                     CLOCK_STOPS_AFTER_PS,      CLOCK_STARTS_AFTER_PS,
                                      PAUSE_N_ASSERTS_AFTER_PS,  PAUSE_N_DEASSERTS_AFTER_PS);
 
         app_rx_monitor      = new(app_rx_iface);

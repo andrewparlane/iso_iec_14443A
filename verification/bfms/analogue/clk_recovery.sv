@@ -68,6 +68,7 @@ module clk_recovery
     // of the inverters in the clock generator, and how long it takes the PCD's output to
     // reach that point. Picking values semi at random.
     // TODO: set these appropriately
+    logic   clock_stops             = 1'b1;
     int clock_stops_after_ps        = 500 * 1000; // 500 ns
     int clock_starts_after_ps       = 100 * 1000; // 100 ns
 
@@ -79,8 +80,10 @@ module clk_recovery
     logic stop_clk;
     always_comb begin
         if (!pcd_pause_n) begin
-            // pcd_pause_n asserted
-            stop_clk <= #clock_stops_after_ps 1'b1;
+            if (clock_stops) begin
+                // pcd_pause_n asserted
+                stop_clk <= #clock_stops_after_ps 1'b1;
+            end
         end
         else begin
             // pcd_pause_n deasserted
@@ -105,8 +108,10 @@ module clk_recovery
     // Variable get / set functions
     // ------------------------------------------------------------------------
 
-    function void set_delays(int new_clock_stops_after_ps,
+    function void set_params(logic new_clock_stops,
+                             int new_clock_stops_after_ps,
                              int new_clock_starts_after_ps);
+        clock_stops                 = new_clock_stops;
         clock_stops_after_ps        = new_clock_stops_after_ps;
         clock_starts_after_ps       = new_clock_starts_after_ps;
     endfunction
