@@ -56,21 +56,54 @@ module clk_recovery
     // PICC implementation. I simulate this using the variables:
     //      The clock stops clock_stops_after_ps ps after pcd_pause_n asserts.
     //      The clock starts again clock_starts_after_ps ps after pcd_pause_n deasserts
-    // These variables must be set to correctly emulate the analogue block.
-    // Preferably the final verification will be run numerous times with these variables
-    // randomised within the expected range due to PVT.
+
+    // The sequence_decode module counts the number of ticks between rising edges of pause_n
+    // to determine what the next sequence is. Since the clock stops for some number of ticks
+    // during pauses, we have to take that into account. The sequence_decode is designed to
+    // support as wide a range of options as possible. The supported range of dropped clock ticks
+    // is -3 to 58. Or in other terms, -6 to 116 edges. The negative value here indicates that
+    // if the clock doesn't stop at all, everything will work fine. -3 Also allows for up to 3 ticks
+    // of jitter when detecting the rising edge of the pause even when the clock doesn't stop at all.
+    // To support a bit of jitter on the other side of the range, I reccomend ensuring the clock stops
+    // for no more than 110 edges (55 ticks).
+    //
+    // The number of dropped edges is determined by:
+    //      missing_edges = 2*pcd_pause_len -
+    //                      $floor(2.0*clock_stops_after_ps/CLOCK_PERIOD_PS) +
+    //                      $floor(2.0*clock_starts_after_ps/CLOCK_PERIOD_PS);
+    //
+    // Additionally the clock must start again before the start of the next pause. The worst case
+    // for that is a sequence Z -> sequence X, which is treated as an error. We do however want
+    // to detect this as an error, and so we require clock_stops_after_ps < 64 - pcd_pause_len
+    // which in it's worst case is 64 - 41 = 23 ticks which with the min permited period of
+    // 13.56MHz - 7KHz, is 1.697us.
+    //
+    // In sumarry the requirements are:
+    //      clock_starts_after_ps < 1.6us
+    //      the clock stopping must cause us to miss at most 110 edegs.
+    //
+    // The AFE must ensure that this requirement is always met for all valid inputs
+    // from the PCD in terms of frequency and rise / fall times.
+    // My sequence_decode_tb shows that sequence_decode will work as long as these requiremnts
+    // are met.
 
     // ------------------------------------------------------------------------
     // Variables
     // ------------------------------------------------------------------------
 
-    // I currently have no data on how long this takes. It depends on the switching point
-    // of the inverters in the clock generator, and how long it takes the PCD's output to
-    // reach that point. Picking values semi at random.
-    // TODO: set these appropriately
+    // The actual value for these depends on the AFE which doesn't exist for our process yet,
+    // and the characteristics of the PCD's pause signal (rise and fall times).
+    // The values I've chosen come from a SPICE simulation of the AFE that Fabricio
+    // designed for a different fabrication process, using a typical PCD pause.
+    // (see ISO/IEC 14443-2A:2016 figure 3 and table 4).
+    //  t1 (pcd_pause_len) = 33/fc  = 2.43 us
+    //  t2                 = 32/fc  = 2.36 us
+    //  t3                 =  6/fc  = 0.44 us
     logic   clock_stops             = 1'b1;
-    int clock_stops_after_ps        = 500 * 1000; // 500 ns
-    int clock_starts_after_ps       = 100 * 1000; // 100 ns
+    int     clock_stops_after_ps    =  56 * 1000; // 56 ns
+    int     clock_starts_after_ps   = 145 * 1000; // 145 ns
+
+    // These values lead to 68 missing edges or 34 missing ticks.
 
     // ------------------------------------------------------------------------
     // pause_n detector
