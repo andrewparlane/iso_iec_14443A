@@ -175,23 +175,24 @@ SRCS	= 	$(SYNTH_SRCS)	\
 # testbenches
 
 # This is used to generate the rules
-TBS		= sequence_decode_tb 			\
-		  subcarrier_tb 				\
-		  bit_encoder_tb 				\
-		  tx_tb 						\
-		  iso14443_2a_tb				\
-		  frame_decode_tb 				\
-		  fdt_tb 						\
-		  frame_encode_tb				\
-		  crc_a_tb 						\
-		  crc_control_tb 				\
-		  deserialiser_tb				\
-		  serialiser_tb					\
-		  framing_tb					\
-		  initialisation_tb				\
-		  routing_tb					\
-		  iso14443_3a_tb				\
-		  iso14443_4a_tb				\
+TBS		= pause_n_latch_and_synchroniser_tb	\
+		  sequence_decode_tb 				\
+		  subcarrier_tb 					\
+		  bit_encoder_tb 					\
+		  tx_tb 							\
+		  iso14443_2a_tb					\
+		  frame_decode_tb 					\
+		  fdt_tb 							\
+		  frame_encode_tb					\
+		  crc_a_tb 							\
+		  crc_control_tb 					\
+		  deserialiser_tb					\
+		  serialiser_tb						\
+		  framing_tb						\
+		  initialisation_tb					\
+		  routing_tb						\
+		  iso14443_3a_tb					\
+		  iso14443_4a_tb					\
 		  iso14443a_tb
 
 # This is for TBs that need to do something custom, it's only used for list_tbs
