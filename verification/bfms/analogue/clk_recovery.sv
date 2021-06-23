@@ -78,8 +78,14 @@ module clk_recovery
     // which in it's worst case is 64 - 41 = 23 ticks which with the min permited period of
     // 13.56MHz - 7KHz, is 1.697us.
     //
+    // Due to the FDT requirements (see pause_detect.sv) we require the clock to start again
+    // before the pause_n signal deasserts: clock_starts_after_ps < pause_n_deasserts_after_ps.
+    // since pause_n_deasserts_after_ps is required to be < 300 ns, the above
+    // clock_starts_after_ps < 1.6 us is now superfluous.
+    //
     // In sumarry the requirements are:
     //      clock_starts_after_ps < 1.6us
+    //      clock_starts_after_ps < pause_n_deasserts_after_ps
     //      the clock stopping must cause us to miss at most 110 edegs.
     //
     // The AFE must ensure that this requirement is always met for all valid inputs

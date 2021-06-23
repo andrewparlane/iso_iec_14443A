@@ -53,19 +53,62 @@ module pause_detect
     // the PICC implementation. I simulate this using the variables:
     //      The pause_nasync signal asserts pause_n_asserts_after_ps ps pcd_pause_n asserts.
     //      The pause_nasync signal deasserts pause_n_deasserts_after_ps ps after pcd_pause_n deasserts.
-    // These variables must be set to correctly emulate the analogue block.
-    // Preferably the final verification will be run numerous times with these variables
-    // randomised within the expected range due to PVT.
+    //
+    // The sequence_decode module works via counting the number of ticks between the rising edge
+    // of pauses. So the only requirement here is that the AFE has minimal jitter when detecting
+    // the end of the pause (pause_n_deasserts_after_ps is constant when receiving the same PCD
+    // input signal). Any jitter here should be accounted for when designing the clock recovery
+    // block. See notes in clk_recovery.sv for more info.
+    //
+    // The fdt module aims to start the response transmission a precise number of ticks after the
+    // last rising edge of the last pause of a frame. There are internal delays that have to be
+    // taken into account, but we also have to consider the delays of the AFE. The standard says
+    // that the actual FDT time must be between the specified number of ticks and the specified
+    // number of ticks + 0.4 us (5.4 ticks). So we can send a little late but not too early,
+    // meaning we should under-compensate for delays rather than over compensate. See fdt.sv for
+    // more notes about this.
+    // Here what matters is the time between the start of the end of the PCD's pause and the AFE's
+    // pause_n signal deasserting, or in other words pause_n_deasserts_after_ps. The value of this
+    // depends on the implementation of the AFE and the characteristics of the PCD's pause.
+    // SPICE simulations of Fabricio's AFE shows values between 9ns and 602ns. Thiss is unfortunately
+    // too large a range, since we only have 400ns of slack. Since we have to under-compensate
+    // we need to use the minimum value of 9ns in our FDT calculations. Since that's well under
+    // 1 tick, we can essentially assume the minimum here is 0ns. The maximum I set at 300ns in order
+    // to give the remaining 100ns of slack as flexibilty elsewhere in the chain.
+    //
+    // Additionally the pause_n signal is passed through the pause_n_latch_and_synchroniser module,
+    // so there's a delay of 3 rising edges (2 to 3 periods) there assuming the clock starts running
+    // before pause_n deasserts. So this becomes another requirement:
+    //      clock_starts_after_ps < pause_n_deasserts_after_ps.
+    // We can compensate for 2 of those periods (minimum) with the FDT_TIMING_ADJUST parameter,
+    // and the potential 3rd tick eats into the 100ns of our margin, leaving (with min frequency)
+    // 26.2 ns.
+    //
+    // Other than that, the only other requirement is that pause_n_sychronised deasserts before the
+    // start of the next pause. In the worst case that's the X->Z transition, with 64 - pcd_pause_len
+    // ticks between the end of one pause (X) and the start of the next (Z). The synchroniser takes an
+    // additional 3 ticks, so pause_n_deasserts_after_ps < (64 - pcd_pause_len - 3). Which in
+    // the worst case (pcd_pause_len = 41) is pause_n_deasserts_after_ps < 20 ticks, which is much
+    // higher than the 300ns requirement from above, so can safely be ignored
+    //
+    // In sumarry the requirements are:
+    //      pause_n_deasserts_after_ps has minimal jitter for the same input pause signal
+    //      pause_n_deasserts_after_ps < 300 ns
+    //      clock_starts_after_ps < pause_n_deasserts_after_ps
 
     // ------------------------------------------------------------------------
     // Variables
     // ------------------------------------------------------------------------
 
-    // looking at figure 5.11 in Fabricio's thesis we see that pause_n_async asserts
-    // ~1 us after the PCD starts the pause, and deasserts it ~150 ns after
-    // the PCD ends the pause
-    int pause_n_asserts_after_ps    = 1 * 1000 * 1000;  // 1us
-    int pause_n_deasserts_after_ps  =      150 * 1000;  // 150 ns
+    // The actual value for these depends on the AFE which doesn't exist for our process yet
+    // and the characteristics of the PCD's pause. The values I've chosen come from a SPICE
+    // simulation of the AFE that Fabricio designed for a different fabrication process,
+    // using a typical PCD input signal (see ISO/IEC 14443-2A:2016 figure 3 and table 4):
+    //  t1 (pcd_pause_len) = 33/fc
+    //  t2                 = 32/fc
+    //  t3                 =  6/fc
+    int pause_n_asserts_after_ps    = 552 * 1000;  // 552 ns
+    int pause_n_deasserts_after_ps  = 220 * 1000;  // 220 ns
 
     // ------------------------------------------------------------------------
     // pause_n_async detector
