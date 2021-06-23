@@ -74,7 +74,4 @@ module subcarrier
         end
     end
 
-    // TODO: Add a check to the tx testbench to make sure that
-    //       each bit period starts with the subcarrier in the loaded state
-
 endmodule
