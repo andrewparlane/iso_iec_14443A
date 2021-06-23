@@ -52,10 +52,6 @@ module iso14443a
     //                                       We can't account for the delay in the synchroniser
     //                                       automatically, because it depends on when the end of pause
     //                                       is detected and when the clock starts up again.
-    //                                       if the end of pause is detected before the clock starts
-    //                                       then the synchronisation time is 1 or 1.5 ticks.
-    //                                       otherwise it's between 1 and 2 ticks after the end
-    //                                       of pause is detected.
     //
     //      LM_OUT_TO_MODULATION_EDGE_PS   - This should be the time in ps between the rising edge of
     //                                       the lm_out signal and the load modulator activating.
@@ -106,10 +102,9 @@ module iso14443a
     //      2'b11: More than sufficient power for full functionality
     input [1:0]                 power,
 
-    // pause_n_synchronised is an asynchronous input from the analogue block, that has passed
-    // through a reset synchroniser, so that the rising edge is synchronised to the clk.
-    // It is essentially the digitized envelope of the carrier wave.
-    // When idle pause_n_synchronised is a 1, when a pause is detected it's 0.
+    // pause_n_synchronised is the output of the pause_n_latch_and_synchroniser module, we take
+    // this as an input here instead of latching and synchronising it in this module since other
+    // parts of the design may also want access to the latched and synchronised signal.
     input                       pause_n_synchronised,
 
     // lm_out is the manchester encoded data AND'ed with the subcarrier
