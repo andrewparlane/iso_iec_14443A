@@ -146,6 +146,7 @@ module iso14443a_tb
     )
     analogue_sim_inst
     (
+        .rst_n                  (rst_n),
         .picc_clk               (clk),
         .pcd_pause_n            (pcd_pause_n),          // used for FDT validation
         .pause_n_async          (),

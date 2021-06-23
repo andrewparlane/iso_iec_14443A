@@ -31,10 +31,11 @@ module analogue_sim
     parameter CLOCK_FREQ_HZ = 13560000  // 13.56MHz
 )
 (
-    output logic picc_clk,              // this clock halts during Rx
-    output logic pcd_pause_n,           // the PCD's pause_n signal as received at the input to the analogue block
-    output logic pause_n_async,         // the delayed (non synchronised version of pcd_pause_n)
-    output logic pause_n_synchronised   // the synchronised version of pause_n
+    input           rst_n,
+    output logic    picc_clk,               // this clock halts during Rx
+    output logic    pcd_pause_n,            // the PCD's pause_n signal as received at the input to the analogue block
+    output logic    pause_n_async,          // the delayed (non synchronised version of pcd_pause_n)
+    output logic    pause_n_synchronised    // the latched and synchronised version of pause_n
 );
 
     // generate the PCD clock
@@ -72,13 +73,14 @@ module analogue_sim
         .pause_n_async  (pause_n_async)
     );
 
-    // synchronise the pause_n signal with a reset synchroniser
+    // latch and synchronise the pause_n_async signal
     // see the top level RTL module iso14443a_top.sv for an explanation
-    active_low_reset_synchroniser pause_n_synchroniser
+    pause_n_latch_and_synchroniser pause_n_latch_sync
     (
-        .clk        (picc_clk),
-        .rst_n_in   (pause_n_async),
-        .rst_n_out  (pause_n_synchronised)
+        .clk                    (picc_clk),
+        .rst_n                  (rst_n),
+        .pause_n_async          (pause_n_async),
+        .pause_n_synchronised   (pause_n_synchronised)
     );
 
     function void init (int ticks_after_transaction             = 256,

@@ -50,6 +50,7 @@ module sequence_decode_tb;
     // --------------------------------------------------------------
     analogue_sim analogue_sim_inst
     (
+        .rst_n                  (rst_n),
         .picc_clk               (clk),
         .pcd_pause_n            (),
         .pause_n_async          (),
