@@ -58,8 +58,8 @@ module fdt_tb;
     // --------------------------------------------------------------
 
     // Based on simulation the rising edge of pause_n_synchronised occurs
-    // 258,111ps after the rising edge of pcd_pause_n.
-    localparam real PCD_PAUSE_N_TO_SYNCHRONISED_PS = 258111.0;
+    // 405,603ps after the rising edge of pcd_pause_n.
+    localparam real PCD_PAUSE_N_TO_SYNCHRONISED_PS = 405603.0;
 
     // after fdt_trigger assert, the tx module sees it after 1 tick
     // the en signal is seen after another tick. So the data changes after 2 ticks

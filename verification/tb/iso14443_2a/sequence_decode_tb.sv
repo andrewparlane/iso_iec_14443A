@@ -261,14 +261,14 @@ module sequence_decode_tb;
 
             // The upper bound on this is that the end of the pause has to come before the
             // start of the pause of the next sequence. Which means at most 64 - pcd_pause_len
-            // ticks (for an X->Z (error)). Minus 2 ticks more for the synchroniser.
+            // ticks (for an X->Z (error)). Minus up to 3 ticks more for the synchroniser.
             // However that would be pretty extreme if pcd_pause_len were on the lower end
-            // (64 - 10 = 54). When simulating Fabricio's SPICE model the largest delay I
+            // (64 - 10 - 3 = 51). When simulating Fabricio's SPICE model the largest delay I
             // found here was ~600ns which is just over 8 ticks. I'm using 2us here as an
             // upper bound, which is about 27 ticks, that's plenty of flexibility.
             pause_n_deasserts_after_ps >= 0;
             pause_n_deasserts_after_ps < 2*1000*1000;
-            pause_n_deasserts_after_ps < (64 - pcd_pause_len - 2)*CLOCK_PERIOD_PS;
+            pause_n_deasserts_after_ps < (64 - pcd_pause_len - 3)*CLOCK_PERIOD_PS;
 
             // When simulating Fabricio's SPICE model I always saw the clock stoping before
             // the pause asserted. This may not be the case in the design when it's ported
@@ -285,7 +285,7 @@ module sequence_decode_tb;
             // range as pause_n_deasserts_after_ps (2us).
             clock_starts_after_ps >= 0;
             clock_starts_after_ps < 2*1000*1000;
-            clock_starts_after_ps < (64 - pcd_pause_len - 2)*CLOCK_PERIOD_PS;
+            clock_starts_after_ps < (64 - pcd_pause_len - 3)*CLOCK_PERIOD_PS;
 
             // when the PICC clock stops we miss a certain number of edges compared to the
             // PCD clock. We want that number to be missing_edges. If the clocks stopped at the
