@@ -107,16 +107,23 @@ package pcd_pause_n_driver_pkg;
         endtask
 
         virtual protected task send_sequence_error;
-            // we can guarantee an error by having a pause at the start of the bit time (sequence Z)
-            // and then a short time later sending a second pause.
-            // An error could be detected on the first pause if the previous sequence was an X,
-            // since X -> Z is an error. Otherwise/ sequence_decode detects an error if two
-            // pauses are < 64 PICC clk ticks apar. We need to leave enough of a gap so that
-            // the PICC detects them as two separate pauses. Using 48 ticks. This could fail
-            // if the analogue block has huge delays but I don't think there's much point in
-            // testing with delays of more than a few ticks.
+            // We start by generating a pause at the start of the bit time (sequence Z).
+            // If the previous sequence was an X then this will be detected as an error
+            // as X -> Z is not permitted.
+            // We then send a second pause a short time later. The sequence_decode module
+            // detectes an error if the last sequence was a Z and the next pause (deasserting edge)
+            // comes less than 68 ticks after the end of the first pause.
+            // Since that uses the PICC clock which may stops for a bit in the middle of pauses
+            // and we use the PCD clock which does not stop, we have to pick a gap (g) between
+            // the end of one pause and the start of the next, such that g + pause_ticks < 68.
+            // Whilst keeping g large enough that the analogue_sim detects the end of one pause
+            // before the next asserts. Since pause_n_deasserts_after_ps is limited to 300ns
+            // (I require the AFE meets that), and there's a maxmimum of 3 ticks for the deassserting
+            // edge to pass through the pause_n_latch_and_synchroniser. We can say that g > 8
+            // and g < 68 - pause_ticks. Keeping g at a max value as possible means:
+            // g = 68 - pause_ticks - 1
             do_pause;
-            repeat(48) @(posedge vif.clk) begin end
+            repeat(68 - pause_ticks - 1) @(posedge vif.clk) begin end
             do_pause;
         endtask
 
