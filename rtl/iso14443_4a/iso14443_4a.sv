@@ -70,8 +70,9 @@ module iso14443_4a
     // Every reply from the PICC that includes a CID field also includes a power indicator
     // field to tell the PCD if it's receiving enough power or not.
     // The analogue block should pass the correct value in. It can change over time.
-    // and is synchronised (in the iso14443a top level module). 2'b00 should be passed
-    // if this is not supported
+    // The value used is the one present when we start transmitting the CID field of the PCB.
+    // So the AFE should prepare this value before the start of the response.
+    // 2'b00 should be passed if this is not supported.
     input [1:0]                 power,
 
     // To / From the 14443-3 layer

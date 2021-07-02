@@ -93,7 +93,8 @@ module iso14443a
     // it's power output as needed.
     //
     // The analogue block should pass the correct value in. It can change over time.
-    // and must be synchronised before being passed in.
+    // The value used is the one present when we start transmitting the CID field of the PCB.
+    // So the AFE should prepare this value before the start of the response.
     //
     // ISO/IEC 14443-4:2016 section 7.4 states:
     //      2'b00: PICC does not support the power level indiction
