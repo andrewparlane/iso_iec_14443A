@@ -347,10 +347,12 @@ module initialisation
         //State_ACTIVE_STAR
     } State;
 
-    State state;
-    logic state_star;
-    State next_state;
-    logic next_state_star;
+    // state should be of type State. but VCS doesn't seem to be able to generate a correct SAIF file
+    // if I use that.
+    logic [1:0] state;
+    logic       state_star;
+    State       next_state;
+    logic       next_state_star;
 
     always_ff @(posedge clk, negedge rst_n) begin
         if (!rst_n) begin
@@ -373,7 +375,7 @@ module initialisation
 
     always_comb begin
         // assign defaults to prevent latches
-        next_state          = state;
+        next_state          = State'(state);
         next_state_star     = state_star;
         reply               = Reply_NONE;
         next_cascade_level  = current_cascade_level;
@@ -512,11 +514,19 @@ module initialisation
     // Our ATQA response
     localparam logic [15:0] ATQA_REPLY = ATQA(UID_SIZE);
 
+    // VCS doesn't generate a valid SAIF file, if I assign to interface members directly
+    // in a sequential block.
+    logic       tx_iface_data_valid;
+    logic [2:0] tx_iface_data_bits;
+
+    assign tx_iface.data_valid  = tx_iface_data_valid;
+    assign tx_iface.data_bits   = tx_iface_data_bits;
+
     assign tx_iface.data = tx_buffer[0];
 
     always_ff @(posedge clk, negedge rst_n) begin
         if (!rst_n) begin
-            tx_iface.data_valid         <= 1'b0;
+            tx_iface_data_valid         <= 1'b0;
         end
         else begin
             // tx_iface.data_valid is cleared when the tx_iface.req asserts and we are out of
@@ -531,7 +541,7 @@ module initialisation
 
                     // all transfers from the PICC are 8 bits wide
                     // except the first of the AC reply
-                    tx_iface.data_bits  <= 3'd0; // 0 -> 8 bits
+                    tx_iface_data_bits  <= 3'd0; // 0 -> 8 bits
 
                     // shift tx_buffer
                     for (int i = 0; i < (TX_BUFF_LEN - 1); i++) begin
@@ -540,7 +550,7 @@ module initialisation
                 end
                 else begin
                     // nope
-                    tx_iface.data_valid <= 1'b0;
+                    tx_iface_data_valid <= 1'b0;
                 end
             end
 
@@ -552,21 +562,21 @@ module initialisation
                     tx_buffer[1]            <= ATQA_REPLY[15:8];
                     tx_count_minus_1        <= 3'd1;    // send 2 bytes
                     tx_append_crc           <= 1'b0;
-                    tx_iface.data_valid     <= 1'b1;
-                    tx_iface.data_bits      <= 3'd0;    // first tfer is 8 bits wide
+                    tx_iface_data_valid     <= 1'b1;
+                    tx_iface_data_bits      <= 3'd0;    // first tfer is 8 bits wide
                 end
                 Reply_AC: begin
                     // copy all the data from the ac_reply_buffer,
                     // although we only transmit the correct number of bits
                     tx_buffer               <= ac_reply_buffer;
-                    tx_iface.data_valid     <= 1'b1;
+                    tx_iface_data_valid     <= 1'b1;
 
                     // for the first transfer send 8 - ac_sel_msg.nvb.bits
                     // since it's 3 bits wide, 0 is the same as 8.
                     // 0 - 0 =  0 = 3'd000 = 0 -> send 8 bits
                     // 0 - 1 = -1 = 3'd111 = 7 -> send 7 bits
                     // 0 - 7 = -7 = 3'd001 = 1 -> send 1 bit
-                    tx_iface.data_bits      <= 3'd0 - ac_sel_msg.nvb.bits;
+                    tx_iface_data_bits      <= 3'd0 - ac_sel_msg.nvb.bits;
 
                     // we have received nvb.bytes - 2, full bytes of the UID + BCC (5 bytes)
                     // so we need to send 5 - (nvb.bytes - 2) = 7 - nvb.bytes
@@ -579,8 +589,8 @@ module initialisation
                                                                         : SAK_UID_NOT_COMPLETE;
                     tx_count_minus_1        <= 3'd0;    // send 1 byte
                     tx_append_crc           <= 1'b1;
-                    tx_iface.data_valid     <= 1'b1;
-                    tx_iface.data_bits      <= 3'd0;    // first tfer is 8 bits wide
+                    tx_iface_data_valid     <= 1'b1;
+                    tx_iface_data_bits      <= 3'd0;    // first tfer is 8 bits wide
                 end
             endcase
         end

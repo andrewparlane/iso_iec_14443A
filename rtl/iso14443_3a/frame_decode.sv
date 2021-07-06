@@ -52,19 +52,31 @@ module frame_decode
     logic       error_detected;     // don't issue data after we detect an error
     logic [2:0] bit_count;
 
+    // VCS doesn't generate a valid SAIF file, if I assign to interface members directly
+    // in a sequential block.
+    logic out_iface_eoc;
+    logic out_iface_data_valid;
+    logic out_iface_error;
+    logic out_iface_data;
+
+    assign out_iface.eoc        = out_iface_eoc;
+    assign out_iface.data_valid = out_iface_data_valid;
+    assign out_iface.error      = out_iface_error;
+    assign out_iface.data       = out_iface_data;
+
     always_ff @(posedge clk, negedge rst_n) begin
         if (!rst_n) begin
-            out_iface.data_valid    <= 1'b0;
-            out_iface.error         <= 1'b0;
-            out_iface.eoc           <= 1'b0;
+            out_iface_data_valid    <= 1'b0;
+            out_iface_error         <= 1'b0;
+            out_iface_eoc           <= 1'b0;
             last_bit                <= 1'b0;
             next_bit_is_parity      <= 1'b0;
         end
         else begin
             // these should only be asserted for one tick
-            out_iface.data_valid    <= 1'b0;
-            out_iface.error         <= 1'b0;
-            out_iface.eoc           <= 1'b0;
+            out_iface_data_valid    <= 1'b0;
+            out_iface_error         <= 1'b0;
+            out_iface_eoc           <= 1'b0;
 
             if (in_iface.soc) begin
                 // new frame
@@ -80,13 +92,13 @@ module frame_decode
 
             if (in_iface.eoc) begin
                 // EOC
-                out_iface.eoc <= 1'b1;
+                out_iface_eoc <= 1'b1;
 
                 // we error if we were expecting a parity bit
                 // or if we have received no data
                 if (!error_detected &&
                     (next_bit_is_parity || !data_received)) begin
-                    out_iface.error <= 1'b1;
+                    out_iface_error <= 1'b1;
                     error_detected  <= 1'b1;
                 end
             end
@@ -104,7 +116,7 @@ module frame_decode
 
                         if (in_iface.data != expected_parity) begin
                             // parity error
-                            out_iface.error <= 1'b1;
+                            out_iface_error <= 1'b1;
                             error_detected  <= 1'b1;
                         end
 
@@ -115,8 +127,8 @@ module frame_decode
                         bit_count               <= bit_count + 1'd1;
 
                         // not a parity bit, so pass it through
-                        out_iface.data_valid    <= 1'b1;
-                        out_iface.data          <= in_iface.data;
+                        out_iface_data_valid    <= 1'b1;
+                        out_iface_data          <= in_iface.data;
 
                         // odd parity (expecting number of 1s to be odd)
                         expected_parity <= expected_parity ^ in_iface.data;
@@ -131,7 +143,7 @@ module frame_decode
                 // error from the sequence_decode module
                 if (in_iface.error) begin
                     error_detected  <= 1'b1;
-                    out_iface.error <= 1'b1;
+                    out_iface_error <= 1'b1;
                 end
             end
         end

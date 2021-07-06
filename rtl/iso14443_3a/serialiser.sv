@@ -44,14 +44,19 @@ module serialiser
     logic idle;
     logic cache_data;
 
+    // VCS doesn't generate a valid SAIF file, if I assign to interface members directly
+    // in a sequential block.
+    logic in_iface_req;
+    assign in_iface.req = in_iface_req;
+
     always_ff @(posedge clk, negedge rst_n) begin
         if (!rst_n) begin
-            in_iface.req            <= 1'b0;
+            in_iface_req            <= 1'b0;
             idle                    <= 1'b1;
         end
         else begin
             // these should only be asserted for at most one tick
-            in_iface.req <= 1'b0;
+            in_iface_req <= 1'b0;
 
             if (idle) begin
                 // wait for in_iface.data_valid
@@ -71,7 +76,7 @@ module serialiser
                     // prepare next bit
                     if (bit_count == 0) begin
                         // need a new byte
-                        in_iface.req    <= 1'b1;
+                        in_iface_req    <= 1'b1;
                         bit_count       <= 3'd7;    // always 8 bits after the first byte
 
                         // we don't know exactly when it'll be ready

@@ -44,25 +44,34 @@ module tx
     output logic            lm_out
 );
 
-    enum logic [1:0]
+    typedef enum logic [1:0]
     {
         State_IDLE,
         State_SOC,
         State_DATA,
         State_EOC
-    } state;
+    } State;
+
+    // This should be of type State but VCS doesn't seem to be able to generate a correct SAIF file
+    // if I use that directly.
+    logic [1:0] state;
 
     // signals from the bit_encoder
     logic       be_last_tick;   // the last tick of the bit period
 
+    // VCS doesn't generate a valid SAIF file, if I assign to interface members directly
+    // in a sequential block.
+    logic in_iface_req;
+    assign in_iface.req = in_iface_req;
+
     always_ff @(posedge clk, negedge rst_n) begin
         if (!rst_n) begin
             state           <= State_IDLE;
-            in_iface.req    <= 1'b0;
+            in_iface_req    <= 1'b0;
         end
         else begin
             // req should only ever be asserted one tick at a time
-            in_iface.req    <= 1'b0;
+            in_iface_req    <= 1'b0;
 
             case (state)
                 State_IDLE: begin
@@ -87,7 +96,7 @@ module tx
                     // then cache the new data and request more. Otherwise go to EOC
                     if (be_iface.req) begin
                         if (in_iface.data_valid) begin
-                            in_iface.req    <= 1'b1;
+                            in_iface_req    <= 1'b1;
                         end
                     end
                     else if (be_last_tick && !in_iface.data_valid) begin

@@ -38,31 +38,45 @@ module deserialiser
     rx_interface.out_byte   out_iface
 );
 
-    assign out_iface.soc = in_iface.soc;
+    // VCS doesn't generate a valid SAIF file, if I assign to interface members directly
+    // in a sequential block.
+    logic       out_iface_eoc;
+    logic       out_iface_data_valid;
+    logic [2:0] out_iface_data_bits;
+    logic       out_iface_error;
+    logic [7:0] out_iface_data;
+
+    assign out_iface.eoc        = out_iface_eoc;
+    assign out_iface.data_valid = out_iface_data_valid;
+    assign out_iface.data_bits  = out_iface_data_bits;
+    assign out_iface.error      = out_iface_error;
+    assign out_iface.data       = out_iface_data;
+
+    assign out_iface.soc        = in_iface.soc;
 
     logic seen_error;
 
     always_ff @(posedge clk, negedge rst_n) begin
         if (!rst_n) begin
-            out_iface.data_valid    <= 1'b0;
-            out_iface.eoc           <= 1'b0;
-            out_iface.error         <= 1'b0;
+            out_iface_data_valid    <= 1'b0;
+            out_iface_eoc           <= 1'b0;
+            out_iface_error         <= 1'b0;
         end
         else begin
             // these should only be asserted for at most one tick
-            out_iface.eoc           <= 1'b0;
-            out_iface.data_valid    <= 1'b0;
+            out_iface_eoc           <= 1'b0;
+            out_iface_data_valid    <= 1'b0;
 
             // just pass this through (but delayed by a tick, so it stays in sync)
             // and record it so we don't issue future valid data signals
-            out_iface.error <= in_iface.error;
+            out_iface_error <= in_iface.error;
             if (in_iface.error) begin
                 seen_error      <= 1'b1;
             end
 
             if (in_iface.soc) begin
                 // start a new byte
-                out_iface.data_bits <= '0;
+                out_iface_data_bits <= '0;
                 seen_error          <= 1'b0;
             end
 
@@ -73,10 +87,10 @@ module deserialiser
                 // in_iface.data_valid should never be set at the same time as in_iface.eoc
                 // so no need to worry about receiving more data at this point
                 if ((out_iface.data_bits != 0) && !seen_error && !in_iface.error) begin
-                    out_iface.data_valid <= 1'b1;
+                    out_iface_data_valid <= 1'b1;
                 end
 
-                out_iface.eoc <= 1'b1;
+                out_iface_eoc <= 1'b1;
             end
 
             if (in_iface.data_valid && !seen_error) begin
@@ -84,14 +98,14 @@ module deserialiser
                 // we could shift into the MSb, but then partial bytes will have issues
                 // we could add a "continue_shifting_after_eoc" counter?
                 // TODO: work out what's most efficient
-                out_iface.data[out_iface.data_bits] <= in_iface.data;
+                out_iface_data[out_iface.data_bits] <= in_iface.data;
 
                 // note that we've received a bit
-                out_iface.data_bits <= out_iface.data_bits + 1'd1;
+                out_iface_data_bits <= out_iface.data_bits + 1'd1;
 
                 // is this a full byte (7 now -> 8 when valid asserts)
                 if (out_iface.data_bits == 7) begin
-                    out_iface.data_valid <= 1'b1;
+                    out_iface_data_valid <= 1'b1;
                 end
             end
         end

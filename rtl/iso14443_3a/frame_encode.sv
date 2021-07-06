@@ -51,7 +51,7 @@ module frame_encode
     tx_interface.out_bit    out_iface
 );
 
-    enum logic [2:0]
+    typedef enum logic [2:0]
     {
         State_IDLE,
         State_DATA,
@@ -59,7 +59,11 @@ module frame_encode
         State_CRC,
         State_CRC_PARITY,
         State_END
-    } state;
+    } State;
+
+    // This should be of type State but VCS doesn't seem to be able to generate a correct SAIF file
+    // if I use that directly.
+    logic [2:0] state;
 
     // bits remaining before sending parity bit
     logic [2:0]     bits_remaining;
@@ -68,15 +72,27 @@ module frame_encode
     logic [15:0]    cached_crc;
     logic           crc_byte;
 
+    // VCS doesn't generate a valid SAIF file, if I assign to interface members directly
+    // in a sequential block.
+    logic in_iface_req;
+    assign in_iface.req = in_iface_req;
+
+    logic out_iface_data_valid;
+    logic out_iface_data;
+    logic out_iface_last_bit_in_byte;
+    assign out_iface.data_valid         = out_iface_data_valid;
+    assign out_iface.data               = out_iface_data;
+    assign out_iface.last_bit_in_byte   = out_iface_last_bit_in_byte;
+
     always_ff @(posedge clk, negedge rst_n) begin
         if (!rst_n) begin
             state                   <= State_IDLE;
-            in_iface.req            <= 1'b0;
-            out_iface.data_valid    <= 1'b0;
+            in_iface_req            <= 1'b0;
+            out_iface_data_valid    <= 1'b0;
         end
         else begin
             // req should only ever be asserted one tick at a time
-            in_iface.req    <= 1'b0;
+            in_iface_req    <= 1'b0;
 
             case (state)
                 State_IDLE: begin
@@ -86,9 +102,9 @@ module frame_encode
                         // start if data valid
                         if (in_iface.data_valid) begin
                             // start sending data
-                            out_iface.data              <= in_iface.data;
-                            out_iface.data_valid        <= 1'b1;
-                            out_iface.last_bit_in_byte  <= 1'b0;
+                            out_iface_data              <= in_iface.data;
+                            out_iface_data_valid        <= 1'b1;
+                            out_iface_last_bit_in_byte  <= 1'b0;
                             parity                      <= !in_iface.data;
 
                             if (in_iface.last_bit_in_byte) begin
@@ -100,7 +116,7 @@ module frame_encode
                             end
 
                             // and request the next bit
-                            in_iface.req    <= 1'b1;
+                            in_iface_req    <= 1'b1;
                         end
                     end
                 end
@@ -113,8 +129,8 @@ module frame_encode
                         // number of bits
 
                         // send the next bit and update the parity bit
-                        out_iface.data              <= in_iface.data;
-                        out_iface.last_bit_in_byte  <= 1'b0;
+                        out_iface_data              <= in_iface.data;
+                        out_iface_last_bit_in_byte  <= 1'b0;
                         parity                      <= parity ^ in_iface.data;
 
                         if (in_iface.last_bit_in_byte) begin
@@ -124,7 +140,7 @@ module frame_encode
                         end
 
                         // request the next bit
-                        in_iface.req    <= 1'b1;
+                        in_iface_req    <= 1'b1;
                     end
                 end
 
@@ -132,8 +148,8 @@ module frame_encode
                     // wait for the bit encoder to request more data
                     if (out_iface.req) begin
                         // send the parity bit
-                        out_iface.data              <= parity;
-                        out_iface.last_bit_in_byte  <= 1'b1;
+                        out_iface_data              <= parity;
+                        out_iface_last_bit_in_byte  <= 1'b1;
 
                         // anything more to send?
                         if (in_iface.data_valid) begin
@@ -160,8 +176,8 @@ module frame_encode
                     // when the REQ comes in from the 14443-2 Tx module then send out the next crc bit
                     if (out_iface.req) begin
                         // send the next bit and update the parity bit and shift the crc right by one
-                        out_iface.data              <= cached_crc[0];
-                        out_iface.last_bit_in_byte  <= 1'b0;
+                        out_iface_data              <= cached_crc[0];
+                        out_iface_last_bit_in_byte  <= 1'b0;
                         cached_crc[14:0]            <= cached_crc[15:1];
                         parity                      <= parity ^ cached_crc[0];
 
@@ -179,8 +195,8 @@ module frame_encode
                     // wait for the bit encoder to request more data
                     if (out_iface.req) begin
                         // send the parity bit
-                        out_iface.data              <= parity;
-                        out_iface.last_bit_in_byte  <= 1'b1;
+                        out_iface_data              <= parity;
+                        out_iface_last_bit_in_byte  <= 1'b1;
 
                         // anything more to send?
                         if (crc_byte == 0) begin
@@ -201,7 +217,7 @@ module frame_encode
                     // wait for the bit encoder to request more data
                     if (out_iface.req) begin
                         // no more data to send
-                        out_iface.data_valid    <= 1'b0;
+                        out_iface_data_valid    <= 1'b0;
                         state                   <= State_IDLE;
                     end
                 end

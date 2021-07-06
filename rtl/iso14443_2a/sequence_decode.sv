@@ -137,7 +137,9 @@ module sequence_decode
     PCDBitSequence seq_on_pause;
 
     // the current detected sequence
-    PCDBitSequence seq;
+    // this should be of type PCDBitSequence but VCS doesn't seem to be able to
+    // generate a correct SAIF file if I use that directly.
+    logic [1:0] seq;
 
     // is seq valid (asserts for only one tick at a time)
     logic seq_valid;
@@ -261,24 +263,40 @@ module sequence_decode
     // ------------------------------------------------------------------------
 
     // cache the last sequence, so we can detect EOC
-    PCDBitSequence  prev;
+    // this should be of type PCDBitSequence but VCS doesn't seem to be able to
+    // generate a correct SAIF file if I use that directly.
+    logic [1:0]     prev;
     logic           prev_is_soc;
     logic           in_frame;
 
+    // VCS doesn't generate a valid SAIF file, if I assign to interface members directly
+    // in a sequential block.
+    logic out_iface_soc;
+    logic out_iface_eoc;
+    logic out_iface_data_valid;
+    logic out_iface_error;
+    logic out_iface_data;
+
+    assign out_iface.soc        = out_iface_soc;
+    assign out_iface.eoc        = out_iface_eoc;
+    assign out_iface.data_valid = out_iface_data_valid;
+    assign out_iface.error      = out_iface_error;
+    assign out_iface.data       = out_iface_data;
+
     always_ff @(posedge clk, negedge rst_n) begin
         if (!rst_n) begin
-            out_iface.soc           <= 1'b0;
-            out_iface.eoc           <= 1'b0;
-            out_iface.error         <= 1'b0;
-            out_iface.data_valid    <= 1'b0;
+            out_iface_soc           <= 1'b0;
+            out_iface_eoc           <= 1'b0;
+            out_iface_error         <= 1'b0;
+            out_iface_data_valid    <= 1'b0;
             in_frame                <= 1'b0;
         end
         else begin
             // these should only assert for one tick
-            out_iface.soc           <= 1'b0;
-            out_iface.eoc           <= 1'b0;
-            out_iface.error         <= 1'b0;
-            out_iface.data_valid    <= 1'b0;
+            out_iface_soc           <= 1'b0;
+            out_iface_eoc           <= 1'b0;
+            out_iface_error         <= 1'b0;
+            out_iface_data_valid    <= 1'b0;
 
             // only do something if we have a valid seq
             if (seq_valid) begin
@@ -293,7 +311,7 @@ module sequence_decode
                 else begin
                     if (prev_is_soc) begin
                         // Issue our SOC and start the frame
-                        out_iface.soc           <= 1'b1;
+                        out_iface_soc           <= 1'b1;
                         in_frame                <= 1'b1;
                     end
                     else if (in_frame) begin
@@ -303,21 +321,21 @@ module sequence_decode
                             // it's the EOC if we have logic '0' followed by Y
                             // See ISO/IEC 14443-2:2016 section 8.1.3.1
                             // Issue the EOC and end the frame
-                            out_iface.eoc           <= 1'b1;
+                            out_iface_eoc           <= 1'b1;
                             in_frame                <= 1'b0;
                         end
                         else if (prev == PCDBitSequence_ERROR) begin
                             // there was a timing error
                             // seq_valid doesn't go high again until we've timed out
                             // so this can only happens once
-                            out_iface.error         <= 1'b1;
+                            out_iface_error         <= 1'b1;
                         end
                         else begin
                             // we're not SOC, EOC or an error, and we're in a frame
                             // emit the data bit
-                            out_iface.data_valid    <= 1'b1;
+                            out_iface_data_valid    <= 1'b1;
                             // PCDBitSequence_X -> 1, PCDBitSequence_Y -> 0, PCDBitSequence_Z -> 0
-                            out_iface.data          <= (prev == PCDBitSequence_X);
+                            out_iface_data          <= (prev == PCDBitSequence_X);
                         end
                     end
                 end

@@ -129,28 +129,42 @@ module iso14443_4a
     logic           is_DESELECT;
     logic           rx_block_num;
 
+    // VCS doesn't generate a valid SAIF file, if I assign to interface members directly
+    // in a sequential block.
+    logic       app_rx_iface_soc;
+    logic       app_rx_iface_eoc;
+    logic       app_rx_iface_data_valid;
+    logic       app_rx_iface_error;
+    logic [7:0] app_rx_iface_data;
+
+    assign app_rx_iface.soc         = app_rx_iface_soc;
+    assign app_rx_iface.eoc         = app_rx_iface_eoc;
+    assign app_rx_iface.data_valid  = app_rx_iface_data_valid;
+    assign app_rx_iface.error       = app_rx_iface_error;
+    assign app_rx_iface.data        = app_rx_iface_data;
+
     always_ff @(posedge clk, negedge rst_n) begin
         if (!rst_n) begin
             rx_count                    <= '0;
             rx_error_flag               <= 1'b0;
             pkt_received                <= 1'b0;
             forward_to_app              <= 1'b0;
-            app_rx_iface.soc            <= 1'b0;
-            app_rx_iface.eoc            <= 1'b0;
-            app_rx_iface.data_valid     <= 1'b0;
-            app_rx_iface.error          <= 1'b0;
+            app_rx_iface_soc            <= 1'b0;
+            app_rx_iface_eoc            <= 1'b0;
+            app_rx_iface_data_valid     <= 1'b0;
+            app_rx_iface_error          <= 1'b0;
         end
         else begin
             // these should only assert for one tick at a time
             pkt_received                    <= 1'b0;
             check_need_to_forward_to_app    <= 1'b0;
-            app_rx_iface.soc                <= 1'b0;
-            app_rx_iface.eoc                <= 1'b0;
-            app_rx_iface.data_valid         <= 1'b0;
-            app_rx_iface.error              <= 1'b0;
+            app_rx_iface_soc                <= 1'b0;
+            app_rx_iface_eoc                <= 1'b0;
+            app_rx_iface_data_valid         <= 1'b0;
+            app_rx_iface_error              <= 1'b0;
 
             // always pass through the data
-            app_rx_iface.data               <= rx_iface.data;
+            app_rx_iface_data               <= rx_iface.data;
 
             if (rx_iface.soc) begin
                 // start of a new message
@@ -168,8 +182,8 @@ module iso14443_4a
                 pkt_received    <= 1'b1;
 
                 if (forward_to_app) begin
-                    app_rx_iface.eoc    <= 1'b1;
-                    app_rx_iface.error  <= !rx_crc_ok;  // error if the CRC failed
+                    app_rx_iface_eoc    <= 1'b1;
+                    app_rx_iface_error  <= !rx_crc_ok;  // error if the CRC failed
                     forward_to_app      <= 1'b0;
                 end
             end
@@ -179,13 +193,13 @@ module iso14443_4a
                 if (rx_iface.error) begin
                     rx_error_flag <= 1'b1;
                     if (forward_to_app) begin
-                        app_rx_iface.error  <= 1'b1;
+                        app_rx_iface_error  <= 1'b1;
                     end
                 end
 
                 if (rx_iface.data_valid) begin
                     if (forward_to_app) begin
-                        app_rx_iface.data_valid <= 1'b1;
+                        app_rx_iface_data_valid <= 1'b1;
                     end
 
                     if (rx_count != $unsigned($bits(rx_count)'(RX_BUFF_LEN))) begin
@@ -240,7 +254,7 @@ module iso14443_4a
                                 forward_to_app      <= 1'b1;
 
                                 // start with SOC
-                                app_rx_iface.soc    <= 1'b1;
+                                app_rx_iface_soc    <= 1'b1;
                             end
                         end
                     end
@@ -302,14 +316,14 @@ module iso14443_4a
 
     logic allow_pps;        // PPS may only come immediately after we have received RATS and sent our ATS
 
-    enum logic [1:0]
+    typedef enum logic [1:0]
     {
         Reply_ATS,
         Reply_PPSR,
         Reply_STANDARD_BLOCK
-    } reply;
+    } ReplyType;
 
-    enum logic [1:0]
+    typedef enum logic [1:0]
     {
         // S()
         ReplyStdBlock_DESELECT,
@@ -319,7 +333,13 @@ module iso14443_4a
 
         // I()
         ReplyStdBlock_I_BLOCK
-    } replyStdBlock;
+    } ReplyStdBlockType;
+
+    // These should be of type ReplyType / ReplyStdBlockType
+    // but VCS doesn't seem to be able to generate a correct SAIF file
+    // if I use those types.
+    logic [1:0] reply;
+    logic [1:0] replyStdBlock;
 
     logic send_reply;
     logic our_block_num;
@@ -492,24 +512,31 @@ module iso14443_4a
     logic [0:0]     tx_count_minus_1;
     logic           forward_from_app;
 
+    // VCS doesn't generate a valid SAIF file, if I assign to interface members directly
+    // in a sequential block.
+    logic tx_iface_data_valid;
+    logic app_tx_iface_req;
+    assign tx_iface.data_valid  = tx_iface_data_valid;
+    assign app_tx_iface.req     = app_tx_iface_req;
+
     assign tx_append_crc        = 1'b1;         // part4 comms always have the CRC appended
     assign tx_iface.data        = tx_buffer[0];
     assign tx_iface.data_bits   = 3'd0;         // all transfers from the PICC are 8 bits wide
 
     always_ff @(posedge clk, negedge rst_n) begin
         if (!rst_n) begin
-            tx_iface.data_valid     <= 1'b0;
+            tx_iface_data_valid     <= 1'b0;
             forward_from_app        <= 1'b0;
             rx_deselect             <= 1'b0;
-            app_tx_iface.req        <= 1'b0;
+            app_tx_iface_req        <= 1'b0;
         end
         else begin
             // these are only asserted for one tick
-            app_tx_iface.req        <= 1'b0;
+            app_tx_iface_req        <= 1'b0;
             rx_deselect             <= 1'b0;
 
-            // tx_iface.data_valid is cleared when the tx_iface.req asserts and we are out of
-            // stuff to send. tx_iface.data_valid gets set when reply is not Reply_NONE
+            // tx_iface_data_valid is cleared when the tx_iface.req asserts and we are out of
+            // stuff to send. tx_iface_data_valid gets set when reply is not Reply_NONE
 
             // Deal with the Tx module requesting more data
             if (tx_iface.req) begin
@@ -529,19 +556,19 @@ module iso14443_4a
                         // we are, is there still data to send?
                         if (app_tx_iface.data_valid) begin
                             // forward the request
-                            app_tx_iface.req        <= 1'b1;
+                            app_tx_iface_req        <= 1'b1;
                             // fill in the data
                             tx_buffer[0]            <= app_tx_iface.data;
                         end
                         else begin
                             // no more data to send
-                            tx_iface.data_valid     <= 1'b0;
+                            tx_iface_data_valid     <= 1'b0;
                             forward_from_app        <= 1'b0;
                         end
                     end
                     else begin
                         // not forwarding from the app, so we're done
-                        tx_iface.data_valid <= 1'b0;
+                        tx_iface_data_valid <= 1'b0;
 
                         // if this was a DESELECT reply, then we need to inform
                         // the 14443-3 layer to move us to the HALT state
@@ -560,12 +587,12 @@ module iso14443_4a
                         // for now we just send the minimum ATS which uses all the default options
                         tx_buffer[0]            <= 8'd1;    // first byte is TL (length including itself, not including CRC)
                         tx_count_minus_1        <= 1'd0;    // 1 byte + CRC
-                        tx_iface.data_valid     <= 1'b1;
+                        tx_iface_data_valid     <= 1'b1;
                     end
                     Reply_PPSR: begin
                         tx_buffer[0]            <= {PPSS, our_cid}; // PPS response is just the start byte
                         tx_count_minus_1        <= 1'd0;            // 1 byte + CRC
-                        tx_iface.data_valid     <= 1'b1;
+                        tx_iface_data_valid     <= 1'b1;
                     end
                     Reply_STANDARD_BLOCK: begin
                         // a standard block consists of the header, the INF field and the CRC
@@ -607,7 +634,7 @@ module iso14443_4a
                         end
 
                         // set it going
-                        tx_iface.data_valid     <= 1'b1;
+                        tx_iface_data_valid     <= 1'b1;
                     end
                 endcase
             end
