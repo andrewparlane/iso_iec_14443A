@@ -95,6 +95,10 @@ module initialisation_tb
     )
     dut (.*);
 
+    // for state checking
+    ISO14443A_pkg::InitialisationState initState;
+    assign initState = ISO14443A_pkg::InitialisationState'(dut.state);
+
     // --------------------------------------------------------------
     // UID
     // --------------------------------------------------------------
@@ -339,14 +343,14 @@ module initialisation_tb
 
         function void check_state (State state);
             case (state)
-                State_IDLE:                 isIdle:         assert ((dut.state == dut.State_IDLE)   && !dut.state_star) else $error("DUT not in correct state expected State_IDLE, 0 got %s, %b", dut.state.name, dut.state_star);
-                State_READY:                isReady:        assert ((dut.state == dut.State_READY)  && !dut.state_star) else $error("DUT not in correct state expected State_READY, 0 got %s, %b", dut.state.name, dut.state_star);
-                State_ACTIVE:               isActive:       assert ((dut.state == dut.State_ACTIVE) && !dut.state_star) else $error("DUT not in correct state expected State_ACTIVE, 0 got %s, %b", dut.state.name, dut.state_star);
-                State_HALT:                 isHalt:         assert ((dut.state == dut.State_IDLE)   && dut.state_star)  else $error("DUT not in correct state expected State_IDLE, 1 got %s, %b", dut.state.name, dut.state_star);
-                State_READY_STAR:           isReadyStar:    assert ((dut.state == dut.State_READY)  && dut.state_star)  else $error("DUT not in correct state expected State_READY, 1 got %s, %b", dut.state.name, dut.state_star);
-                State_ACTIVE_STAR:          isActiveStar:   assert ((dut.state == dut.State_ACTIVE) && dut.state_star)  else $error("DUT not in correct state expected State_ACTIVE, 1 got %s, %b", dut.state.name, dut.state_star);
-                State_PROTOCOL_PPS_ALLOWED: isProtocol1:    assert ((dut.state == dut.State_PROTOCOL))                  else $error("DUT not in correct state expected State_PROTOCOL, 1 got %s, %b", dut.state.name, dut.state_star);
-                State_PROTOCOL_STD_COMMS:   isProtocol2:    assert ((dut.state == dut.State_PROTOCOL))                  else $error("DUT not in correct state expected State_PROTOCOL, 1 got %s, %b", dut.state.name, dut.state_star);
+                State_IDLE:                 isIdle:         assert ((initState == ISO14443A_pkg::InitialisationState_IDLE)      && !dut.state_star) else $error("DUT not in correct state expected State_IDLE, 0 got %s, %b", initState.name, dut.state_star);
+                State_READY:                isReady:        assert ((initState == ISO14443A_pkg::InitialisationState_READY)     && !dut.state_star) else $error("DUT not in correct state expected State_READY, 0 got %s, %b", initState.name, dut.state_star);
+                State_ACTIVE:               isActive:       assert ((initState == ISO14443A_pkg::InitialisationState_ACTIVE)    && !dut.state_star) else $error("DUT not in correct state expected State_ACTIVE, 0 got %s, %b", initState.name, dut.state_star);
+                State_HALT:                 isHalt:         assert ((initState == ISO14443A_pkg::InitialisationState_IDLE)      && dut.state_star)  else $error("DUT not in correct state expected State_IDLE, 1 got %s, %b", initState.name, dut.state_star);
+                State_READY_STAR:           isReadyStar:    assert ((initState == ISO14443A_pkg::InitialisationState_READY)     && dut.state_star)  else $error("DUT not in correct state expected State_READY, 1 got %s, %b", initState.name, dut.state_star);
+                State_ACTIVE_STAR:          isActiveStar:   assert ((initState == ISO14443A_pkg::InitialisationState_ACTIVE)    && dut.state_star)  else $error("DUT not in correct state expected State_ACTIVE, 1 got %s, %b", initState.name, dut.state_star);
+                State_PROTOCOL_PPS_ALLOWED: isProtocol1:    assert ((initState == ISO14443A_pkg::InitialisationState_PROTOCOL))                     else $error("DUT not in correct state expected State_PROTOCOL, 1 got %s, %b", initState.name, dut.state_star);
+                State_PROTOCOL_STD_COMMS:   isProtocol2:    assert ((initState == ISO14443A_pkg::InitialisationState_PROTOCOL))                     else $error("DUT not in correct state expected State_PROTOCOL, 1 got %s, %b", initState.name, dut.state_star);
             endcase
         endfunction
 
@@ -487,18 +491,19 @@ module initialisation_tb
     tagActive:
     assert property (
         @(posedge clk)
-        iso14443_4a_tag_active == (dut.state == dut.State_ACTIVE))
-        else $error("iso14443_4a_tag_active not correct %b, dut in state %s", iso14443_4a_tag_active, dut.state.name);
+        iso14443_4a_tag_active == (initState == ISO14443A_pkg::InitialisationState_ACTIVE))
+        else $error("iso14443_4a_tag_active not correct %b, dut in state %s",
+                    iso14443_4a_tag_active, initState.name);
 
     // check routing signals
     routingSignals:
     assert property (
         @(posedge clk)
-        (route_rx_to_initialisation == (dut.state != dut.State_PROTOCOL))   &&
-        (route_rx_to_14443_4a       == ((dut.state == dut.State_ACTIVE) ||
-                                        (dut.state == dut.State_PROTOCOL))) &&
-        (route_tx_from_14443_4a     == (dut.state == dut.State_PROTOCOL)))
+        (route_rx_to_initialisation == (initState != ISO14443A_pkg::InitialisationState_PROTOCOL))   &&
+        (route_rx_to_14443_4a       == ((initState == ISO14443A_pkg::InitialisationState_ACTIVE) ||
+                                        (initState == ISO14443A_pkg::InitialisationState_PROTOCOL))) &&
+        (route_tx_from_14443_4a     == (initState == ISO14443A_pkg::InitialisationState_PROTOCOL)))
         else $error("Routing signals are not correct, route_rx_to_initialisation %b, route_rx_to_14443_4 %b, route_tx_from_14443_4 %b when in state %s",
-                    route_rx_to_initialisation, route_rx_to_14443_4a, route_tx_from_14443_4a, dut.state.name);
+                    route_rx_to_initialisation, route_rx_to_14443_4a, route_tx_from_14443_4a, initState.name);
 
 endmodule

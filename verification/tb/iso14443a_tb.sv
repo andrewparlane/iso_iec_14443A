@@ -107,6 +107,10 @@ module iso14443a_tb
     )
     dut (.*);
 
+    // For state checking
+    ISO14443A_pkg::InitialisationState initState;
+    assign initState = ISO14443A_pkg::InitialisationState'(dut.part3.initialisation_inst.state);
+
     // --------------------------------------------------------------
     // UID
     // --------------------------------------------------------------
@@ -366,14 +370,14 @@ module iso14443a_tb
 
         function void check_state (State state);
             case (state)
-                State_IDLE:                 isIdle:         assert ((dut.part3.initialisation_inst.state == dut.part3.initialisation_inst.State_IDLE)       && !dut.part3.initialisation_inst.state_star)   else $error("DUT not in correct state expected State_IDLE, 0 got %s, %b",                               dut.part3.initialisation_inst.state.name, dut.part3.initialisation_inst.state_star);
-                State_READY:                isReady:        assert ((dut.part3.initialisation_inst.state == dut.part3.initialisation_inst.State_READY)      && !dut.part3.initialisation_inst.state_star)   else $error("DUT not in correct state expected State_READY, 0 got %s, %b",                              dut.part3.initialisation_inst.state.name, dut.part3.initialisation_inst.state_star);
-                State_ACTIVE:               isActive:       assert ((dut.part3.initialisation_inst.state == dut.part3.initialisation_inst.State_ACTIVE)     && !dut.part3.initialisation_inst.state_star)   else $error("DUT not in correct state expected State_ACTIVE, 0 got %s, %b",                             dut.part3.initialisation_inst.state.name, dut.part3.initialisation_inst.state_star);
-                State_HALT:                 isHalt:         assert ((dut.part3.initialisation_inst.state == dut.part3.initialisation_inst.State_IDLE)       && dut.part3.initialisation_inst.state_star)    else $error("DUT not in correct state expected State_IDLE, 1 got %s, %b",                               dut.part3.initialisation_inst.state.name, dut.part3.initialisation_inst.state_star);
-                State_READY_STAR:           isReadyStar:    assert ((dut.part3.initialisation_inst.state == dut.part3.initialisation_inst.State_READY)      && dut.part3.initialisation_inst.state_star)    else $error("DUT not in correct state expected State_READY, 1 got %s, %b",                              dut.part3.initialisation_inst.state.name, dut.part3.initialisation_inst.state_star);
-                State_ACTIVE_STAR:          isActiveStar:   assert ((dut.part3.initialisation_inst.state == dut.part3.initialisation_inst.State_ACTIVE)     && dut.part3.initialisation_inst.state_star)    else $error("DUT not in correct state expected State_ACTIVE, 1 got %s, %b",                             dut.part3.initialisation_inst.state.name, dut.part3.initialisation_inst.state_star);
-                State_PROTOCOL_PPS_ALLOWED: isProtocol1:    assert ((dut.part3.initialisation_inst.state == dut.part3.initialisation_inst.State_PROTOCOL)   && dut.part4.allow_pps)                         else $error("DUT not in correct state expected State_PROTOCOL_PPS_ALLOWED, got %s, %b, allow_pps %b",   dut.part3.initialisation_inst.state.name, dut.part3.initialisation_inst.state_star, dut.part4.allow_pps);
-                State_PROTOCOL_STD_COMMS:   isProtocol2:    assert ((dut.part3.initialisation_inst.state == dut.part3.initialisation_inst.State_PROTOCOL)   && !dut.part4.allow_pps)                        else $error("DUT not in correct state expected State_PROTOCOL_STD_COMMS, got %s, %b, allow_pps %b",     dut.part3.initialisation_inst.state.name, dut.part3.initialisation_inst.state_star, dut.part4.allow_pps);
+                State_IDLE:                 isIdle:         assert ((initState == ISO14443A_pkg::InitialisationState_IDLE)      && !dut.part3.initialisation_inst.state_star)   else $error("DUT not in correct state expected State_IDLE, 0 got %s, %b",                               initState.name, dut.part3.initialisation_inst.state_star);
+                State_READY:                isReady:        assert ((initState == ISO14443A_pkg::InitialisationState_READY)     && !dut.part3.initialisation_inst.state_star)   else $error("DUT not in correct state expected State_READY, 0 got %s, %b",                              initState.name, dut.part3.initialisation_inst.state_star);
+                State_ACTIVE:               isActive:       assert ((initState == ISO14443A_pkg::InitialisationState_ACTIVE)    && !dut.part3.initialisation_inst.state_star)   else $error("DUT not in correct state expected State_ACTIVE, 0 got %s, %b",                             initState.name, dut.part3.initialisation_inst.state_star);
+                State_HALT:                 isHalt:         assert ((initState == ISO14443A_pkg::InitialisationState_IDLE)      && dut.part3.initialisation_inst.state_star)    else $error("DUT not in correct state expected State_IDLE, 1 got %s, %b",                               initState.name, dut.part3.initialisation_inst.state_star);
+                State_READY_STAR:           isReadyStar:    assert ((initState == ISO14443A_pkg::InitialisationState_READY)     && dut.part3.initialisation_inst.state_star)    else $error("DUT not in correct state expected State_READY, 1 got %s, %b",                              initState.name, dut.part3.initialisation_inst.state_star);
+                State_ACTIVE_STAR:          isActiveStar:   assert ((initState == ISO14443A_pkg::InitialisationState_ACTIVE)    && dut.part3.initialisation_inst.state_star)    else $error("DUT not in correct state expected State_ACTIVE, 1 got %s, %b",                             initState.name, dut.part3.initialisation_inst.state_star);
+                State_PROTOCOL_PPS_ALLOWED: isProtocol1:    assert ((initState == ISO14443A_pkg::InitialisationState_PROTOCOL)  && dut.part4.allow_pps)                         else $error("DUT not in correct state expected State_PROTOCOL_PPS_ALLOWED, got %s, %b, allow_pps %b",   initState.name, dut.part3.initialisation_inst.state_star, dut.part4.allow_pps);
+                State_PROTOCOL_STD_COMMS:   isProtocol2:    assert ((initState == ISO14443A_pkg::InitialisationState_PROTOCOL)  && !dut.part4.allow_pps)                        else $error("DUT not in correct state expected State_PROTOCOL_STD_COMMS, got %s, %b, allow_pps %b",     initState.name, dut.part3.initialisation_inst.state_star, dut.part4.allow_pps);
             endcase
         endfunction
 
