@@ -330,33 +330,16 @@ module initialisation
     // State machine
     // ========================================================================
 
-    // See ISO/IEC 14443-3:2016 section 6.3 PICC states
-    typedef enum logic [1:0]
-    {
-        //State_POWER_OFF,          // we don't use this, because if we are powered on
-                                    // then there's an RF field, or it's just disabled
-                                    // and we're about to power off
-        State_IDLE,
-        State_READY,
-        State_ACTIVE,
-        State_PROTOCOL
-
-        // we use a separate state_star bit for this
-        //State_HALT,
-        //State_READY_STAR,
-        //State_ACTIVE_STAR
-    } State;
-
-    // state should be of type State. but VCS doesn't seem to be able to generate a correct SAIF file
-    // if I use that.
-    logic [1:0] state;
-    logic       state_star;
-    State       next_state;
-    logic       next_state_star;
+    // state should be of type ISO14443A_pkg::InitialisationState.
+    // but VCS doesn't seem to be able to generate a correct SAIF file if I use that.
+    logic [1:0]         state;
+    logic               state_star;
+    InitialisationState next_state;
+    logic               next_state_star;
 
     always_ff @(posedge clk, negedge rst_n) begin
         if (!rst_n) begin
-            state       <= State_IDLE;
+            state       <= InitialisationState_IDLE;
             state_star  <= 1'b0;
         end
         else begin
@@ -375,20 +358,20 @@ module initialisation
 
     always_comb begin
         // assign defaults to prevent latches
-        next_state          = State'(state);
+        next_state          = InitialisationState'(state);
         next_state_star     = state_star;
         reply               = Reply_NONE;
         next_cascade_level  = current_cascade_level;
 
-        // do nothing if we haven't received a packet (except if we are State_PROTOCOL
+        // do nothing if we haven't received a packet (except if we are InitialisationState_PROTOCOL
         // and the deselect command is detected in the 14443-4 block)
         if (pkt_received) begin
             // See ISO/IEC 14443-3:2016 section 6.3 PICC states
 
-            // on an error we return to State_IDLE (state_star remains the same)
+            // on an error we return to InitialisationState_IDLE (state_star remains the same)
             if (rx_error_flag) begin
-                if ((state == State_READY) || (state == State_ACTIVE)) begin
-                    next_state = State_IDLE;
+                if ((state == InitialisationState_READY) || (state == InitialisationState_ACTIVE)) begin
+                    next_state = InitialisationState_IDLE;
                 end
                 else begin
                     // in other states we stay where we are, either we're already in IDLE
@@ -399,27 +382,27 @@ module initialisation
                 // no error so process valid transitions
 
                 case (state)
-                    State_IDLE: begin
+                    InitialisationState_IDLE: begin
                         // If we are !state_star and we get REQA / WUPA
                         // or if we are state_star and we get WUPA, then go to READY and send ATQA
                         // otherwise remain idle
                         if ((is_REQA && !state_star) || is_WUPA) begin
-                            next_state          = State_READY;
+                            next_state          = InitialisationState_READY;
                             reply               = Reply_ATQA;
                             next_cascade_level  = '0;
                         end
                     end
 
-                    State_READY: begin
+                    InitialisationState_READY: begin
                         // If it's a SELECT for us then move on to the next cascade level
-                        // or if done then got to State_ACTIVE.
+                        // or if done then got to InitialisationState_ACTIVE.
                         // if it's a AC and matches us, then stay here
                         // for all other messages return to idle
                         if (is_AC_SELECT && is_AC_SELECT_for_us) begin
                             if (is_SELECT) begin
                                 if (rx_crc_ok) begin
                                     if (is_final_cascade_level) begin
-                                        next_state = State_ACTIVE;
+                                        next_state = InitialisationState_ACTIVE;
                                     end
                                     else begin
                                         next_cascade_level = next_cascade_level + 1'd1;
@@ -428,7 +411,7 @@ module initialisation
                                 end
                                 else begin
                                     // CRC fail is an error
-                                    next_state = State_IDLE;
+                                    next_state = InitialisationState_IDLE;
                                 end
                             end
                             else begin
@@ -436,23 +419,23 @@ module initialisation
                             end
                         end
                         else begin
-                            next_state = State_IDLE;
+                            next_state = InitialisationState_IDLE;
                         end
                     end
 
-                    State_ACTIVE: begin
-                        // if it's RATS then go to State_PROTOCOL
-                        // if it's HLTA then go to State_IDLE + set state_star
-                        // for anything else go to State_IDLE
+                    InitialisationState_ACTIVE: begin
+                        // if it's RATS then go to InitialisationState_PROTOCOL
+                        // if it's HLTA then go to InitialisationState_IDLE + set state_star
+                        // for anything else go to InitialisationState_IDLE
 
                         // note: we handle RATS detection in the part4 block,
                         //       which asserts the iso14443_4a_rats signal.
 
                         if (iso14443_4a_rats) begin
-                            next_state = State_PROTOCOL;
+                            next_state = InitialisationState_PROTOCOL;
                         end
                         else begin
-                            next_state = State_IDLE;
+                            next_state = InitialisationState_IDLE;
                         end
 
                         if (is_HLTA) begin
@@ -460,7 +443,7 @@ module initialisation
                         end
                     end
 
-                    State_PROTOCOL: begin
+                    InitialisationState_PROTOCOL: begin
                         // we shouldn't ever receive messages while in the PROTOCOL state
                         // since the routing block should direct all messages only to the
                         // iso14443_4a module.
@@ -470,23 +453,23 @@ module initialisation
 
                     default: begin
                         // shouldn't be here, revert to IDLE
-                        next_state = State_IDLE;
+                        next_state = InitialisationState_IDLE;
                     end
 
                 endcase
             end
         end
-        else if ((state == State_PROTOCOL) && iso14443_4a_deselect) begin
+        else if ((state == InitialisationState_PROTOCOL) && iso14443_4a_deselect) begin
             // the ISO 14443-4 block has received the DESELECT command
             // go to idle + star
-            next_state      = State_IDLE;
+            next_state      = InitialisationState_IDLE;
             next_state_star = 1'b1;
         end
     end
 
     // when the tag is in the active state is the only time the iso14443_4a block
     // can receive the RATS message
-    assign iso14443_4a_tag_active   = (state == State_ACTIVE);
+    assign iso14443_4a_tag_active   = (state == InitialisationState_ACTIVE);
 
     // if we are in the ACTIVE or PROTOCOL state then send the received messages to
     // the 14443-4 module. if we are not in the PROTOCOL state then send the received
@@ -497,9 +480,10 @@ module initialisation
     // We only allow the 14443-4 module to Tx when we are in state PROTOCOL
     // because once it confirms that it received RATS, we move to protocol
     // so the repyl happens there.
-    assign route_rx_to_14443_4a         = (state == State_ACTIVE) || (state == State_PROTOCOL);
-    assign route_rx_to_initialisation   = (state != State_PROTOCOL);
-    assign route_tx_from_14443_4a       = (state == State_PROTOCOL);
+    assign route_rx_to_14443_4a         = (state == InitialisationState_ACTIVE) ||
+                                          (state == InitialisationState_PROTOCOL);
+    assign route_rx_to_initialisation   = (state != InitialisationState_PROTOCOL);
+    assign route_tx_from_14443_4a       = (state == InitialisationState_PROTOCOL);
 
     // ========================================================================
     // Replies

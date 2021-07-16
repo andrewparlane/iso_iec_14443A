@@ -26,6 +26,28 @@
 package ISO14443A_pkg;
 
     // ========================================================================
+    // Initialisation states
+    // See ISO/IEC 14443-3:2016 section 6.3 PICC states
+    // ========================================================================
+    // Including this here rather than just in the initialisation module
+    // so that the testbenches can access it.
+    typedef enum logic [1:0]
+    {
+        //InitialisationState_POWER_OFF,        // we don't use this, because if we are powered on
+                                                // then there's an RF field, or it's just disabled
+                                                // and we're about to power off
+        InitialisationState_IDLE,
+        InitialisationState_READY,
+        InitialisationState_ACTIVE,
+        InitialisationState_PROTOCOL
+
+        // we use a separate state_star bit for this
+        //InitialisationState_HALT,
+        //InitialisationState_READY_STAR,
+        //InitialisationState_ACTIVE_STAR
+    } InitialisationState;
+
+    // ========================================================================
     // Bit sequences for PCD to PICC comms
     // See ISO/IEC 14443-2:2016 section 8.1.3.1
     // ========================================================================
