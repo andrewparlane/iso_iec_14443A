@@ -222,6 +222,12 @@ module iso14443_2a_tb;
             else $error("Not all queues are empty at end of test");
 
         repeat (5) @(posedge clk) begin end
+
+        // put the DUT back into reset to check the signals get reset correctly
+        // and to improve toggle coverage
+        rst_n <= 1'b0;
+        repeat (5) @(posedge clk) begin end
+
         $stop;
     end
 
