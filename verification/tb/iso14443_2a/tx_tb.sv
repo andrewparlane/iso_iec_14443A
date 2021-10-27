@@ -124,7 +124,7 @@ module tx_tb;
         repeat (5) @(posedge clk) begin end
 
         // Stuff to test
-        //  0) SOC - done in the monitor by checking for a '1' and removing not adding it to the transaction
+        //  0) SOC - done in the monitor by checking for a '1' and not adding it to the transaction
         //  1) nothing sends if data_valid is low (done by the driver)
         repeat (512) @(posedge clk) begin end
         nothingSentWhenDataValidLow:
