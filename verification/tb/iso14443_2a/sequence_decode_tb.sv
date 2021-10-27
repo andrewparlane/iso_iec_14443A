@@ -202,6 +202,22 @@ module sequence_decode_tb;
 
         expected = new('{}, 1'b1);
         send_data_verify_result(trans, expected);
+
+        // 4) Test Z -> error case
+        // sending PCDBitSequence_ERROR forces the driver to send a pause at the start of the bit time
+        // followed a short time later by a second pause.
+        //$display("Running test 4");
+        trans = new('{PCDBitSequence_Z,     // SOC
+                      PCDBitSequence_X,     // 1
+                      PCDBitSequence_Y,     // 0
+                      PCDBitSequence_ERROR, // error (detected as a Z (0), then an error)
+                      PCDBitSequence_X,     // ignored
+                      PCDBitSequence_Y,     // ignored
+                      PCDBitSequence_Z,     // EOC
+                      PCDBitSequence_Y});   // EOC
+
+        expected = new('{1'b1, 1'b0, 1'b0}, 1'b1);
+        send_data_verify_result(trans, expected);
     endtask
 
     task assign_vars_and_test(int missing_edges,
