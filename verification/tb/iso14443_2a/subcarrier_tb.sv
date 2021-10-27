@@ -82,10 +82,14 @@ module subcarrier_tb;
         repeat (6) @(posedge clk) begin end
         en <= 1'b0;
 
+        repeat (50) @(posedge clk) begin end
+
         // enable for 13 ticks (should disable while low)
         en <= 1'b1;
         repeat (13) @(posedge clk) begin end
         en <= 1'b0;
+
+        repeat (50) @(posedge clk) begin end
 
         repeat (5) @(posedge clk) begin end
         $stop;
