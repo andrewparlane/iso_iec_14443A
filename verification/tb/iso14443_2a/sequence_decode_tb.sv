@@ -386,6 +386,8 @@ module sequence_decode_tb;
             randomise_vars_and_test($urandom_range(4,114));
         end
 
+        // assert reset for toggle coverage
+        rst_n <= 1'b0;
         repeat (5) @(posedge clk) begin end
         $stop;
     end

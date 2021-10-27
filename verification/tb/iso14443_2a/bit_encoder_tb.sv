@@ -160,6 +160,9 @@ module bit_encoder_tb;
             repeat (5) @(posedge clk) begin end
         end
 
+        // assert reset for toggle coverage
+        rst_n <= 1'b0;
+        repeat (5) @(posedge clk) begin end
         $stop;
     end
 

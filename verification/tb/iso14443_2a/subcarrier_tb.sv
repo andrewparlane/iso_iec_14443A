@@ -91,6 +91,8 @@ module subcarrier_tb;
 
         repeat (50) @(posedge clk) begin end
 
+        // put the DUT in reset to get full toggle coverage
+        rst_n <= 1'b0;
         repeat (5) @(posedge clk) begin end
         $stop;
     end
