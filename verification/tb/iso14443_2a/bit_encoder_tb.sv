@@ -203,10 +203,10 @@ module bit_encoder_tb;
         last_tick |=> (!last_tick[*127] ##1 last_tick))
         else $error("last_tick doesn't pulse every 128 ticks");
 
-    reqBeforeLastTick:
+    lastTick:
     assert property (
         @(posedge clk)
-        $rose(en) |-> !last_tick throughout in_iface.req[->1])
-        else $error("last_tick asserted before req");
+        $rose(en) |-> (!last_tick[*127] ##1 last_tick))
+        else $error("last_tick not asserted in last tick of bit period or is asserted early/late");
 
 endmodule
