@@ -346,24 +346,44 @@ module sequence_decode_tb;
         repeat (5) @(posedge clk) begin end
         $stop; */
 
-        // AFE must drop at most 58 ticks (116) edges.
+        // AFE must drop at most 59 ticks (118) edges.
         // In this range my tests always pass, out of this range they can fail.
         // 100 loops of randomise_vars_and_test takes ~2 minutes. I don't think theer's much point
         // in testing every possible value for missing_edges, I'm more interested
         // in running lots of test for each missing_edges, varying the other parameters
         // We test the lower end, the upper end and then a bunch of random ones in the middle.
+
+        // missed_ticks: 0 - 3, lower range
         for (int missing_edges = 0; missing_edges <= 3; missing_edges++) begin
             repeat (100) begin
                 randomise_vars_and_test(missing_edges);
             end
         end
-        for (int missing_edges = 113; missing_edges <= 116; missing_edges++) begin
+
+        // missed_ticks: 115 - 116, first half of upper range
+        for (int missing_edges = 115; missing_edges <= 116; missing_edges++) begin
             repeat (100) begin
                 randomise_vars_and_test(missing_edges);
             end
         end
+
+        // missed_ticks: 117 - 118, second half of upper range
+        // These can only be run if the dataValidOnlyOneTick assert in the rx_interface is disabled
+        // That's because when detecting: XYZ, with certain timings the timeout detects the Y on one
+        // tick, and the end of the next pause on the next tick, leading to data_valid being asserted
+        // for two ticks in a row. This isn't a problem, that assert only exists to make sure we don't
+        // accidentally leave the data_valid signal asserted normally.
+        $assertoff(0, out_iface.useAsserts.dataValidOnlyOneTick);
+        for (int missing_edges = 117; missing_edges <= 118; missing_edges++) begin
+            repeat (100) begin
+                randomise_vars_and_test(missing_edges);
+            end
+        end
+        $asserton(0, out_iface.useAsserts.dataValidOnlyOneTick);
+
+        // missed_ticks: random selection from 4 - 114 (middle)
         repeat (1000) begin
-            randomise_vars_and_test($urandom_range(4,112));
+            randomise_vars_and_test($urandom_range(4,114));
         end
 
         repeat (5) @(posedge clk) begin end
