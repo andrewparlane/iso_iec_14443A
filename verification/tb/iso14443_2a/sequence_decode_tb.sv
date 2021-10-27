@@ -270,14 +270,9 @@ module sequence_decode_tb;
             pause_n_deasserts_after_ps < 2*1000*1000;
             pause_n_deasserts_after_ps < (64 - pcd_pause_len - 3)*CLOCK_PERIOD_PS;
 
-            // When simulating Fabricio's SPICE model I always saw the clock stoping before
-            // the pause asserted. This may not be the case in the design when it's ported
-            // to the new fabrication process, but it seems reasonable, and the closer this
-            // simulation matches reality the better.
-            // At the very least it must be < pcd_pause_len*CLOCK_PERIOD_PS, in order for the
-            // clock_recovery model to work correctly.
+            // If the clock is going to stop during a pause, it must stop before the PCD finishes
+            // transmitting the pause.
             clock_stops_after_ps >= 0;
-            clock_stops_after_ps < pause_n_asserts_after_ps;
             clock_stops_after_ps < (pcd_pause_len*CLOCK_PERIOD_PS);
 
             // Like pause_n_deasserts_after_ps, the only upper bound on the clock starting again
