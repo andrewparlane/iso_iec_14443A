@@ -21,6 +21,18 @@
  * along with this code. If not, see <http://www.gnu.org/licenses/>.
  */
 
+// This code is based on generated code from http://outputlogic.com/?page_id=321
+//-----------------------------------------------------------------------------
+// Copyright (C) 2009 OutputLogic.com
+// This source file may be used and distributed without restriction
+// provided that this copyright statement is not removed from the file
+// and that any derivative work contains the original copyright notice
+// and the associated disclaimer.
+//
+// THIS SOURCE FILE IS PROVIDED "AS IS" AND WITHOUT ANY EXPRESS
+// OR IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
+// WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+
 `timescale 1ps/1ps
 
 module crc_a
