@@ -25,9 +25,6 @@
 
 module routing_tb;
 
-    logic clk;
-    logic rst_n;
-
     // --------------------------------------------------------------
     // Ports to DUT
     // all named the same as in the DUT, so I can use .*
@@ -41,14 +38,14 @@ module routing_tb;
     logic out_tx_append_crc;
 
     // Rx interfaces
-    rx_interface #(.BY_BYTE(1), .USE_ASSERTS(0)) in_rx_iface            (.*);
-    rx_interface #(.BY_BYTE(1), .USE_ASSERTS(0)) out_rx_iface_init      (.*);
-    rx_interface #(.BY_BYTE(1), .USE_ASSERTS(0)) out_rx_iface_14443_4   (.*);
+    rx_interface #(.BY_BYTE(1), .USE_ASSERTS(0)) in_rx_iface            (.clk(1'b0), .rst_n(1'b1));
+    rx_interface #(.BY_BYTE(1), .USE_ASSERTS(0)) out_rx_iface_init      (.clk(1'b0), .rst_n(1'b1));
+    rx_interface #(.BY_BYTE(1), .USE_ASSERTS(0)) out_rx_iface_14443_4   (.clk(1'b0), .rst_n(1'b1));
 
     // Tx interfaces
-    tx_interface #(.BY_BYTE(1), .USE_ASSERTS(0)) in_tx_iface_init       (.*);
-    tx_interface #(.BY_BYTE(1), .USE_ASSERTS(0)) in_tx_iface_14443_4    (.*);
-    tx_interface #(.BY_BYTE(1), .USE_ASSERTS(0)) out_tx_iface           (.*);
+    tx_interface #(.BY_BYTE(1), .USE_ASSERTS(0)) in_tx_iface_init       (.clk(1'b0), .rst_n(1'b1));
+    tx_interface #(.BY_BYTE(1), .USE_ASSERTS(0)) in_tx_iface_14443_4    (.clk(1'b0), .rst_n(1'b1));
+    tx_interface #(.BY_BYTE(1), .USE_ASSERTS(0)) out_tx_iface           (.clk(1'b0), .rst_n(1'b1));
 
     // --------------------------------------------------------------
     // DUT
@@ -57,20 +54,12 @@ module routing_tb;
     routing dut (.*);
 
     // --------------------------------------------------------------
-    // Clock generator
-    // --------------------------------------------------------------
-
-    clock_source clock_source_inst (.*);
-
-    // --------------------------------------------------------------
     // Test stimulus
     // --------------------------------------------------------------
 
     initial begin: testStimulus
         automatic logic [2:0] routings[$] = '{3'b010, 3'b101, 3'b110, 3'b111};
         automatic int i = 0;
-
-        rst_n = 1'b1;
 
         // test 4 cases:
         //  1) just to / from initialialisation
