@@ -617,6 +617,14 @@ module iso14443_4a_tb;
         $rose(app_resend_last) |-> expect_app_resend_last)
         else $error("app_resend_last asserted when not expected");
 
+    // check app_resend_last asserts when expected
+    // aka expect_app_resend_last can't deassert until app_resend_last has asserted
+    appResendLastWhenExpected:
+    assert property (
+        @(posedge clk)
+        $rose(expect_app_resend_last) |-> expect_app_resend_last throughout app_resend_last[->1])
+        else $error("app_resend_last not asserted when expected");
+
     // check rx_deselect only asserts when expected
     rxDeselectOnlyWhenExpected:
     assert property (
