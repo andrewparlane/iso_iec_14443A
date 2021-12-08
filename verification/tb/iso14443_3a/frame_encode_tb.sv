@@ -159,7 +159,7 @@ module frame_encode_tb;
 
     initial begin
         fdt_trigger <= 1'b0;
-        append_crc  <= 1'b0;
+        append_crc  <= 1'b1; // set to 1 here, so when we change it to 0 later we get the toggle coverage
 
         // 32 ticks idle between transactions
         // 64 tick req timeout
@@ -178,6 +178,9 @@ module frame_encode_tb;
         repeat (5) @(posedge clk) begin end
         rst_n <= 1'b1;
         repeat (5) @(posedge clk) begin end
+
+        // don't append CRC's for now
+        append_crc  = 1'b0;
 
         // Stuff to test
         //  1) nothing sends until fdt_trigger fires
@@ -222,6 +225,8 @@ module frame_encode_tb;
             do_test($urandom_range(1, 10)*8);
         end
 
+        // assert reset for toggle coverage
+        rst_n <= 1'b0;
         repeat (5) @(posedge clk) begin end
         $stop;
     end

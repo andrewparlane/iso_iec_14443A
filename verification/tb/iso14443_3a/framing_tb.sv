@@ -390,6 +390,8 @@ module framing_tb;
             send_tx_frame($urandom_range(1,16), 1'b0);
         end
 
+        // assert reset for toggle coverage
+        rst_n <= 1'b0;
         repeat (5) @(posedge clk) begin end
         $stop;
     end

@@ -199,6 +199,8 @@ module frame_decode_tb;
             do_test($urandom_range(1, 10)*8, ErrorType_MISSING_LAST_PARITY);
         end
 
+        // assert reset for toggle coverage
+        rst_n <= 1'b0;
         repeat (5) @(posedge clk) begin end
         $stop;
     end

@@ -140,6 +140,10 @@ module routing_tb;
             end
         end
 
+        // for toggle coverage
+        route_rx_to_14443_4 = 1'b0;
+        #10 begin end
+
         $stop;
     end
 

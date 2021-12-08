@@ -599,7 +599,11 @@ module iso14443a_tb
         rx_trans_conv       = new(1'b1);    // Rx messages must have parity bits
         tx_trans_conv       = new(1'b1);    // Tx messages will have parity bits
 
-        picc_uid            = new('x);
+        // initialise the variable part of the UID to be all ones.
+        // this is so on the first test when we swap to all 0s, we get the 1->0 toggle coverage
+        // we then switch back to 1 to get 0->1.
+        picc_uid        = new('1);
+        full_uid = picc_uid.get_uid;
 
         // longest reply is a STD I-Block reply (2 bytes header, 10 bytes INF, 2 bytes CRC)
         // = 14 bytes, each byte has 8 bits + parity -> 126 bits.
@@ -625,12 +629,26 @@ module iso14443a_tb
         tx_monitor.start        (tx_recv_queue.data);
         app_tx_driver.start     (app_tx_send_queue);
 
+        seq.do_reset;
+
         // repeat 10 times with different UIDs
-        repeat (10) begin
+        for (int i = 0; i < 10; i++) begin
             // TODO: Add a parameter to let me instead test all possible variable_uid values
 
-            // randomise the variable part of the UID
-            picc_uid.randomize;
+            if (i == 0) begin
+                // set the variable part of the uid to 0
+                // this and the i == 1 case help us get toggle coverage
+                picc_uid.set_uid('0);
+            end
+            else if (i == 1) begin
+                // set the variable part of the uid to all ones
+                picc_uid.set_uid('1);
+            end
+            else begin
+                // randomise the variable part of the UID
+                picc_uid.randomize;
+            end
+
             full_uid = picc_uid.get_uid;
             $display("NOTE: New UID: %s", picc_uid.to_string);
             seq.do_reset;

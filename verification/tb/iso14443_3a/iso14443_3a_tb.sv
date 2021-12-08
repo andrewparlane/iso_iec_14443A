@@ -598,7 +598,11 @@ module iso14443_3a_tb
         rx_trans_conv       = new(1'b1);    // Rx messages must have parity bits
         tx_trans_conv       = new(1'b1);    // Tx messages will have parity bits
 
-        picc_uid            = new('x);
+        // initialise the variable part of the UID to be all ones.
+        // this is so on the first test when we swap to all 0s, we get the 1->0 toggle coverage
+        // we then switch back to 1 to get 0->1.
+        picc_uid        = new('1);
+        full_uid = picc_uid.get_uid;
 
         // longest reply is 5 bytes, sink_driver uses 16 ticks between reqs
         // each byte has 8 bits + parity -> 45 bits -> 720 ticks.
@@ -621,6 +625,8 @@ module iso14443_3a_tb
         tx_driver.start         (tx_send_queue);
         tx_sink_driver.start    ();
 
+        seq.do_reset;
+
         // Routing is tested as follows:
         //  Rx 14443_2a -> init     - tested by checking state transitions and replies
         //  Rx 14443_2a -> 14443_4a - tested by verifying RATS, PPS and S(DESELECT) are received OK
@@ -628,12 +634,24 @@ module iso14443_3a_tb
         //  Tx 14443_4a -> 14443_2a - tested in run_part4_tx_routing_tests()
 
         // repeat 10 times with different UIDs
-        repeat (10) begin
+        for (int i = 0; i < 10; i++) begin
             // TODO: Add a parameter to let me instead test all possible variable_uid values
             //       For when running initialisation_tb_actual with UID_INPUT_BITS being small
 
-            // randomise the variable part of the UID
-            picc_uid.randomize;
+            if (i == 0) begin
+                // set the variable part of the uid to 0
+                // this and the i == 1 case help us get toggle coverage
+                picc_uid.set_uid('0);
+            end
+            else if (i == 1) begin
+                // set the variable part of the uid to all ones
+                picc_uid.set_uid('1);
+            end
+            else begin
+                // randomise the variable part of the UID
+                picc_uid.randomize;
+            end
+
             full_uid = picc_uid.get_uid;
             $display("NOTE: New UID: %s", picc_uid.to_string);
             seq.do_reset;

@@ -327,6 +327,8 @@ module crc_control_tb;
             end
         end
 
+        // assert reset for toggle coverage
+        rst_n <= 1'b0;
         repeat (5) @(posedge clk) begin end
         $stop;
     end
@@ -334,6 +336,10 @@ module crc_control_tb;
     // --------------------------------------------------------------
     // Asserts
     // --------------------------------------------------------------
+
+    // VCS doesn't like disable iff (!rst_n)
+    logic rst;
+    assign rst = !rst_n;
 
     // check rx_crc_ok as expected on EOC
     rxCrcOkAsExpected:
@@ -348,6 +354,7 @@ module crc_control_tb;
     rxCrcOkStable:
     assert property (
         @(posedge clk)
+        disable iff (rst)
         $rose(rx_iface.eoc) |-> $stable(rx_crc_ok) throughout next_frame_start[->1])
         else $error("rx_crc_ok is not stable between frames");
 
@@ -363,6 +370,7 @@ module crc_control_tb;
     txCrcStable:
     assert property (
         @(posedge clk)
+        disable iff (rst)
         $fell(tx_iface.data_valid) |=>  ##1 ($stable(crc) throughout next_frame_start[->1]))
         else $error("crc is not stable between frames");
 
@@ -370,6 +378,7 @@ module crc_control_tb;
     txCrcStable2:
     assert property (
         @(posedge clk)
+        disable iff (rst)
         $rose(check_crc_stable) |=> $stable(crc) throughout !check_crc_stable[->1])
         else $error("crc is not stable when check_crc_stable is asserted");
 

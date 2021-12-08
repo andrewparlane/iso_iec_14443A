@@ -139,6 +139,8 @@ module deserialiser_tb;
             send_data_verify_result($urandom_range(80), 1'b1);
         end
 
+        // assert reset for toggle coverage
+        rst_n <= 1'b0;
         repeat (5) @(posedge clk) begin end
         $stop;
     end

@@ -426,7 +426,11 @@ module initialisation_tb
         rx_trans_conv       = new(1'b0);    // Rx messages should not have parity bits here
         tx_trans_conv       = new;          // Tx messages are bytes so no parity bits
 
-        picc_uid        = new('x);
+        // initialise the variable part of the UID to be all ones.
+        // this is so on the first test when we swap to all 0s, we get the 1->0 toggle coverage
+        // we then switch back to 1 to get 0->1.
+        picc_uid        = new('1);
+        full_uid = picc_uid.get_uid;
 
         seq             = new(picc_uid,
                               rx_trans_gen,
@@ -443,13 +447,27 @@ module initialisation_tb
         monitor.start       (recv_queue.data);
         sink_driver.start   ();
 
+        seq.do_reset;
+
         // repeat 10 times with different UIDs
-        repeat (10) begin
+        for (int i = 0; i < 10; i++) begin
             // TODO: Add a parameter to let me instead test all possible variable_uid values
             //       For when running initialisation_tb_actual with UID_INPUT_BITS being small
 
-            // randomise the variable part of the UID
-            picc_uid.randomize;
+            if (i == 0) begin
+                // set the variable part of the uid to 0
+                // this and the i == 1 case help us get toggle coverage
+                picc_uid.set_uid('0);
+            end
+            else if (i == 1) begin
+                // set the variable part of the uid to all ones
+                picc_uid.set_uid('1);
+            end
+            else begin
+                // randomise the variable part of the UID
+                picc_uid.randomize;
+            end
+
             full_uid = picc_uid.get_uid;
             $display("NOTE: New UID: %s", picc_uid.to_string);
             seq.do_reset;

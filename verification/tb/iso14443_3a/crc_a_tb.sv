@@ -195,6 +195,8 @@ module crc_a_tb;
             assert(crc_a_res == 0) else $error("data with crc appended should produce CRC 0 not %h", crc_a_res);
         end
 
+        // assert reset for toggle coverage
+        rst_n <= 1'b0;
         repeat (5) @(posedge clk) begin end
         $stop;
     end
