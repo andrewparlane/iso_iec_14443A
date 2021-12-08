@@ -183,6 +183,11 @@ package uid_pkg;
                       UID_SIZE);
         endfunction
 
+        virtual function void set_uid(logic [UID_VARIABLE_BITS-1:0] _uid);
+            uid[UID_VARIABLE_BITS-1:0] = _uid;
+            update_internals;
+        endfunction
+
         virtual function logic [UID_BITS-1:0] get_uid;
             return uid[UID_BITS-1:0];
         endfunction
