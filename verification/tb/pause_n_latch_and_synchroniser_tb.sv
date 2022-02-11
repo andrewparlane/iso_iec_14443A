@@ -262,7 +262,7 @@ module pause_n_latch_and_synchroniser_tb;
         $display("Testing with the default AFE values");
         min_time_between_deasserts = 64'd1000000000;
         max_time_between_deasserts = 64'd0;
-        repeat(2) begin
+        repeat(10000) begin
             send_data;
         end
 
@@ -270,8 +270,6 @@ module pause_n_latch_and_synchroniser_tb;
         $display("  min: %d", min_time_between_deasserts);
         $display("  max: %d", max_time_between_deasserts);
         $display("");
-        repeat (5) @(posedge clk) begin end
-        $stop;
 
         // test with the clock stopping (expected behaviour)
         $display("Testing with actual AFE requirements");
@@ -316,7 +314,9 @@ module pause_n_latch_and_synchroniser_tb;
 
         repeat (5) @(posedge clk) begin end
 
-
+        // assert reset for toggle coverage
+        rst_n <= 1'b0;
+        repeat (5) @(posedge clk) begin end
         $stop;
     end
 
