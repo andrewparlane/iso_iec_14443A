@@ -118,12 +118,15 @@ module iso14443a
     // When app_resend_last asserts, the app should send the same reply as it did to the last message.
     rx_interface.out_byte       app_rx_iface,
     tx_interface.in_byte        app_tx_iface,
-    output logic                app_resend_last
+    output logic                app_resend_last,
+
+    output logic [3:0]          iso14443a_version
 );
 
     // The version of this IP core
     // can be accessed via heirarcical naming
     localparam int ISO_IEC_14443A_VERSION = 1;
+    assign iso14443a_version = 4'(ISO_IEC_14443A_VERSION);
 
     // check the FDT_TIMING_ADJUST signal has been set
     generate
