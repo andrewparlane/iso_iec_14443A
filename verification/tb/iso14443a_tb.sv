@@ -94,6 +94,8 @@ module iso14443a_tb
     tx_interface #(.BY_BYTE(1)) app_tx_iface (.*);
     logic                       app_resend_last;        // output
 
+    logic [3:0]                 iso14443a_version;      // constant
+
     // --------------------------------------------------------------
     // DUT
     // --------------------------------------------------------------
