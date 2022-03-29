@@ -153,6 +153,51 @@ module frame_encode_tb;
         end
     endtask
 
+    typedef enum logic [2:0]
+    {
+        State_IDLE,
+        State_DATA,
+        State_PARITY,
+        State_CRC,
+        State_CRC_PARITY,
+        State_END
+    } State;
+
+    task do_reset_test(State state);
+        automatic BitTransType  send_trans;
+        send_trans = BitTransType::new_random_transaction(8);
+
+        // we want to append the CRC, so we can get to State_CRC and State_CRC_PARITY
+        append_crc = 1'b1;
+
+        // send it
+        send_queue.push_back(send_trans);
+
+        // we don't care about timeouts
+        source_driver.set_enable_timeout_errors(1'b0);
+
+        // fire the FDT
+        @(posedge clk) begin end
+        fdt_trigger <= 1'b1;
+        @(posedge clk) begin end
+        fdt_trigger <= 1'b0;
+
+        // wait for the dut to enter the specified state
+        wait (dut.state == state) begin end
+        repeat(2) @(posedge clk) begin end
+
+        // reset
+        rst_n <= 1'b0;
+        @(posedge clk) begin end
+        rst_n <= 1'b1;
+        @(posedge clk) begin end
+
+        repeat (5) @(posedge clk) begin end
+
+        source_driver.wait_for_idle;
+        monitor.wait_for_idle(32, 512);
+    endtask
+
     // --------------------------------------------------------------
     // Test stimulus
     // --------------------------------------------------------------
@@ -225,6 +270,20 @@ module frame_encode_tb;
             do_test($urandom_range(1, 10)*8);
         end
 
+        // 7) test reset forces state back to idle (mostly just for coverage)
+        $display("Testing dut returns to idle on reset");
+
+        // the driver ignores the reseet and continues trying to send
+        // so ignore the assert that checks the signals are as expected in reset
+        $assertoff(0, in_iface.useAsserts.signalsInReset);
+
+        do_reset_test(State_DATA);
+        do_reset_test(State_PARITY);
+        do_reset_test(State_CRC);
+        do_reset_test(State_CRC_PARITY);
+
+        $asserton(0, in_iface.useAsserts.signalsInReset);
+
         // assert reset for toggle coverage
         rst_n <= 1'b0;
         repeat (5) @(posedge clk) begin end
@@ -242,5 +301,12 @@ module frame_encode_tb;
         ($rose(fdt_trigger) && in_iface.data_valid) |=>
             $rose(out_iface.data_valid))
         else $error("out_iface.data_valid didn't rise after fdt_trigger");
+
+    // DUT returns to idle after reset
+    idleAfterReset:
+    assert property (
+        @(posedge clk)
+        $fell(rst_n) |=> (dut.state == State_IDLE))
+        else $error("DUT didn't return to idle after reset");
 
 endmodule
