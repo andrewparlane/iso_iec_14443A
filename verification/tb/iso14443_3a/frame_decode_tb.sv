@@ -209,6 +209,10 @@ module frame_decode_tb;
     // Asserts
     // --------------------------------------------------------------
 
+    // VCS doesn't like disable iff (!rst_n)
+    logic rst;
+    assign rst = !rst_n;
+
     // check last_bit is correct on eoc rising
     lastBitCorrect:
     assert property (
@@ -221,6 +225,7 @@ module frame_decode_tb;
     lastBitStableBetweenFrames:
     assert property (
         @(posedge clk)
+        disable iff (rst)
         $rose(out_iface.eoc) |=> $stable(last_bit) throughout out_iface.soc[->1])
         else $error("last_bit changed between frames");
 
