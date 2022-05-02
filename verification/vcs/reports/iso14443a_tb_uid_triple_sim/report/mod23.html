@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="Author" content="<username>"> <meta name="GENERATOR" content="urg/version [en] (platform name) [urg]">
+<title>Unified Coverage Report :: Module :: iso14443a_tb</title>
+<link type="text/css" rel="stylesheet" href="css/.urg.css">
+<link type="text/css" rel="stylesheet" href="css/.layout.css">
+<link type="text/css" rel="stylesheet" href="css/.breadcrumb.css">
+<script type="text/javascript" src="js/.jquery.js"></script>
+<script type="text/javascript" src="js/.jquery-ui.js"></script>
+<script type="text/javascript" src="js/.sortable.js"></script>
+<script type="text/javascript" src="js/.layout.js"></script>
+<script type="text/javascript" src="js/.breadcrumb.js"></script>
+<script type="text/javascript">
+var layout, westLayout, centerLayout;
+$(document).ready(function () {
+  if ($("#north-bread-crumb")) {
+    $("#north-bread-crumb").jBreadCrumb({easing:'swing'})
+  }
+  layout = $("body").layout({ 
+    resizable: true,
+    spacing_open: 4,
+    spacing_closed: 4,
+    north: {
+      size: 76
+    },
+    south: {
+      size: 45,
+      initClosed: true
+    },
+    west: {
+      size: 500,
+      resizable: true,
+      initClosed: false
+    }
+  });
+  centerLayout = $('div.ui-layout-center').layout({
+    north__paneSelector: ".ui-layout-center-inner-north",
+    center__paneSelector: ".ui-layout-center-inner-center", 
+    north__size: 50,
+    spacing_open: 4,
+    spacing_closed: 4
+  });
+});
+</script>
+</head>
+<body onLoad="initPage();"><div class="ui-layout-north">
+<div class="logo"></div>
+<center class="pagetitle">Module Definition</center>
+<div align="center"><a href="dashboard.html" ><b>dashboard</b></a> | <a href="hierarchy.html" ><b>hierarchy</b></a> | <a href="modlist.html" ><b>modlist</b></a> | groups | <a href="tests.html" ><b>tests</b></a> | <a href="asserts.html" ><b>asserts</b></a></div>
+
+</div>
+<div class="ui-layout-west">
+<div name='tag_iso14443a_tb'>
+<div class=modhdr>
+<br clear=all>
+<span class=titlename>Module : <a href="#"  onclick="showContent('tag_iso14443a_tb')">iso14443a_tb</a></span>
+<br clear=all>
+<table align=left>
+<tr class="sortablehead">
+<td>SCORE</td><td>LINE</td><td>COND</td><td>TOGGLE</td><td>FSM</td><td>BRANCH</td><td>ASSERT</td></tr><tr>
+<td class="s9 cl rt"> 98.45</td>
+<td class="s10 cl rt"><a href="mod23.html#Line" >100.00</a></td>
+<td class="wht cl rt"></td>
+<td class="s9 cl rt"><a href="mod23.html#Toggle" > 95.35</a></td>
+<td class="wht cl rt"></td>
+<td class="wht cl rt"></td>
+<td class="s10 cl rt"><a href="mod23.html#Assert" >100.00</a></td>
+</tr></table><br clear=all>
+<span class=repname>Source File(s) : </span>
+<br clear=all>
+<a href="javascript:void(0);"  onclick="openSrcFile('/home/aparlane/fiuba_thesis/hdl/components/iso_iec_14443A/verification/vcs/../../verification/tb/iso14443a_tb.sv')">/home/aparlane/fiuba_thesis/hdl/components/iso_iec_14443A/verification/vcs/../../verification/tb/iso14443a_tb.sv</a><br clear=all>
+<br clear=all>
+<span class=repname>Module self-instances :</span>
+<br clear=all>
+<table align=left>
+<tr class="sortablehead">
+<td class="alfsrt">NAME</td><td>SCORE</td><td>LINE</td><td>COND</td><td>TOGGLE</td><td>FSM</td><td>BRANCH</td><td>ASSERT</td></tr><tr>
+<td class="wht cl wordwrap"><a href="mod23.html#inst_tag_35"  onclick="showContent('inst_tag_35')">iso14443a_tb</a></td>
+<td class="s9 cl rt"> 98.45</td>
+<td class="s10 cl rt"><a href="mod23.html#Line" >100.00</a></td>
+<td class="wht cl rt"></td>
+<td class="s9 cl rt"><a href="mod23.html#Toggle" > 95.35</a></td>
+<td class="wht cl rt"></td>
+<td class="wht cl rt"></td>
+<td class="s10 cl rt"><a href="mod23.html#Assert" >100.00</a></td>
+</tr></table></div>
+</div>
+<br clear=all>
+<div name='tag_iso14443a_tb'>
+<hr>
+<a name="inst_tag_35"></a>
+<div class=modhdr>
+<br clear=all>
+<span class=titlename>Module Instance : <a href="hierarchy.html#tag_urg_inst_35" >iso14443a_tb</a></span>
+<br clear=all>
+<br clear=all>
+<span class=repname>Instance :</span>
+<br clear=all>
+<table align=left>
+<tr class="sortablehead">
+<td>SCORE</td><td>LINE</td><td>COND</td><td>TOGGLE</td><td>FSM</td><td>BRANCH</td><td>ASSERT</td></tr><tr>
+<td class="s9 cl rt"> 98.45</td>
+<td class="s10 cl rt"><a href="mod23.html#Line" >100.00</a></td>
+<td class="wht cl rt"></td>
+<td class="s9 cl rt"><a href="mod23.html#Toggle" > 95.35</a></td>
+<td class="wht cl rt"></td>
+<td class="wht cl rt"></td>
+<td class="s10 cl rt"><a href="mod23.html#Assert" >100.00</a></td>
+</tr></table><br clear=all>
+<br clear=all>
+<span class=repname>Instance's subtree :</span>
+<br clear=all>
+<table align=left>
+<tr class="sortablehead">
+<td>SCORE</td><td>LINE</td><td>COND</td><td>TOGGLE</td><td>FSM</td><td>BRANCH</td><td>ASSERT</td></tr><tr>
+<td class="s9 cl rt"> 92.91</td>
+<td class="s9 cl rt"> 92.89</td>
+<td class="s9 cl rt"> 94.71</td>
+<td class="s9 cl rt"> 93.99</td>
+<td class="s7 cl rt"> 79.41</td>
+<td class="s9 cl rt"> 96.44</td>
+<td class="s10 cl rt">100.00</td>
+</tr></table><br clear=all>
+<br clear=all>
+<span class=repname>Parent : </span>
+<br clear=all>
+<span class=inst>none</span>
+<br clear=all>
+<br clear=all>
+<span class=repname>Subtrees :</span>
+<br clear=all>
+<table align=left>
+<tr class="sortablehead">
+<td class="alfsrt">NAME</td><td>SCORE</td><td>LINE</td><td>COND</td><td>TOGGLE</td><td>FSM</td><td>BRANCH</td><td>ASSERT</td></tr><tr>
+<td class="wht cl wordwrap"><a href="mod50.html#inst_tag_62" id="tag_urg_inst_62">analogue_sim_inst</a></td>
+<td class="s9 cl rt"> 95.99</td>
+<td class="s10 cl rt">100.00</td>
+<td class="wht cl rt"></td>
+<td class="s9 cl rt"> 96.30</td>
+<td class="wht cl rt"></td>
+<td class="s9 cl rt"> 91.67</td>
+<td class="wht cl rt"></td>
+</tr><tr>
+<td class="wht cl wordwrap"><a href="mod4.html#inst_tag_4" id="tag_urg_inst_4">app_rx_iface</a></td>
+<td class="s8 cl rt"> 83.97</td>
+<td class="s6 cl rt"> 69.57</td>
+<td class="wht cl rt"></td>
+<td class="s8 cl rt"> 82.35</td>
+<td class="wht cl rt"></td>
+<td class="wht cl rt"></td>
+<td class="s10 cl rt">100.00</td>
+</tr><tr>
+<td class="wht cl wordwrap"><a href="mod7.html#inst_tag_13" id="tag_urg_inst_13">app_tx_iface</a></td>
+<td class="s8 cl rt"> 87.50</td>
+<td class="wht cl rt"></td>
+<td class="wht cl rt"></td>
+<td class="s7 cl rt"> 75.00</td>
+<td class="wht cl rt"></td>
+<td class="wht cl rt"></td>
+<td class="s10 cl rt">100.00</td>
+</tr><tr>
+<td class="wht cl wordwrap"><a href="mod26.html#inst_tag_38" id="tag_urg_inst_38">dut</a></td>
+<td class="s9 cl rt"> 92.99</td>
+<td class="s9 cl rt"> 92.96</td>
+<td class="s9 cl rt"> 94.71</td>
+<td class="s9 cl rt"> 94.17</td>
+<td class="s7 cl rt"> 79.41</td>
+<td class="s9 cl rt"> 96.68</td>
+<td class="s10 cl rt">100.00</td>
+</tr><tr>
+<td class="wht cl wordwrap"><a href="mod44.html#inst_tag_56" id="tag_urg_inst_56">lm_iface</a></td>
+<td class="s10 cl rt">100.00</td>
+<td class="wht cl rt"></td>
+<td class="wht cl rt"></td>
+<td class="s10 cl rt">100.00</td>
+<td class="wht cl rt"></td>
+<td class="wht cl rt"></td>
+<td class="wht cl rt"></td>
+</tr></table><br clear=all>
+</div>
+</div>
+<hr>
+Since this is the module's only instance, the coverage report is the same as for the module.</div>
+<div class="ui-layout-center">
+<div class="ui-layout-center-inner-center">
+<div name='tag_iso14443a_tb'>
+<a name="Line"></a>
+Line Coverage for Module : <a href="mod23.html" >iso14443a_tb</a><br clear=all>
+<table class="noborder">
+<col width="122">
+<col span="4" width="82">
+<tr><th></th><th>Line No.</th><th>Total</th><th>Covered</th><th>Percent</th></tr>
+<tr class="s10"><td class="lf">TOTAL</td><td></td><td>43</td><td>43</td><td>100.00</td></tr>
+<tr class="s10"><td class="lf">ALWAYS</td><td>231</td><td>1</td><td>1</td><td>100.00</td></tr>
+<tr class="s10"><td class="lf">INITIAL</td><td>234</td><td>5</td><td>5</td><td>100.00</td></tr>
+<tr class="s10"><td class="lf">INITIAL</td><td>571</td><td>37</td><td>37</td><td>100.00</td></tr>
+</table>
+<pre class="code"><br clear=all>
+230                     
+231        1/1              always_ff @(posedge pcd_pause_n) lastPCDPauseRiseTime &lt;= $time;
+232                     
+233                         initial begin: fdtVerificationBlock
+234        1/1                  forever begin: foreverLoop
+235                                 automatic longint diff;
+236                                 automatic longint expected;
+237                     
+238                                 // wait for the start of the next Rx frame
+239                                 // this ensure we don't check the fdt time on any lm_out pulses other than the first
+240        1/1                      @(posedge pcd_pause_n) begin end
+241                     
+242                                 // wait for the start of the reply
+243                                 // it doesn't matter if there was no reply to a message, we just get here on the next
+244                                 // actual reply. lastPCDPauseRise has been updated for the last rise of the last rx message
+245        1/1                      @(posedge lm_out) begin end
+246                     
+247        1/1                      diff        = $time - lastPCDPauseRiseTime;
+248        1/1                      expected    = CLOCK_PERIOD_PS * (last_rx_bit ? FDT_LAST_BIT_1 : FDT_LAST_BIT_0);
+249                     
+250                                 // ISO/IEC 14443-3:2016 section 6.2.1.1 requires that the PICC ensures a FDT of
+251                                 // the between the value calculated above (expected) and that value + 0.4us.
+252                                 // We test here that it is between the expected value and that value + 0.1us.
+253                                 // This testbench finds that the actual value is between half a tick and a full tick
+254                                 // after the calculated expected value. Which is as expected given that the picc's clock
+255                                 // and the pcd clock can be 180 degrees out of phase.
+256                     
+257                                 fdtTime: assert ((diff &gt; expected) &amp;&amp;
+258                                                  (diff &lt; (expected + (100 * 1000))))
+259                                     else $error(&quot;Tx started at %d ps, lastPCDPauseRiseTime %d ps, diff %d, expected %d&quot;,
+260                                                 $time, lastPCDPauseRiseTime, diff, expected);
+261                             end
+262                         end
+263                     
+264                         // ----------------------------------------------------------------
+265                         // Extend CommsTestsSequence to do TB specific stuff
+266                         // ----------------------------------------------------------------
+267                     
+268                         logic expect_app_resend_last;
+269                     
+270                         class ISO14443a_TbSequence
+271                         extends comms_tests_sequence_pkg::CommsTestsSequence
+272                         #(
+273                             .RxTransType        (RxTransType),
+274                             .TxTransType        (TxTransType),
+275                             .RxTransConvType    (RxTransConvType),
+276                             .TxTransConvType    (TxTransConvType),
+277                             .RxDriverType       (RxDriverType),
+278                             .TxMonitorType      (TxMonitorType)
+279                         );
+280                             // we need to know if the last sent message was a valid STD I-Block for the DUT.
+281                             // Then if an R(ACK/NAK) is sent with the wronge block number we can verify app_resend_last
+282                             // and actually resend the last reply from the app.
+283                             logic       last_sent_was_valid_std_i_block;
+284                     
+285                             // To be able to resend the last app response, we need to cache what it was
+286                             logic [7:0] app_last_sent_inf [$];
+287                     
+288                             // constructor
+289                             function new(uid_pkg::UID               _picc_uid,
+290                                          TransGenType               _rx_trans_gen,
+291                                          TransGenType               _tx_trans_gen,
+292                                          RxTransConvType            _rx_trans_conv,
+293                                          TxTransConvType            _tx_trans_conv,
+294                                          RxQueueWrapperType         _rx_send_queue,
+295                                          TxQueueWrapperType         _tx_recv_queue,
+296                                          RxDriverType               _rx_driver,
+297                                          TxMonitorType              _tx_monitor,
+298                                          int                        _reply_timeout);
+299                     
+300                                 super.new(_picc_uid,
+301                                           _rx_trans_gen,
+302                                           _tx_trans_gen,
+303                                           _rx_trans_conv,
+304                                           _tx_trans_conv,
+305                                           _rx_send_queue,
+306                                           _tx_recv_queue,
+307                                           _rx_driver,
+308                                           _tx_monitor,
+309                                           _reply_timeout,
+310                                           100);                 // TODO: Run optimised builds and test with more than 100 loops per test
+311                     
+312                                 last_sent_was_valid_std_i_block = 1'b0;
+313                                 app_last_sent_inf               = '{};
+314                             endfunction
+315                     
+316                             virtual task do_reset;
+317                                 rst_n &lt;= 1'b0;
+318                                 repeat (5) @(posedge clk) begin end
+319                                 rst_n &lt;= 1'b1;
+320                                 repeat (5) @(posedge clk) begin end
+321                             endtask
+322                     
+323                             function void sequence_callback(EventCode ec, int arg=0);
+324                                 // argument is an EventMessageID
+325                                 automatic EventMessageID mid = EventMessageID'(arg);
+326                                 //$display(&quot;%s %s&quot;, ec.name, mid.name);
+327                     
+328                                 case (ec)
+329                                     EventCode_SENDING:  begin
+330                                     end
+331                                     EventCode_SENT: begin: ecSent
+332                                         // clear this here, if we have actually just finished sending a valid STD I-Block
+333                                         // then this was called indirectly from the overridden send_std_i_block() below.
+334                                         // Once we return to that, we'll set this flag if it were in fact a valid
+335                                         // STD I-Block for the PICC.
+336                                         last_sent_was_valid_std_i_block = 1'b0;
+337                     
+338                                         // check that this message was not forwarded to the app
+339                                         // except in the case of the STD I-Block message which if valid
+340                                         // should be forwarded and is verified in the overriden
+341                                         // send_std_i_block task below
+342                                         if ((mid != EventMessageID_STD_I_BLOCK_CHAINING) &amp;&amp;
+343                                             (mid != EventMessageID_STD_I_BLOCK_NO_CHAINING)) begin
+344                                             check_not_forwarded_to_app;
+345                                         end
+346                                     end
+347                                     EventCode_RECEIVED_OK: begin
+348                                         // clear flags
+349                                         expect_app_resend_last = 1'b0;
+350                                     end
+351                                     EventCode_RECEIVED_ERROR: begin
+352                                         // clear flags
+353                                         expect_app_resend_last = 1'b0;
+354                                     end
+355                                     default: begin
+356                                         $error(&quot;Handle event: %s&quot;, ec.name);
+357                                     end
+358                                 endcase
+359                             endfunction
+360                     
+361                             function void specific_target_callback(SpecificTargetEventCode ec, int arg=0);
+362                                 if ((ec == SpecificTargetEventCode_ENTERED_STATE) ||
+363                                     (ec == SpecificTargetEventCode_REMAINING_IN_STATE)) begin
+364                                     automatic State state = State'(arg);
+365                                     //$display(&quot;Event Code %s, %s&quot;, ec.name, state.name);
+366                                     check_state(state);
+367                                 end
+368                                 else begin
+369                                     $error(&quot;Unknown event code %s&quot;, ec.name);
+370                                 end
+371                             endfunction
+372                     
+373                             function void check_state (State state);
+374                                 case (state)
+375                                     State_IDLE:                 isIdle:         assert ((initState == ISO14443A_pkg::InitialisationState_IDLE)      &amp;&amp; !dut.part3.initialisation_inst.state_star)   else $error(&quot;DUT not in correct state expected State_IDLE, 0 got %s, %b&quot;,                               initState.name, dut.part3.initialisation_inst.state_star);
+376                                     State_READY:                isReady:        assert ((initState == ISO14443A_pkg::InitialisationState_READY)     &amp;&amp; !dut.part3.initialisation_inst.state_star)   else $error(&quot;DUT not in correct state expected State_READY, 0 got %s, %b&quot;,                              initState.name, dut.part3.initialisation_inst.state_star);
+377                                     State_ACTIVE:               isActive:       assert ((initState == ISO14443A_pkg::InitialisationState_ACTIVE)    &amp;&amp; !dut.part3.initialisation_inst.state_star)   else $error(&quot;DUT not in correct state expected State_ACTIVE, 0 got %s, %b&quot;,                             initState.name, dut.part3.initialisation_inst.state_star);
+378                                     State_HALT:                 isHalt:         assert ((initState == ISO14443A_pkg::InitialisationState_IDLE)      &amp;&amp; dut.part3.initialisation_inst.state_star)    else $error(&quot;DUT not in correct state expected State_IDLE, 1 got %s, %b&quot;,                               initState.name, dut.part3.initialisation_inst.state_star);
+379                                     State_READY_STAR:           isReadyStar:    assert ((initState == ISO14443A_pkg::InitialisationState_READY)     &amp;&amp; dut.part3.initialisation_inst.state_star)    else $error(&quot;DUT not in correct state expected State_READY, 1 got %s, %b&quot;,                              initState.name, dut.part3.initialisation_inst.state_star);
+380                                     State_ACTIVE_STAR:          isActiveStar:   assert ((initState == ISO14443A_pkg::InitialisationState_ACTIVE)    &amp;&amp; dut.part3.initialisation_inst.state_star)    else $error(&quot;DUT not in correct state expected State_ACTIVE, 1 got %s, %b&quot;,                             initState.name, dut.part3.initialisation_inst.state_star);
+381                                     State_PROTOCOL_PPS_ALLOWED: isProtocol1:    assert ((initState == ISO14443A_pkg::InitialisationState_PROTOCOL)  &amp;&amp; dut.part4.allow_pps)                         else $error(&quot;DUT not in correct state expected State_PROTOCOL_PPS_ALLOWED, got %s, %b, allow_pps %b&quot;,   initState.name, dut.part3.initialisation_inst.state_star, dut.part4.allow_pps);
+382                                     State_PROTOCOL_STD_COMMS:   isProtocol2:    assert ((initState == ISO14443A_pkg::InitialisationState_PROTOCOL)  &amp;&amp; !dut.part4.allow_pps)                        else $error(&quot;DUT not in correct state expected State_PROTOCOL_STD_COMMS, got %s, %b, allow_pps %b&quot;,     initState.name, dut.part3.initialisation_inst.state_star, dut.part4.allow_pps);
+383                                 endcase
+384                             endfunction
+385                     
+386                             function void comms_tests_callback(CommsTestsEventCode ec, int arg=0);
+387                                 case (ec)
+388                                     CommsTestsEventCode_SET_CORRUPT_CRC: begin
+389                                     end
+390                                     CommsTestsEventCode_SET_DRIVER_ERRORS: begin
+391                                     end
+392                                     default: begin
+393                                         $error(&quot;Unknown event code %s&quot;, ec.name);
+394                                     end
+395                                 endcase
+396                             endfunction
+397                     
+398                             // override send_std_i_block, and verify that the inf field + CRC are forwarded to the app
+399                             virtual task send_std_i_block(StdBlockAddress addr, logic chaining, logic block_num, logic [7:0] inf [$]);
+400                                 super.send_std_i_block(addr, chaining, block_num, inf);
+401                     
+402                                 if (picc_target.is_for_us(addr) &amp;&amp; !chaining &amp;&amp;
+403                                     ((picc_state == State_PROTOCOL_PPS_ALLOWED) ||
+404                                      (picc_state == State_PROTOCOL_STD_COMMS))) begin
+405                                     // check this was forwarded to the app, and send the reply
+406                                     // corrupted CRCs get turned into errors on app_rx_iface
+407                                     // errors on rx_iface either get forwarded to app_rx_iface or nothing is
+408                                     // forwarded to the app. Depending on where the error occurs.
+409                                     if (rx_driver.get_add_error) begin
+410                                         check_not_forwarded_to_app_or_has_error;
+411                                     end
+412                                     else if (rx_trans_gen.get_corrupt_crc) begin
+413                                         check_forwarded_to_app(inf, 1'b1);
+414                                     end
+415                                     else begin
+416                                         last_sent_was_valid_std_i_block = 1'b1;
+417                                         check_forwarded_to_app(inf);
+418                                         app_last_sent_inf = get_std_i_reply_inf(inf);
+419                                         send_std_i_block_reply(app_last_sent_inf);
+420                                     end
+421                                 end
+422                                 else begin
+423                                     // check it wasn't forwarded to the app
+424                                     check_not_forwarded_to_app;
+425                                 end
+426                             endtask
+427                     
+428                             virtual task send_std_r_ack(StdBlockAddress addr, logic block_num);
+429                                 if ((picc_target.get_picc_block_num() == block_num) &amp;&amp;
+430                                     last_sent_was_valid_std_i_block) begin
+431                     
+432                                     // If the PCD receives an R(ACK/NAK) with block num the same as
+433                                     // it's current block num, then it should resend it's last reply
+434                                     expect_app_resend_last = 1'b1;
+435                                 end
+436                     
+437                                 super.send_std_r_ack(addr, block_num);
+438                     
+439                                 if (expect_app_resend_last) begin
+440                                     // resend the last app message
+441                                     send_std_i_block_reply(app_last_sent_inf);
+442                                 end
+443                             endtask
+444                     
+445                             virtual task send_std_r_nak(StdBlockAddress addr, logic block_num);
+446                                 if ((picc_target.get_picc_block_num() == block_num) &amp;&amp;
+447                                     last_sent_was_valid_std_i_block) begin
+448                     
+449                                     // If the PCD receives an R(ACK/NAK) with block num the same as
+450                                     // it's current block num, then it should resend it's last reply
+451                                     expect_app_resend_last = 1'b1;
+452                                 end
+453                     
+454                                 super.send_std_r_nak(addr, block_num);
+455                     
+456                                 if (expect_app_resend_last) begin
+457                                     // resend the last app message
+458                                     send_std_i_block_reply(app_last_sent_inf);
+459                                 end
+460                             endtask
+461                     
+462                             virtual function ByteQueue get_std_i_reply_inf(logic [7:0] inf [$]);
+463                                 // respond with +1
+464                                 foreach(inf[i]) begin
+465                                     inf[i] = inf[i] + 1'd1;
+466                                 end
+467                                 return inf;
+468                             endfunction
+469                     
+470                             virtual protected function void set_power_input(logic [1:0] _power);
+471                                 power = _power;
+472                             endfunction
+473                     
+474                             virtual function logic verify_dut_cid(logic [3:0] expected);
+475                                 cidAsExpected:
+476                                 assert(dut.part4.our_cid == expected) else $error(&quot;DUT's CID is %d expected %d&quot;, dut.part4.our_cid, expected);
+477                                 return dut.part4.our_cid == expected;
+478                             endfunction
+479                     
+480                             virtual task wait_for_app_rx(output ready, output AppRxTransType trans, input logic expect_timeout=1'b0);
+481                                 if (!app_rx_monitor.idle) begin
+482                                     app_rx_monitor.wait_for_packet_received(128, !expect_timeout);
+483                                 end
+484                     
+485                                 // we don't assert here, the caller should assert if needed
+486                     
+487                                 ready = 1'b0;
+488                                 if (app_rx_recv_queue.size()) begin
+489                                     ready = 1'b1;
+490                                     trans = app_rx_recv_queue.pop_front;
+491                                 end
+492                             endtask
+493                     
+494                             virtual protected function void check_not_forwarded_to_app;
+495                                 notForwarded:
+496                                 assert (app_rx_monitor.idle &amp;&amp; (app_rx_recv_queue.size() == 0))
+497                                     else $error(&quot;Message forwarded to the app when not expected&quot;);
+498                     
+499                                 if (app_rx_recv_queue.size() != 0) begin
+500                                     $display(&quot;INFO: got %s when nothing expected&quot;, app_rx_recv_queue[0].to_string);
+501                                     void'(app_rx_recv_queue.pop_front);
+502                                 end
+503                             endfunction
+504                     
+505                             virtual protected task check_not_forwarded_to_app_or_has_error;
+506                                 automatic logic             ready;
+507                                 automatic AppRxTransType    trans;
+508                                 wait_for_app_rx(ready, trans, 1'b1);    // allow timeout
+509                     
+510                                 if (ready) begin
+511                                     // don't care about the data, just check there's an error
+512                                     void'(verify_forwarded_to_app(trans, '{}, 1'b1));
+513                                 end
+514                             endtask
+515                     
+516                             virtual protected task check_forwarded_to_app(logic [7:0] inf [$], logic expect_error=1'b0);
+517                                 automatic logic             ready;
+518                                 automatic AppRxTransType    trans;
+519                                 wait_for_app_rx(ready, trans, 1'b0);
+520                     
+521                                 forwardedToApp: assert (ready) else $error(&quot;Message not forwarded to the app&quot;);
+522                     
+523                                 if (ready) begin
+524                                     void'(verify_forwarded_to_app(trans, inf, expect_error));
+525                                 end
+526                             endtask
+527                     
+528                             virtual protected function logic verify_forwarded_to_app(AppRxTransType trans, logic [7:0] inf [$], logic expect_error=1'b0);
+529                                 automatic AppRxTransType    expected = new(inf, 0, expect_error);
+530                                 automatic logic             res;
+531                     
+532                                 // the farwarded message is the inf field plus the CRC of the whole message
+533                                 // (including the header which is not forwarded). We don't care about the CRC here
+534                                 // so pop it off, unless we're expecting an error in which case don't bother, since
+535                                 // we only care about the error flag, and the received data may be less than two bytes
+536                                 if (!expect_error) begin
+537                                     void'(trans.pop_back());
+538                                     void'(trans.pop_back());
+539                                 end
+540                     
+541                                 res = trans.compare(expected);
+542                     
+543                                 appMsgAsExpected:
+544                                 assert (res)
+545                                 else $error(&quot;Message forwarded to app not as expected, received %s expected %s&quot;,
+546                                             trans.to_string, expected.to_string);
+547                     
+548                                 return res;
+549                             endfunction
+550                     
+551                             virtual protected task send_std_i_block_reply(logic [7:0] reply_inf [$]);
+552                                 // fake a reply to a STD I-block
+553                                 automatic AppTxTransType trans = new(reply_inf);
+554                                 app_tx_send_queue.push_back(trans);
+555                             endtask
+556                         endclass
+557                     
+558                         ISO14443a_TbSequence seq;
+559                     
+560                         // --------------------------------------------------------------
+561                         // Test stimulus
+562                         // --------------------------------------------------------------
+563                     
+564                         initial begin
+565                             automatic transaction_generator_pkg::TransactionGenerator   rx_trans_gen;
+566                             automatic transaction_generator_pkg::TransactionGenerator   tx_trans_gen;
+567                             automatic RxTransConvType                                   rx_trans_conv;
+568                             automatic TxTransConvType                                   tx_trans_conv;
+569                             automatic int                                               reply_timeout;
+570                     
+571        1/1                  power                   = 2'b00;
+572        1/1                  expect_app_resend_last  = 1'b0;
+573                     
+574                             // TODO: randomise some settings:
+575                             //      CLOCK_STARTS/STOPS_AFTER_PS
+576                             //      PAUSE_N_ASSERTS/DEASSERTS_AFTER_PS
+577                             //      pause ticks
+578                             //      clock speed
+579                             //      ...?
+580                     
+581        1/1                  analogue_sim_inst.init(512);    // inits the RxDriver
+582                     
+583        1/1                  app_rx_monitor      = new(app_rx_iface);
+584        1/1                  tx_monitor          = new(lm_iface);
+585                     
+586                             // each byte is 8 bits + parity, 1 bit every 128 ticks -&gt; 1152 ticks, use 2048
+587                             // additionally the fdt timer can take up to 1236 ticks (- FDT_TIMING_ADJUST)
+588                             // so first req can take up to 2388 ticks, use 4096.
+589                             // Using overly large timeouts is fine, as it's something we only epect in error cases.
+590        1/1                  app_tx_driver       = new(app_tx_iface, 0, 2048, 4096);
+591                     
+592        1/1                  rx_send_queue       = new('{});
+593        1/1                  tx_recv_queue       = new('{});
+594                             // app_tx_send_queue and app_rx_recv_queue are just queues and don't use the wrapper class
+595        1/1                  app_rx_recv_queue   = '{};
+596        1/1                  app_tx_send_queue   = '{};
+597                     
+598        1/1                  rx_trans_gen        = new(1'b1);    // Rx messages must have CRCs applied
+599        1/1                  tx_trans_gen        = new(1'b1);    // Tx messages will have CRCs applied
+600                     
+601        1/1                  rx_trans_conv       = new(1'b1);    // Rx messages must have parity bits
+602        1/1                  tx_trans_conv       = new(1'b1);    // Tx messages will have parity bits
+603                     
+604                             // initialise the variable part of the UID to be all ones.
+605                             // this is so on the first test when we swap to all 0s, we get the 1-&gt;0 toggle coverage
+606                             // we then switch back to 1 to get 0-&gt;1.
+607        1/1                  picc_uid        = new('1);
+608        1/1                  full_uid = picc_uid.get_uid;
+609                     
+610                             // longest reply is a STD I-Block reply (2 bytes header, 10 bytes INF, 2 bytes CRC)
+611                             // = 14 bytes, each byte has 8 bits + parity -&gt; 126 bits.
+612                             // there are 128 ticks in a bit, so 16,128 ticks
+613                             // then the FDT takes 1236 ticks to fire (in the worst case)
+614                             // so 17,364 ticks total. Use 18,000 ticks
+615                             // TODO: if we reduce STD I-Block replies to a max of 3 bytes of INF, we can roughly half this
+616                             //       does that give us a decent speedup?
+617        1/1                  reply_timeout   = 18000;
+618        1/1                  seq             = new(picc_uid,
+619                                                   rx_trans_gen,
+620                                                   tx_trans_gen,
+621                                                   rx_trans_conv,
+622                                                   tx_trans_conv,
+623                                                   rx_send_queue,
+624                                                   tx_recv_queue,
+625                                                   analogue_sim_inst.driver,
+626                                                   tx_monitor,
+627                                                   reply_timeout);
+628                     
+629        1/1                  analogue_sim_inst.start (rx_send_queue.data);
+630        1/1                  app_rx_monitor.start    (app_rx_recv_queue);
+631        1/1                  tx_monitor.start        (tx_recv_queue.data);
+632        1/1                  app_tx_driver.start     (app_tx_send_queue);
+633                     
+634        1/1                  seq.do_reset;
+635                     
+636                             // repeat 10 times with different UIDs
+637        1/1                  for (int i = 0; i &lt; 10; i++) begin
+638                                 // TODO: Add a parameter to let me instead test all possible variable_uid values
+639                     
+640        1/1                      if (i == 0) begin
+641                                     // set the variable part of the uid to 0
+642                                     // this and the i == 1 case help us get toggle coverage
+643        1/1                          picc_uid.set_uid('0);
+644                                 end
+645        1/1                      else if (i == 1) begin
+646                                     // set the variable part of the uid to all ones
+647        1/1                          picc_uid.set_uid('1);
+648                                 end
+649                                 else begin
+650                                     // randomise the variable part of the UID
+651        1/1                          picc_uid.randomize;
+652                                 end
+653                     
+654        1/1                      full_uid = picc_uid.get_uid;
+655        1/1                      $display(&quot;NOTE: New UID: %s&quot;, picc_uid.to_string);
+656        1/1                      seq.do_reset;
+657                     
+658                                 // Run the tests
+659        1/1                      seq.run_all_initialisation_tests();
+660        1/1                      seq.run_all_part4_tests();
+661                             end
+662                     
+663        2/2                  repeat (5) @(posedge clk) begin end
+                        REPEAT_FALSE
+664        1/1                  $stop;
+</pre>
+<hr>
+<a name="Toggle"></a>
+Toggle Coverage for Module : <a href="mod23.html" >iso14443a_tb</a><br clear=all>
+<table align=left class="noborder">
+<tr>
+<th nowrap width=120></th><th nowrap width=80>Total</th><th nowrap width=80>Covered</th><th nowrap width=80>Percent</th></tr><tr class="s8">
+<td>Totals</td>
+<td class="rt">13</td>
+<td class="rt">11</td>
+<td class="rt">84.62 </td>
+</tr><tr class="s9">
+<td>Total Bits</td>
+<td class="rt">344</td>
+<td class="rt">328</td>
+<td class="rt">95.35 </td>
+</tr><tr class="s9">
+<td nowrap>Total Bits 0->1</td>
+<td class="rt">172</td>
+<td class="rt">164</td>
+<td class="rt">95.35 </td>
+</tr><tr class="s9">
+<td nowrap>Total Bits 1->0</td>
+<td class="rt">172</td>
+<td class="rt">164</td>
+<td class="rt">95.35 </td>
+</tr></table><br clear=all>
+<table align=left class="noborder">
+<tr>
+<th nowrap width=120></th><th nowrap width=80></th><th nowrap width=80></th><th nowrap width=80></th></tr><tr class="s8">
+<td>Signals</td>
+<td class="rt">13</td>
+<td class="rt">11</td>
+<td class="rt">84.62 </td>
+</tr><tr class="s9">
+<td>Signal Bits</td>
+<td class="rt">344</td>
+<td class="rt">328</td>
+<td class="rt">95.35 </td>
+</tr><tr class="s9">
+<td nowrap>Signal Bits 0->1</td>
+<td class="rt">172</td>
+<td class="rt">164</td>
+<td class="rt">95.35 </td>
+</tr><tr class="s9">
+<td nowrap>Signal Bits 1->0</td>
+<td class="rt">172</td>
+<td class="rt">164</td>
+<td class="rt">95.35 </td>
+</tr></table><br clear=all>
+<table align=left class="sortable noborder">
+<caption><b>Signal Details</b></caption>
+<tr class="sortablehead">
+<td class="alfsrt">Name</td><td class="alfsrt">Toggle</td><td class="alfsrt">Toggle 1->0</td><td class="alfsrt">Toggle 0->1</td></tr><tr>
+<td>clk</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+</tr><tr>
+<td>rst_n</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+</tr><tr>
+<td>uid_variable[75:0]</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+</tr><tr>
+<td>power[1:0]</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+</tr><tr>
+<td>pause_n_synchronised</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+</tr><tr>
+<td>lm_out</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+</tr><tr>
+<td>app_resend_last</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+</tr><tr>
+<td>iso14443a_version[3:0]</td>
+<td class="s3 cl">No</td>
+<td class="s3 cl">No</td>
+<td class="s3 cl">No</td>
+</tr><tr>
+<td>initState[1:0]</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+</tr><tr>
+<td>full_uid[75:0]</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+</tr><tr>
+<td>full_uid[79:76]</td>
+<td class="s3 cl">No</td>
+<td class="s3 cl">No</td>
+<td class="s3 cl">No</td>
+</tr><tr>
+<td>pcd_pause_n</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+</tr><tr>
+<td>last_rx_bit</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+</tr><tr>
+<td>expect_app_resend_last</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+</tr></table><br clear=all>
+<hr>
+<a name="Assert"></a>
+Assert Coverage for Module : <a href="mod23.html" >iso14443a_tb</a><br clear=all>
+<table align=left class="noborder">
+<tr>
+<th nowrap width=120></th><th nowrap width=80>Total</th><th nowrap width=80>Attempted</th><th nowrap width=80>Percent</th><th nowrap width=80>Succeeded/Matched</th><th nowrap width=80>Percent</th></tr><tr>
+<td class="wht cl"><a href="#213859096" >Assertions</a></td>
+<td class="wht cl rt">14</td>
+<td class="s10 cl rt">14</td>
+<td class="s10 cl rt">100.00</td>
+<td class="s10 cl rt">14</td>
+<td class="s10 cl rt">100.00</td>
+</tr><tr>
+<td class="wht cl"><a href="#1329389267" >Cover properties</a></td>
+<td class="wht cl rt">0</td>
+<td class="wht cl rt">0</td>
+<td class="wht cl"></td>
+<td class="wht cl rt">0</td>
+<td class="wht cl"></td>
+</tr><tr>
+<td class="wht cl"><a href="#1178659218" >Cover sequences</a></td>
+<td class="wht cl rt">0</td>
+<td class="wht cl rt">0</td>
+<td class="wht cl"></td>
+<td class="wht cl rt">0</td>
+<td class="wht cl"></td>
+</tr><tr>
+<td class="wht cl"><b>Total</b></td>
+<td class="wht cl rt">14</td>
+<td class="s10 cl rt">14</td>
+<td class="s10 cl rt">100.00</td>
+<td class="s10 cl rt">14</td>
+<td class="s10 cl rt">100.00</td>
+</tr></table><br clear=all>
+<br clear=all>
+<hr>
+<br clear=all>
+<a name="213859096"></a>
+<b>Assertion Details</b><br clear=all>
+<br clear=all>
+<table align=left class="sortable noborder">
+<tr class="sortablehead">
+<td class="alfsrt">Name</td><td>Attempts</td><td>Real Successes</td><td>Failures</td><td>Incomplete</td></tr><tr>
+<td class="wht cl"><a name="1818032412"></a>
+\ISO14443a_TbSequence::check_forwarded_to_app .forwardedToApp</td>
+<td class="s9 cl rt">15630</td>
+<td class="s9 cl rt">15630</td>
+<td class="s9 cl rt">0</td>
+<td class="wht cl rt">0</td>
+</tr><tr>
+<td class="wht cl"><a name="1295453609"></a>
+\ISO14443a_TbSequence::check_not_forwarded_to_app .notForwarded</td>
+<td class="s9 cl rt">635907</td>
+<td class="s9 cl rt">635907</td>
+<td class="s9 cl rt">0</td>
+<td class="wht cl rt">0</td>
+</tr><tr>
+<td class="wht cl"><a name="2011147941"></a>
+\ISO14443a_TbSequence::check_state .isActive</td>
+<td class="s9 cl rt">78215</td>
+<td class="s9 cl rt">78215</td>
+<td class="s9 cl rt">0</td>
+<td class="wht cl rt">0</td>
+</tr><tr>
+<td class="wht cl"><a name="456204365"></a>
+\ISO14443a_TbSequence::check_state .isActiveStar</td>
+<td class="s9 cl rt">7665</td>
+<td class="s9 cl rt">7665</td>
+<td class="s9 cl rt">0</td>
+<td class="wht cl rt">0</td>
+</tr><tr>
+<td class="wht cl"><a name="1105795990"></a>
+\ISO14443a_TbSequence::check_state .isHalt</td>
+<td class="s9 cl rt">23099</td>
+<td class="s9 cl rt">23099</td>
+<td class="s9 cl rt">0</td>
+<td class="wht cl rt">0</td>
+</tr><tr>
+<td class="wht cl"><a name="1417622615"></a>
+\ISO14443a_TbSequence::check_state .isIdle</td>
+<td class="s9 cl rt">91609</td>
+<td class="s9 cl rt">91609</td>
+<td class="s9 cl rt">0</td>
+<td class="wht cl rt">0</td>
+</tr><tr>
+<td class="wht cl"><a name="1125321956"></a>
+\ISO14443a_TbSequence::check_state .isProtocol1</td>
+<td class="s9 cl rt">76020</td>
+<td class="s9 cl rt">76020</td>
+<td class="s9 cl rt">0</td>
+<td class="wht cl rt">0</td>
+</tr><tr>
+<td class="wht cl"><a name="1024409989"></a>
+\ISO14443a_TbSequence::check_state .isProtocol2</td>
+<td class="s9 cl rt">142613</td>
+<td class="s9 cl rt">142613</td>
+<td class="s9 cl rt">0</td>
+<td class="wht cl rt">0</td>
+</tr><tr>
+<td class="wht cl"><a name="528699346"></a>
+\ISO14443a_TbSequence::check_state .isReady</td>
+<td class="s9 cl rt">255739</td>
+<td class="s9 cl rt">255739</td>
+<td class="s9 cl rt">0</td>
+<td class="wht cl rt">0</td>
+</tr><tr>
+<td class="wht cl"><a name="746838688"></a>
+\ISO14443a_TbSequence::check_state .isReadyStar</td>
+<td class="s9 cl rt">44090</td>
+<td class="s9 cl rt">44090</td>
+<td class="s9 cl rt">0</td>
+<td class="wht cl rt">0</td>
+</tr><tr>
+<td class="wht cl"><a name="621264385"></a>
+\ISO14443a_TbSequence::verify_dut_cid .cidAsExpected</td>
+<td class="s9 cl rt">84897</td>
+<td class="s9 cl rt">84897</td>
+<td class="s9 cl rt">0</td>
+<td class="wht cl rt">0</td>
+</tr><tr>
+<td class="wht cl"><a name="2057675047"></a>
+\ISO14443a_TbSequence::verify_forwarded_to_app .appMsgAsExpected</td>
+<td class="s9 cl rt">20780</td>
+<td class="s9 cl rt">20780</td>
+<td class="s9 cl rt">0</td>
+<td class="wht cl rt">0</td>
+</tr><tr>
+<td class="wht cl"><a name="1639020743"></a>
+appResendLastOnlyWhenExpected</td>
+<td class="s9 cl rt">2147483647</td>
+<td class="s9 cl rt">3014</td>
+<td class="s9 cl rt">0</td>
+<td class="wht cl rt">0</td>
+</tr><tr>
+<td class="wht cl"><a name="1142659067"></a>
+fdtVerificationBlock.foreverLoop.fdtTime</td>
+<td class="s9 cl rt">530749</td>
+<td class="s9 cl rt">530749</td>
+<td class="s9 cl rt">0</td>
+<td class="wht cl rt">0</td>
+</tr></table><br clear=all>
+</div>
+</div>
+<div class="ui-layout-center-inner-north">
+<div id="center-bread-crumb" class="breadCrumb module urg-margin-bottom">
+  <ul name="inst_tag_35">
+    <li>
+      <a href="#Line">Line</a>    </li>
+    <li>
+      <a href="#Toggle">Toggle</a>    </li>
+    <li>
+      <a href="#Assert">Assert</a>    </li>
+  </ul>
+  <ul name="tag_iso14443a_tb">
+    <li>
+      <a href="#Line">Line</a>    </li>
+    <li>
+      <a href="#Toggle">Toggle</a>    </li>
+    <li>
+      <a href="#Assert">Assert</a>    </li>
+  </ul>
+</div>
+</div>
+</div>
+<div class="ui-layout-south">
+<table align=center><tr><td class="s0 cl">0%</td>
+<td class="s1 cl">10%</td>
+<td class="s2 cl">20%</td>
+<td class="s3 cl">30%</td>
+<td class="s4 cl">40%</td>
+<td class="s5 cl">50%</td>
+<td class="s6 cl">60%</td>
+<td class="s7 cl">70%</td>
+<td class="s8 cl">80%</td>
+<td class="s9 cl">90%</td>
+<td class="s10 cl">100%</td></tr></table></div>
+</body>
+</html>

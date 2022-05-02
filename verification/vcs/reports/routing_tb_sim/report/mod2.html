@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="Author" content="<username>"> <meta name="GENERATOR" content="urg/version [en] (platform name) [urg]">
+<title>Unified Coverage Report :: Module :: routing_tb</title>
+<link type="text/css" rel="stylesheet" href="css/.urg.css">
+<link type="text/css" rel="stylesheet" href="css/.layout.css">
+<link type="text/css" rel="stylesheet" href="css/.breadcrumb.css">
+<script type="text/javascript" src="js/.jquery.js"></script>
+<script type="text/javascript" src="js/.jquery-ui.js"></script>
+<script type="text/javascript" src="js/.sortable.js"></script>
+<script type="text/javascript" src="js/.layout.js"></script>
+<script type="text/javascript" src="js/.breadcrumb.js"></script>
+<script type="text/javascript">
+var layout, westLayout, centerLayout;
+$(document).ready(function () {
+  if ($("#north-bread-crumb")) {
+    $("#north-bread-crumb").jBreadCrumb({easing:'swing'})
+  }
+  layout = $("body").layout({ 
+    resizable: true,
+    spacing_open: 4,
+    spacing_closed: 4,
+    north: {
+      size: 76
+    },
+    south: {
+      size: 45,
+      initClosed: true
+    },
+    west: {
+      size: 500,
+      resizable: true,
+      initClosed: false
+    }
+  });
+  centerLayout = $('div.ui-layout-center').layout({
+    north__paneSelector: ".ui-layout-center-inner-north",
+    center__paneSelector: ".ui-layout-center-inner-center", 
+    north__size: 50,
+    spacing_open: 4,
+    spacing_closed: 4
+  });
+});
+</script>
+</head>
+<body onLoad="initPage();"><div class="ui-layout-north">
+<div class="logo"></div>
+<center class="pagetitle">Module Definition</center>
+<div align="center"><a href="dashboard.html" ><b>dashboard</b></a> | <a href="hierarchy.html" ><b>hierarchy</b></a> | <a href="modlist.html" ><b>modlist</b></a> | groups | <a href="tests.html" ><b>tests</b></a> | <a href="asserts.html" ><b>asserts</b></a></div>
+
+</div>
+<div class="ui-layout-west">
+<div name='tag_routing_tb'>
+<div class=modhdr>
+<br clear=all>
+<span class=titlename>Module : <a href="#"  onclick="showContent('tag_routing_tb')">routing_tb</a></span>
+<br clear=all>
+<table align=left>
+<tr class="sortablehead">
+<td>SCORE</td><td>LINE</td><td>COND</td><td>TOGGLE</td><td>FSM</td><td>BRANCH</td><td>ASSERT</td></tr><tr>
+<td class="s10 cl rt">100.00</td>
+<td class="s10 cl rt"><a href="mod2.html#Line" >100.00</a></td>
+<td class="wht cl rt"></td>
+<td class="s10 cl rt"><a href="mod2.html#Toggle" >100.00</a></td>
+<td class="wht cl rt"></td>
+<td class="wht cl rt"></td>
+<td class="s10 cl rt"><a href="mod2.html#Assert" >100.00</a></td>
+</tr></table><br clear=all>
+<span class=repname>Source File(s) : </span>
+<br clear=all>
+<a href="javascript:void(0);"  onclick="openSrcFile('/home/aparlane/fiuba_thesis/hdl/components/iso_iec_14443A/verification/vcs/../../verification/tb/iso14443_3a/routing_tb.sv')">/home/aparlane/fiuba_thesis/hdl/components/iso_iec_14443A/verification/vcs/../../verification/tb/iso14443_3a/routing_tb.sv</a><br clear=all>
+<br clear=all>
+<span class=repname>Module self-instances :</span>
+<br clear=all>
+<table align=left>
+<tr class="sortablehead">
+<td class="alfsrt">NAME</td><td>SCORE</td><td>LINE</td><td>COND</td><td>TOGGLE</td><td>FSM</td><td>BRANCH</td><td>ASSERT</td></tr><tr>
+<td class="wht cl wordwrap"><a href="mod2.html#inst_tag_6"  onclick="showContent('inst_tag_6')">routing_tb</a></td>
+<td class="s10 cl rt">100.00</td>
+<td class="s10 cl rt"><a href="mod2.html#Line" >100.00</a></td>
+<td class="wht cl rt"></td>
+<td class="s10 cl rt"><a href="mod2.html#Toggle" >100.00</a></td>
+<td class="wht cl rt"></td>
+<td class="wht cl rt"></td>
+<td class="s10 cl rt"><a href="mod2.html#Assert" >100.00</a></td>
+</tr></table></div>
+</div>
+<br clear=all>
+<div name='tag_routing_tb'>
+<hr>
+<a name="inst_tag_6"></a>
+<div class=modhdr>
+<br clear=all>
+<span class=titlename>Module Instance : <a href="hierarchy.html#tag_urg_inst_6" >routing_tb</a></span>
+<br clear=all>
+<br clear=all>
+<span class=repname>Instance :</span>
+<br clear=all>
+<table align=left>
+<tr class="sortablehead">
+<td>SCORE</td><td>LINE</td><td>COND</td><td>TOGGLE</td><td>FSM</td><td>BRANCH</td><td>ASSERT</td></tr><tr>
+<td class="s10 cl rt">100.00</td>
+<td class="s10 cl rt"><a href="mod2.html#Line" >100.00</a></td>
+<td class="wht cl rt"></td>
+<td class="s10 cl rt"><a href="mod2.html#Toggle" >100.00</a></td>
+<td class="wht cl rt"></td>
+<td class="wht cl rt"></td>
+<td class="s10 cl rt"><a href="mod2.html#Assert" >100.00</a></td>
+</tr></table><br clear=all>
+<br clear=all>
+<span class=repname>Instance's subtree :</span>
+<br clear=all>
+<table align=left>
+<tr class="sortablehead">
+<td>SCORE</td><td>LINE</td><td>COND</td><td>TOGGLE</td><td>FSM</td><td>BRANCH</td><td>ASSERT</td></tr><tr>
+<td class="s9 cl rt"> 97.30</td>
+<td class="s10 cl rt">100.00</td>
+<td class="s10 cl rt">100.00</td>
+<td class="s8 cl rt"> 86.49</td>
+<td class="wht cl rt"></td>
+<td class="s10 cl rt">100.00</td>
+<td class="s10 cl rt">100.00</td>
+</tr></table><br clear=all>
+<br clear=all>
+<span class=repname>Parent : </span>
+<br clear=all>
+<span class=inst>none</span>
+<br clear=all>
+<br clear=all>
+<span class=repname>Subtrees :</span>
+<br clear=all>
+<table align=left>
+<tr class="sortablehead">
+<td class="alfsrt">NAME</td><td>SCORE</td><td>LINE</td><td>COND</td><td>TOGGLE</td><td>FSM</td><td>BRANCH</td><td>ASSERT</td></tr><tr>
+<td class="wht cl wordwrap"><a href="mod3.html#inst_tag_7" id="tag_urg_inst_7">dut</a></td>
+<td class="s10 cl rt">100.00</td>
+<td class="s10 cl rt">100.00</td>
+<td class="s10 cl rt">100.00</td>
+<td class="s10 cl rt">100.00</td>
+<td class="wht cl rt"></td>
+<td class="s10 cl rt">100.00</td>
+<td class="wht cl rt"></td>
+</tr><tr>
+<td class="wht cl wordwrap"><a href="mod0.html#inst_tag_0" id="tag_urg_inst_0">in_rx_iface</a></td>
+<td class="s8 cl rt"> 88.24</td>
+<td class="wht cl rt"></td>
+<td class="wht cl rt"></td>
+<td class="s8 cl rt"> 88.24</td>
+<td class="wht cl rt"></td>
+<td class="wht cl rt"></td>
+<td class="wht cl rt"></td>
+</tr><tr>
+<td class="wht cl wordwrap"><a href="mod1.html#inst_tag_4" id="tag_urg_inst_4">in_tx_iface_14443_4</a></td>
+<td class="s8 cl rt"> 81.25</td>
+<td class="wht cl rt"></td>
+<td class="wht cl rt"></td>
+<td class="s8 cl rt"> 81.25</td>
+<td class="wht cl rt"></td>
+<td class="wht cl rt"></td>
+<td class="wht cl rt"></td>
+</tr><tr>
+<td class="wht cl wordwrap"><a href="mod1.html#inst_tag_3" id="tag_urg_inst_3">in_tx_iface_init</a></td>
+<td class="s8 cl rt"> 81.25</td>
+<td class="wht cl rt"></td>
+<td class="wht cl rt"></td>
+<td class="s8 cl rt"> 81.25</td>
+<td class="wht cl rt"></td>
+<td class="wht cl rt"></td>
+<td class="wht cl rt"></td>
+</tr><tr>
+<td class="wht cl wordwrap"><a href="mod0.html#inst_tag_2" id="tag_urg_inst_2">out_rx_iface_14443_4</a></td>
+<td class="s8 cl rt"> 88.24</td>
+<td class="wht cl rt"></td>
+<td class="wht cl rt"></td>
+<td class="s8 cl rt"> 88.24</td>
+<td class="wht cl rt"></td>
+<td class="wht cl rt"></td>
+<td class="wht cl rt"></td>
+</tr><tr>
+<td class="wht cl wordwrap"><a href="mod0.html#inst_tag_1" id="tag_urg_inst_1">out_rx_iface_init</a></td>
+<td class="s8 cl rt"> 88.24</td>
+<td class="wht cl rt"></td>
+<td class="wht cl rt"></td>
+<td class="s8 cl rt"> 88.24</td>
+<td class="wht cl rt"></td>
+<td class="wht cl rt"></td>
+<td class="wht cl rt"></td>
+</tr><tr>
+<td class="wht cl wordwrap"><a href="mod1.html#inst_tag_5" id="tag_urg_inst_5">out_tx_iface</a></td>
+<td class="s8 cl rt"> 81.25</td>
+<td class="wht cl rt"></td>
+<td class="wht cl rt"></td>
+<td class="s8 cl rt"> 81.25</td>
+<td class="wht cl rt"></td>
+<td class="wht cl rt"></td>
+<td class="wht cl rt"></td>
+</tr></table><br clear=all>
+</div>
+</div>
+<hr>
+Since this is the module's only instance, the coverage report is the same as for the module.</div>
+<div class="ui-layout-center">
+<div class="ui-layout-center-inner-center">
+<div name='tag_routing_tb'>
+<a name="Line"></a>
+Line Coverage for Module : <a href="mod2.html" >routing_tb</a><br clear=all>
+<table class="noborder">
+<col width="122">
+<col span="4" width="82">
+<tr><th></th><th>Line No.</th><th>Total</th><th>Covered</th><th>Percent</th></tr>
+<tr class="s10"><td class="lf">TOTAL</td><td></td><td>25</td><td>25</td><td>100.00</td></tr>
+<tr class="s10"><td class="lf">INITIAL</td><td>61</td><td>25</td><td>25</td><td>100.00</td></tr>
+</table>
+<pre class="code"><br clear=all>
+60                          initial begin: testStimulus
+61         1/1                  automatic logic [2:0] routings[$] = '{3'b010, 3'b101, 3'b110, 3'b111};
+62         1/1                  automatic int i = 0;
+63                      
+64                              // test 4 cases:
+65                              //  1) just to / from initialialisation
+66                              //  2) just to / from 14443_4
+67                              //  3) to both, from initialise
+68                              //  4) to both, from 14443_4
+69                              // note: For some reason using foreach (routings[i]) begin: routingsLoop
+70                              //       gives an unnamed assertion warning and adds an extra &quot;unamed$$_0&quot;
+71                              //       to the assertion paths.
+72         1/1                  repeat (4) begin: routingLoop
+73         1/1                      {route_rx_to_14443_4,
+74                                   route_rx_to_initialisation,
+75                                   route_tx_from_14443_4}         = routings[i++];
+76                      
+77                                  // just randomize all the DUTs inputs (other than the control signals)
+78         1/1                      repeat (10000) begin: repeatLoop
+79         1/1                          in_rx_iface.soc                 = 1'($urandom);
+80         1/1                          in_rx_iface.eoc                 = 1'($urandom);
+81         1/1                          in_rx_iface.error               = 1'($urandom);
+82         1/1                          in_rx_iface.data                = 8'($urandom);
+83         1/1                          in_rx_iface.data_valid          = 1'($urandom);
+84         1/1                          in_rx_iface.data_bits           = 3'($urandom);
+85                      
+86         1/1                          in_tx_iface_init.data           = 8'($urandom);
+87         1/1                          in_tx_iface_init.data_valid     = 1'($urandom);
+88         1/1                          in_tx_iface_init.data_bits      = 3'($urandom);
+89                      
+90         1/1                          in_tx_iface_14443_4.data        = 8'($urandom);
+91         1/1                          in_tx_iface_14443_4.data_valid  = 1'($urandom);
+92         1/1                          in_tx_iface_14443_4.data_bits   = 3'($urandom);
+93                      
+94         1/1                          out_tx_iface.req                = 1'($urandom);
+95                      
+96         1/1                          in_tx_append_crc_init           = 1'($urandom);
+97         1/1                          in_tx_append_crc_14443_4        = 1'($urandom);
+98                      
+99         1/1                          #10 begin end
+100                                     rxSocInit:          assert (out_rx_iface_init.soc           == (route_rx_to_initialisation ? in_rx_iface.soc : 1'b0))           else $error(&quot;Rx SOC not routed correctly&quot;);
+101                                     rxSoc4:             assert (out_rx_iface_14443_4.soc        == (route_rx_to_14443_4        ? in_rx_iface.soc : 1'b0))           else $error(&quot;Rx SOC not routed correctly&quot;);
+102                     
+103                                     rxEocInit:          assert (out_rx_iface_init.eoc           == (route_rx_to_initialisation ? in_rx_iface.eoc : 1'b0))           else $error(&quot;Rx EOC not routed correctly&quot;);
+104                                     rxEoc4:             assert (out_rx_iface_14443_4.eoc        == (route_rx_to_14443_4        ? in_rx_iface.eoc : 1'b0))           else $error(&quot;Rx EOC not routed correctly&quot;);
+105                     
+106                                     rxErrorInit:        assert (out_rx_iface_init.error         == (route_rx_to_initialisation ? in_rx_iface.error : 1'b0))         else $error(&quot;Rx error not routed correctly&quot;);
+107                                     rxError4:           assert (out_rx_iface_14443_4.error      == (route_rx_to_14443_4        ? in_rx_iface.error : 1'b0))         else $error(&quot;Rx error not routed correctly&quot;);
+108                     
+109                                     rxDataValidInit:    assert (out_rx_iface_init.data_valid    == (route_rx_to_initialisation ? in_rx_iface.data_valid : 1'b0))    else $error(&quot;Rx data_valid not routed correctly&quot;);
+110                                     rxDataValid4:       assert (out_rx_iface_14443_4.data_valid == (route_rx_to_14443_4        ? in_rx_iface.data_valid : 1'b0))    else $error(&quot;Rx data_valid not routed correctly&quot;);
+111                     
+112                                     rxDataBitsInit:     assert (out_rx_iface_init.data_bits     == in_rx_iface.data_bits)                                           else $error(&quot;Rx data_bits not routed correctly&quot;);
+113                                     rxDataBits4:        assert (out_rx_iface_14443_4.data_bits  == in_rx_iface.data_bits)                                           else $error(&quot;Rx data_bits not routed correctly&quot;);
+114                     
+115                                     rxDataInit:         assert (out_rx_iface_init.data          == in_rx_iface.data)                                                else $error(&quot;Rx data not routed correctly&quot;);
+116                                     rxData4:            assert (out_rx_iface_14443_4.data       == in_rx_iface.data)                                                else $error(&quot;Rx data not routed correctly&quot;);
+117                     
+118                                     // Tx checks
+119                                     txData:         assert (out_tx_iface.data       == (route_tx_from_14443_4   ? in_tx_iface_14443_4.data          : in_tx_iface_init.data))       else $error(&quot;Tx data not routed correctly&quot;);
+120                                     txDataValid:    assert (out_tx_iface.data_valid == (route_tx_from_14443_4   ? in_tx_iface_14443_4.data_valid    : in_tx_iface_init.data_valid)) else $error(&quot;Tx data_valid not routed correctly&quot;);
+121                                     txDataBits:     assert (out_tx_iface.data_bits  == (route_tx_from_14443_4   ? in_tx_iface_14443_4.data_bits     : in_tx_iface_init.data_bits))  else $error(&quot;Tx data_bits not routed correctly&quot;);
+122                     
+123                                     txReqInit:      assert (in_tx_iface_init.req    == (!route_tx_from_14443_4  ? out_tx_iface.req                  : 1'b0))                        else $error(&quot;Tx req not routed correctly&quot;);
+124                                     txReq4:         assert (in_tx_iface_14443_4.req == (route_tx_from_14443_4   ? out_tx_iface.req                  : 1'b0))                        else $error(&quot;Tx req not routed correctly&quot;);
+125                     
+126                                     txAppendCRC:    assert (out_tx_append_crc       == (route_tx_from_14443_4   ? in_tx_append_crc_14443_4          : in_tx_append_crc_init))       else $error(&quot;Tx append_crc not routed correctly&quot;);
+127                     
+128        1/1                          #10 begin end
+129                                 end
+130                             end
+                        REPEAT_FALSE
+131                     
+132                             // for toggle coverage
+133        1/1                  route_rx_to_14443_4 = 1'b0;
+134        1/1                  #10 begin end
+135                     
+136        1/1                  $stop;
+</pre>
+<hr>
+<a name="Toggle"></a>
+Toggle Coverage for Module : <a href="mod2.html" >routing_tb</a><br clear=all>
+<table align=left class="noborder">
+<tr>
+<th nowrap width=120></th><th nowrap width=80>Total</th><th nowrap width=80>Covered</th><th nowrap width=80>Percent</th></tr><tr class="s10">
+<td>Totals</td>
+<td class="rt">6</td>
+<td class="rt">6</td>
+<td class="rt">100.00</td>
+</tr><tr class="s10">
+<td>Total Bits</td>
+<td class="rt">12</td>
+<td class="rt">12</td>
+<td class="rt">100.00</td>
+</tr><tr class="s10">
+<td nowrap>Total Bits 0->1</td>
+<td class="rt">6</td>
+<td class="rt">6</td>
+<td class="rt">100.00</td>
+</tr><tr class="s10">
+<td nowrap>Total Bits 1->0</td>
+<td class="rt">6</td>
+<td class="rt">6</td>
+<td class="rt">100.00</td>
+</tr></table><br clear=all>
+<table align=left class="noborder">
+<tr>
+<th nowrap width=120></th><th nowrap width=80></th><th nowrap width=80></th><th nowrap width=80></th></tr><tr class="s10">
+<td>Signals</td>
+<td class="rt">6</td>
+<td class="rt">6</td>
+<td class="rt">100.00</td>
+</tr><tr class="s10">
+<td>Signal Bits</td>
+<td class="rt">12</td>
+<td class="rt">12</td>
+<td class="rt">100.00</td>
+</tr><tr class="s10">
+<td nowrap>Signal Bits 0->1</td>
+<td class="rt">6</td>
+<td class="rt">6</td>
+<td class="rt">100.00</td>
+</tr><tr class="s10">
+<td nowrap>Signal Bits 1->0</td>
+<td class="rt">6</td>
+<td class="rt">6</td>
+<td class="rt">100.00</td>
+</tr></table><br clear=all>
+<table align=left class="sortable noborder">
+<caption><b>Signal Details</b></caption>
+<tr class="sortablehead">
+<td class="alfsrt">Name</td><td class="alfsrt">Toggle</td><td class="alfsrt">Toggle 1->0</td><td class="alfsrt">Toggle 0->1</td></tr><tr>
+<td>route_rx_to_initialisation</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+</tr><tr>
+<td>route_rx_to_14443_4</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+</tr><tr>
+<td>route_tx_from_14443_4</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+</tr><tr>
+<td>in_tx_append_crc_init</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+</tr><tr>
+<td>in_tx_append_crc_14443_4</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+</tr><tr>
+<td>out_tx_append_crc</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+</tr></table><br clear=all>
+<hr>
+<a name="Assert"></a>
+Assert Coverage for Module : <a href="mod2.html" >routing_tb</a><br clear=all>
+<table align=left class="noborder">
+<tr>
+<th nowrap width=120></th><th nowrap width=80>Total</th><th nowrap width=80>Attempted</th><th nowrap width=80>Percent</th><th nowrap width=80>Succeeded/Matched</th><th nowrap width=80>Percent</th></tr><tr>
+<td class="wht cl"><a href="#974932376" >Assertions</a></td>
+<td class="wht cl rt">18</td>
+<td class="s10 cl rt">18</td>
+<td class="s10 cl rt">100.00</td>
+<td class="s10 cl rt">18</td>
+<td class="s10 cl rt">100.00</td>
+</tr><tr>
+<td class="wht cl"><a href="#140778941" >Cover properties</a></td>
+<td class="wht cl rt">0</td>
+<td class="wht cl rt">0</td>
+<td class="wht cl"></td>
+<td class="wht cl rt">0</td>
+<td class="wht cl"></td>
+</tr><tr>
+<td class="wht cl"><a href="#1894597790" >Cover sequences</a></td>
+<td class="wht cl rt">0</td>
+<td class="wht cl rt">0</td>
+<td class="wht cl"></td>
+<td class="wht cl rt">0</td>
+<td class="wht cl"></td>
+</tr><tr>
+<td class="wht cl"><b>Total</b></td>
+<td class="wht cl rt">18</td>
+<td class="s10 cl rt">18</td>
+<td class="s10 cl rt">100.00</td>
+<td class="s10 cl rt">18</td>
+<td class="s10 cl rt">100.00</td>
+</tr></table><br clear=all>
+<br clear=all>
+<hr>
+<br clear=all>
+<a name="974932376"></a>
+<b>Assertion Details</b><br clear=all>
+<br clear=all>
+<table align=left class="sortable noborder">
+<tr class="sortablehead">
+<td class="alfsrt">Name</td><td>Attempts</td><td>Real Successes</td><td>Failures</td><td>Incomplete</td></tr><tr>
+<td class="wht cl"><a name="727994196"></a>
+testStimulus.routingLoop.repeatLoop.rxData4</td>
+<td class="s9 cl rt">40000</td>
+<td class="s9 cl rt">40000</td>
+<td class="s9 cl rt">0</td>
+<td class="wht cl rt">0</td>
+</tr><tr>
+<td class="wht cl"><a name="1140449234"></a>
+testStimulus.routingLoop.repeatLoop.rxDataBits4</td>
+<td class="s9 cl rt">40000</td>
+<td class="s9 cl rt">40000</td>
+<td class="s9 cl rt">0</td>
+<td class="wht cl rt">0</td>
+</tr><tr>
+<td class="wht cl"><a name="161094474"></a>
+testStimulus.routingLoop.repeatLoop.rxDataBitsInit</td>
+<td class="s9 cl rt">40000</td>
+<td class="s9 cl rt">40000</td>
+<td class="s9 cl rt">0</td>
+<td class="wht cl rt">0</td>
+</tr><tr>
+<td class="wht cl"><a name="1098237840"></a>
+testStimulus.routingLoop.repeatLoop.rxDataInit</td>
+<td class="s9 cl rt">40000</td>
+<td class="s9 cl rt">40000</td>
+<td class="s9 cl rt">0</td>
+<td class="wht cl rt">0</td>
+</tr><tr>
+<td class="wht cl"><a name="1399068216"></a>
+testStimulus.routingLoop.repeatLoop.rxDataValid4</td>
+<td class="s9 cl rt">40000</td>
+<td class="s9 cl rt">40000</td>
+<td class="s9 cl rt">0</td>
+<td class="wht cl rt">0</td>
+</tr><tr>
+<td class="wht cl"><a name="294081068"></a>
+testStimulus.routingLoop.repeatLoop.rxDataValidInit</td>
+<td class="s9 cl rt">40000</td>
+<td class="s9 cl rt">40000</td>
+<td class="s9 cl rt">0</td>
+<td class="wht cl rt">0</td>
+</tr><tr>
+<td class="wht cl"><a name="1268239121"></a>
+testStimulus.routingLoop.repeatLoop.rxEoc4</td>
+<td class="s9 cl rt">40000</td>
+<td class="s9 cl rt">40000</td>
+<td class="s9 cl rt">0</td>
+<td class="wht cl rt">0</td>
+</tr><tr>
+<td class="wht cl"><a name="1720891475"></a>
+testStimulus.routingLoop.repeatLoop.rxEocInit</td>
+<td class="s9 cl rt">40000</td>
+<td class="s9 cl rt">40000</td>
+<td class="s9 cl rt">0</td>
+<td class="wht cl rt">0</td>
+</tr><tr>
+<td class="wht cl"><a name="1473301666"></a>
+testStimulus.routingLoop.repeatLoop.rxError4</td>
+<td class="s9 cl rt">40000</td>
+<td class="s9 cl rt">40000</td>
+<td class="s9 cl rt">0</td>
+<td class="wht cl rt">0</td>
+</tr><tr>
+<td class="wht cl"><a name="2043047362"></a>
+testStimulus.routingLoop.repeatLoop.rxErrorInit</td>
+<td class="s9 cl rt">40000</td>
+<td class="s9 cl rt">40000</td>
+<td class="s9 cl rt">0</td>
+<td class="wht cl rt">0</td>
+</tr><tr>
+<td class="wht cl"><a name="2099322685"></a>
+testStimulus.routingLoop.repeatLoop.rxSoc4</td>
+<td class="s9 cl rt">40000</td>
+<td class="s9 cl rt">40000</td>
+<td class="s9 cl rt">0</td>
+<td class="wht cl rt">0</td>
+</tr><tr>
+<td class="wht cl"><a name="793485985"></a>
+testStimulus.routingLoop.repeatLoop.rxSocInit</td>
+<td class="s9 cl rt">40000</td>
+<td class="s9 cl rt">40000</td>
+<td class="s9 cl rt">0</td>
+<td class="wht cl rt">0</td>
+</tr><tr>
+<td class="wht cl"><a name="834583066"></a>
+testStimulus.routingLoop.repeatLoop.txAppendCRC</td>
+<td class="s9 cl rt">40000</td>
+<td class="s9 cl rt">40000</td>
+<td class="s9 cl rt">0</td>
+<td class="wht cl rt">0</td>
+</tr><tr>
+<td class="wht cl"><a name="90489826"></a>
+testStimulus.routingLoop.repeatLoop.txData</td>
+<td class="s9 cl rt">40000</td>
+<td class="s9 cl rt">40000</td>
+<td class="s9 cl rt">0</td>
+<td class="wht cl rt">0</td>
+</tr><tr>
+<td class="wht cl"><a name="392589636"></a>
+testStimulus.routingLoop.repeatLoop.txDataBits</td>
+<td class="s9 cl rt">40000</td>
+<td class="s9 cl rt">40000</td>
+<td class="s9 cl rt">0</td>
+<td class="wht cl rt">0</td>
+</tr><tr>
+<td class="wht cl"><a name="1644937922"></a>
+testStimulus.routingLoop.repeatLoop.txDataValid</td>
+<td class="s9 cl rt">40000</td>
+<td class="s9 cl rt">40000</td>
+<td class="s9 cl rt">0</td>
+<td class="wht cl rt">0</td>
+</tr><tr>
+<td class="wht cl"><a name="483146230"></a>
+testStimulus.routingLoop.repeatLoop.txReq4</td>
+<td class="s9 cl rt">40000</td>
+<td class="s9 cl rt">40000</td>
+<td class="s9 cl rt">0</td>
+<td class="wht cl rt">0</td>
+</tr><tr>
+<td class="wht cl"><a name="822690470"></a>
+testStimulus.routingLoop.repeatLoop.txReqInit</td>
+<td class="s9 cl rt">40000</td>
+<td class="s9 cl rt">40000</td>
+<td class="s9 cl rt">0</td>
+<td class="wht cl rt">0</td>
+</tr></table><br clear=all>
+</div>
+</div>
+<div class="ui-layout-center-inner-north">
+<div id="center-bread-crumb" class="breadCrumb module urg-margin-bottom">
+  <ul name="inst_tag_6">
+    <li>
+      <a href="#Line">Line</a>    </li>
+    <li>
+      <a href="#Toggle">Toggle</a>    </li>
+    <li>
+      <a href="#Assert">Assert</a>    </li>
+  </ul>
+  <ul name="tag_routing_tb">
+    <li>
+      <a href="#Line">Line</a>    </li>
+    <li>
+      <a href="#Toggle">Toggle</a>    </li>
+    <li>
+      <a href="#Assert">Assert</a>    </li>
+  </ul>
+</div>
+</div>
+</div>
+<div class="ui-layout-south">
+<table align=center><tr><td class="s0 cl">0%</td>
+<td class="s1 cl">10%</td>
+<td class="s2 cl">20%</td>
+<td class="s3 cl">30%</td>
+<td class="s4 cl">40%</td>
+<td class="s5 cl">50%</td>
+<td class="s6 cl">60%</td>
+<td class="s7 cl">70%</td>
+<td class="s8 cl">80%</td>
+<td class="s9 cl">90%</td>
+<td class="s10 cl">100%</td></tr></table></div>
+</body>
+</html>

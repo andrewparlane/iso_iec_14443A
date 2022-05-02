@@ -1,0 +1,46 @@
+<session version="1.1" release="R-2020.12-SP2-6" timestp="2022-04-28 08:07:52 GMT">
+  <info>
+    <attr name="datetime" value="Thu Apr 28 05:07:52 2022
+"/>
+    <attr name="command" value="urg -dir iso14443_3a_tb_uid_triple_sim/simv.vdb -report iso14443_3a_tb_uid_triple_sim/report"/>
+    <attr name="top_instance" value="iso14443_3a_tb"/>
+  </info>
+  <hvp>
+    <datadef>
+      <metdef name="Line" type="ratio" aggregator="average" builtin="1" />
+      <metdef name="Cond" type="ratio" aggregator="average" builtin="1" />
+      <metdef name="Toggle" type="ratio" aggregator="average" builtin="1" />
+      <metdef name="FSM" type="ratio" aggregator="average" builtin="1" />
+      <metdef name="Branch" type="ratio" aggregator="average" builtin="1" />
+      <metdef name="Assert" type="ratio" aggregator="average" builtin="1" />
+    </datadef>
+  </hvp>
+  <old_coverage>
+  <scope type="top" name="top">
+    <metric name="Line" value="436/484" />
+    <metric name="Cond" value="94/102" />
+    <metric name="Toggle" value="1922/2026" />
+    <metric name="FSM" value="16/20" />
+    <metric name="Branch" value="130/135" />
+    <metric name="Assert" value="70/70" />
+  </scope>
+  <scope type="instance" name="top">
+  </scope>
+  <scope type="group" name="top">
+  </scope>
+  <scope type="assert" name="Statistics">
+    <scorelist type="total" name="Design Hierarchy Assert">
+      <score name="Assert" value="70/70" />
+      <score name="Score" value="100.00" />
+    </scorelist>
+    <scorelist type="total" name="Module List Assert">
+      <score name="Assert" value="35/37" />
+      <score name="Score" value="94.59" />
+    </scorelist>
+    <scorelist type="total" name="Assertion">
+      <score name="Assert" value="77/79" />
+      <score name="Score" value="97.47" />
+    </scorelist>
+  </scope>
+  </old_coverage>
+</session>

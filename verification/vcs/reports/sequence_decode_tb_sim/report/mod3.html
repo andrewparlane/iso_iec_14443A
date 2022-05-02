@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="Author" content="<username>"> <meta name="GENERATOR" content="urg/version [en] (platform name) [urg]">
+<title>Unified Coverage Report :: Module :: sequence_decode_tb</title>
+<link type="text/css" rel="stylesheet" href="css/.urg.css">
+<link type="text/css" rel="stylesheet" href="css/.layout.css">
+<link type="text/css" rel="stylesheet" href="css/.breadcrumb.css">
+<script type="text/javascript" src="js/.jquery.js"></script>
+<script type="text/javascript" src="js/.jquery-ui.js"></script>
+<script type="text/javascript" src="js/.sortable.js"></script>
+<script type="text/javascript" src="js/.layout.js"></script>
+<script type="text/javascript" src="js/.breadcrumb.js"></script>
+<script type="text/javascript">
+var layout, westLayout, centerLayout;
+$(document).ready(function () {
+  if ($("#north-bread-crumb")) {
+    $("#north-bread-crumb").jBreadCrumb({easing:'swing'})
+  }
+  layout = $("body").layout({ 
+    resizable: true,
+    spacing_open: 4,
+    spacing_closed: 4,
+    north: {
+      size: 76
+    },
+    south: {
+      size: 45,
+      initClosed: true
+    },
+    west: {
+      size: 500,
+      resizable: true,
+      initClosed: false
+    }
+  });
+  centerLayout = $('div.ui-layout-center').layout({
+    north__paneSelector: ".ui-layout-center-inner-north",
+    center__paneSelector: ".ui-layout-center-inner-center", 
+    north__size: 50,
+    spacing_open: 4,
+    spacing_closed: 4
+  });
+});
+</script>
+</head>
+<body onLoad="initPage();"><div class="ui-layout-north">
+<div class="logo"></div>
+<center class="pagetitle">Module Definition</center>
+<div align="center"><a href="dashboard.html" ><b>dashboard</b></a> | <a href="hierarchy.html" ><b>hierarchy</b></a> | <a href="modlist.html" ><b>modlist</b></a> | groups | <a href="tests.html" ><b>tests</b></a> | <a href="asserts.html" ><b>asserts</b></a></div>
+
+</div>
+<div class="ui-layout-west">
+<div name='tag_sequence_decode_tb'>
+<div class=modhdr>
+<br clear=all>
+<span class=titlename>Module : <a href="#"  onclick="showContent('tag_sequence_decode_tb')">sequence_decode_tb</a></span>
+<br clear=all>
+<table align=left>
+<tr class="sortablehead">
+<td>SCORE</td><td>LINE</td><td>COND</td><td>TOGGLE</td><td>FSM</td><td>BRANCH</td><td>ASSERT</td></tr><tr>
+<td class="s10 cl rt">100.00</td>
+<td class="s10 cl rt"><a href="mod3.html#Line" >100.00</a></td>
+<td class="wht cl rt"></td>
+<td class="s10 cl rt"><a href="mod3.html#Toggle" >100.00</a></td>
+<td class="wht cl rt"></td>
+<td class="s10 cl rt"><a href="mod3.html#Branch" >100.00</a></td>
+<td class="s10 cl rt"><a href="mod3.html#Assert" >100.00</a></td>
+</tr></table><br clear=all>
+<span class=repname>Source File(s) : </span>
+<br clear=all>
+<a href="javascript:void(0);"  onclick="openSrcFile('/home/aparlane/fiuba_thesis/hdl/components/iso_iec_14443A/verification/vcs/../../verification/tb/iso14443_2a/sequence_decode_tb.sv')">/home/aparlane/fiuba_thesis/hdl/components/iso_iec_14443A/verification/vcs/../../verification/tb/iso14443_2a/sequence_decode_tb.sv</a><br clear=all>
+<br clear=all>
+<span class=repname>Module self-instances :</span>
+<br clear=all>
+<table align=left>
+<tr class="sortablehead">
+<td class="alfsrt">NAME</td><td>SCORE</td><td>LINE</td><td>COND</td><td>TOGGLE</td><td>FSM</td><td>BRANCH</td><td>ASSERT</td></tr><tr>
+<td class="wht cl wordwrap"><a href="mod3.html#inst_tag_3"  onclick="showContent('inst_tag_3')">sequence_decode_tb</a></td>
+<td class="s10 cl rt">100.00</td>
+<td class="s10 cl rt"><a href="mod3.html#Line" >100.00</a></td>
+<td class="wht cl rt"></td>
+<td class="s10 cl rt"><a href="mod3.html#Toggle" >100.00</a></td>
+<td class="wht cl rt"></td>
+<td class="s10 cl rt"><a href="mod3.html#Branch" >100.00</a></td>
+<td class="s10 cl rt"><a href="mod3.html#Assert" >100.00</a></td>
+</tr></table></div>
+</div>
+<br clear=all>
+<div name='tag_sequence_decode_tb'>
+<hr>
+<a name="inst_tag_3"></a>
+<div class=modhdr>
+<br clear=all>
+<span class=titlename>Module Instance : <a href="hierarchy.html#tag_urg_inst_3" >sequence_decode_tb</a></span>
+<br clear=all>
+<br clear=all>
+<span class=repname>Instance :</span>
+<br clear=all>
+<table align=left>
+<tr class="sortablehead">
+<td>SCORE</td><td>LINE</td><td>COND</td><td>TOGGLE</td><td>FSM</td><td>BRANCH</td><td>ASSERT</td></tr><tr>
+<td class="s10 cl rt">100.00</td>
+<td class="s10 cl rt"><a href="mod3.html#Line" >100.00</a></td>
+<td class="wht cl rt"></td>
+<td class="s10 cl rt"><a href="mod3.html#Toggle" >100.00</a></td>
+<td class="wht cl rt"></td>
+<td class="s10 cl rt"><a href="mod3.html#Branch" >100.00</a></td>
+<td class="s10 cl rt"><a href="mod3.html#Assert" >100.00</a></td>
+</tr></table><br clear=all>
+<br clear=all>
+<span class=repname>Instance's subtree :</span>
+<br clear=all>
+<table align=left>
+<tr class="sortablehead">
+<td>SCORE</td><td>LINE</td><td>COND</td><td>TOGGLE</td><td>FSM</td><td>BRANCH</td><td>ASSERT</td></tr><tr>
+<td class="s9 cl rt"> 94.72</td>
+<td class="s9 cl rt"> 96.39</td>
+<td class="s9 cl rt"> 96.15</td>
+<td class="s9 cl rt"> 95.77</td>
+<td class="s8 cl rt"> 80.00</td>
+<td class="s10 cl rt">100.00</td>
+<td class="s10 cl rt">100.00</td>
+</tr></table><br clear=all>
+<br clear=all>
+<span class=repname>Parent : </span>
+<br clear=all>
+<span class=inst>none</span>
+<br clear=all>
+<br clear=all>
+<span class=repname>Subtrees :</span>
+<br clear=all>
+<table align=left>
+<tr class="sortablehead">
+<td class="alfsrt">NAME</td><td>SCORE</td><td>LINE</td><td>COND</td><td>TOGGLE</td><td>FSM</td><td>BRANCH</td><td>ASSERT</td></tr><tr>
+<td class="wht cl wordwrap"><a href="mod17.html#inst_tag_17" id="tag_urg_inst_17">analogue_sim_inst</a></td>
+<td class="s10 cl rt">100.00</td>
+<td class="s10 cl rt">100.00</td>
+<td class="wht cl rt"></td>
+<td class="s10 cl rt">100.00</td>
+<td class="wht cl rt"></td>
+<td class="s10 cl rt">100.00</td>
+<td class="wht cl rt"></td>
+</tr><tr>
+<td class="wht cl wordwrap"><a href="mod16.html#inst_tag_16" id="tag_urg_inst_16">dut</a></td>
+<td class="s9 cl rt"> 95.23</td>
+<td class="s10 cl rt">100.00</td>
+<td class="s9 cl rt"> 96.15</td>
+<td class="s10 cl rt">100.00</td>
+<td class="s8 cl rt"> 80.00</td>
+<td class="s10 cl rt">100.00</td>
+<td class="wht cl rt"></td>
+</tr><tr>
+<td class="wht cl wordwrap"><a href="mod2.html#inst_tag_2" id="tag_urg_inst_2">out_iface</a></td>
+<td class="s7 cl rt"> 79.86</td>
+<td class="s6 cl rt"> 69.57</td>
+<td class="wht cl rt"></td>
+<td class="s7 cl rt"> 70.00</td>
+<td class="wht cl rt"></td>
+<td class="wht cl rt"></td>
+<td class="s10 cl rt">100.00</td>
+</tr></table><br clear=all>
+</div>
+</div>
+<hr>
+Since this is the module's only instance, the coverage report is the same as for the module.</div>
+<div class="ui-layout-center">
+<div class="ui-layout-center-inner-center">
+<div name='tag_sequence_decode_tb'>
+<a name="Line"></a>
+Line Coverage for Module : <a href="mod3.html" >sequence_decode_tb</a><br clear=all>
+<table class="noborder">
+<col width="122">
+<col span="4" width="82">
+<tr><th></th><th>Line No.</th><th>Total</th><th>Covered</th><th>Percent</th></tr>
+<tr class="s10"><td class="lf">TOTAL</td><td></td><td>71</td><td>71</td><td>100.00</td></tr>
+<tr class="s10"><td class="lf">ALWAYS</td><td>84</td><td>6</td><td>6</td><td>100.00</td></tr>
+<tr class="s10"><td class="lf">ROUTINE</td><td>111</td><td>6</td><td>6</td><td>100.00</td></tr>
+<tr class="s10"><td class="lf">ROUTINE</td><td>156</td><td>16</td><td>16</td><td>100.00</td></tr>
+<tr class="s10"><td class="lf">ROUTINE</td><td>229</td><td>12</td><td>12</td><td>100.00</td></tr>
+<tr class="s10"><td class="lf">ROUTINE</td><td>257</td><td>2</td><td>2</td><td>100.00</td></tr>
+<tr class="s10"><td class="lf">INITIAL</td><td>340</td><td>29</td><td>29</td><td>100.00</td></tr>
+</table>
+<pre class="code"><br clear=all>
+83                          always @(posedge clk, negedge clk) begin: missingEdgeChecking
+84         1/1                  automatic longint now = $time;
+85                              // skip the first edge
+86         1/1                  if (last_picc_clock_edge != 0) begin: notZero
+87         1/1                      automatic longint time_between_edges = now - last_picc_clock_edge;
+88                                  // ignore normal readings (when time between edges is period / 2
+89                                  // with a small margin for rounding errors
+90         1/1                      if (time_between_edges &gt; ((CLOCK_PERIOD_PS/2) + 64'd100)) begin: missingEdge
+91                                      // there were missing edges
+92                                      // the number of missing edges is:
+93                                      // (time_between_edges - CLOCK_PERIOD_PS/2)/CLOCK_PERIOD_PS/2
+94                                      longint missing_edges;
+95         1/1                          missing_edges = (2*time_between_edges - CLOCK_PERIOD_PS)/CLOCK_PERIOD_PS;
+96                                      missingEdgeAssert:
+97                                      assert (missing_edges == expected_missing_edges)
+98                                      else $error(&quot;Missed %d edges expected %d&quot;, missing_edges, expected_missing_edges);
+99                                  end
+                        MISSING_ELSE
+100                             end
+                        MISSING_ELSE
+101        1/1                  last_picc_clock_edge &lt;= now;
+102                         end
+103                     
+104                         // --------------------------------------------------------------
+105                         // Helper functions / tasks
+106                         // --------------------------------------------------------------
+107                     
+108                         task send_data_verify_result(SendTransType trans, RecvTransType expected);
+109                             automatic int timeout;
+110                     
+111        1/1                  timeout = analogue_sim_inst.driver.calculate_send_time(trans);
+112                     
+113                             // send it
+114                             //$display(&quot;pushing trans: %p to queue&quot;, trans);
+115        1/1                  send_queue.push_back(trans);
+116                     
+117                             // wait for it to be done
+118        1/1                  analogue_sim_inst.driver.wait_for_idle(timeout + 256);
+119        1/1                  monitor.wait_for_idle(256, 512);
+120                     
+121                             // verify
+122                             receivedOneTransaction:
+123                             assert (recv_queue.size() == 1) else $error(&quot;recv_queue.size() is %d, expecting 1&quot;, recv_queue.size());
+124                     
+125        1/1                  if (recv_queue.size() != 0) begin: recvQueueNotEmpty
+126        1/1                      automatic RecvTransType recv = recv_queue.pop_front;
+127                                 receivedExpected:
+128                                 assert (recv.compare(expected)) else $error(&quot;Received %s, not as expected %p&quot;, recv.to_string, expected.to_string);
+129                             end
+                   <font color = "red">==>  MISSING_ELSE</font>
+130                         endtask
+131                     
+132                         // --------------------------------------------------------------
+133                         // Test stimulus
+134                         // --------------------------------------------------------------
+135                     
+136                         // helper task that runs multiple tests
+137                         // so we can repeatedly use them with different settings
+138                         task run_tests;
+139                             automatic RecvTransType expected;
+140                             automatic SendTransType trans;
+141                     
+142                             // 1) We have 10 sequences combinitions to check
+143                             //    (ordered by when we test each)
+144                             //    IDLE -&gt; Z     - SOC
+145                             //    Z    -&gt; Z
+146                             //    Z    -&gt; X
+147                             //    X    -&gt; X
+148                             //    X    -&gt; Y
+149                             //    Y    -&gt; Z
+150                             //    Y    -&gt; X
+151                             //    Y    -&gt; Y     - EOC + IDLE
+152                             //    Z    -&gt; Y     - EOC
+153                             //    X    -&gt; Z     - INVALID (this is tested later
+154                             //$display(&quot;Running test 1a&quot;);
+155                     
+156        1/1                  trans = new('{PCDBitSequence_Z,     // IDLE -&gt; Z    SOC
+157                                           PCDBitSequence_Z,     // Z    -&gt; Z    0
+158                                           PCDBitSequence_X,     // Z    -&gt; X    1
+159                                           PCDBitSequence_X,     // X    -&gt; X    1
+160                                           PCDBitSequence_Y,     // X    -&gt; Y    0
+161                                           PCDBitSequence_Z,     // Y    -&gt; Z    0
+162                                           PCDBitSequence_X,     //              1
+163                                           PCDBitSequence_Y,     //              0
+164                                           PCDBitSequence_X,     // Y    -&gt; X    1
+165                                           PCDBitSequence_Y,     //              EOC
+166                                           PCDBitSequence_Y});   // Y    -&gt; Y    EOC + IDLE
+167                     
+168        1/1                  expected = new('{1'b0, 1'b1, 1'b1, 1'b0, 1'b0, 1'b1, 1'b0, 1'b1}, 1'b0);
+169        1/1                  send_data_verify_result(trans, expected);
+170                     
+171                             // Test Z -&gt; Y EOC
+172                             //$display(&quot;Running test 1b&quot;);
+173        1/1                  trans = new('{PCDBitSequence_Z,     //          SOC
+174                                           PCDBitSequence_X,     //          1
+175                                           PCDBitSequence_Y,     //          0
+176                                           PCDBitSequence_Z,     //          EOC
+177                                           PCDBitSequence_Y,     // Z -&gt; Y   EOC
+178                                           PCDBitSequence_Y});   //          IDLE
+179                     
+180        1/1                  expected = new('{1'b1, 1'b0}, 1'b0);
+181        1/1                  send_data_verify_result(trans, expected);
+182                     
+183                             // 2) Generate a bunch of random queue of sequences (excludes error cases)
+184                             //$display(&quot;Running test 2&quot;);
+185        1/1                  repeat (50) begin
+186        1/1                      expected = RecvTransType::new_random_transaction($urandom_range(0, 100), 1'b0);
+187        1/1                      trans = new(expected.convert_to_pcd_sequence_queue);
+188        1/1                      send_data_verify_result(trans, expected);
+189                             end
+                        REPEAT_FALSE
+190                     
+191                             // 3) Test X -&gt; Z error cases
+192                             //$display(&quot;Running test 3&quot;);
+193        1/1                  trans = new('{PCDBitSequence_Z,     // SOC
+194                                           PCDBitSequence_X,     // 1
+195                                           PCDBitSequence_Z,     // error
+196                                           PCDBitSequence_Z,     // ignored
+197                                           PCDBitSequence_X,     // ignored
+198                                           PCDBitSequence_Y,     // ignored
+199                                           PCDBitSequence_X,     // ignored
+200                                           PCDBitSequence_Y,     // EOC
+201                                           PCDBitSequence_Y});   // EOC
+202                     
+203        1/1                  expected = new('{}, 1'b1);
+204        1/1                  send_data_verify_result(trans, expected);
+205                     
+206                             // 4) Test Z -&gt; error case
+207                             // sending PCDBitSequence_ERROR forces the driver to send a pause at the start of the bit time
+208                             // followed a short time later by a second pause.
+209                             //$display(&quot;Running test 4&quot;);
+210        1/1                  trans = new('{PCDBitSequence_Z,     // SOC
+211                                           PCDBitSequence_X,     // 1
+212                                           PCDBitSequence_Y,     // 0
+213                                           PCDBitSequence_ERROR, // error (detected as a Z (0), then an error)
+214                                           PCDBitSequence_X,     // ignored
+215                                           PCDBitSequence_Y,     // ignored
+216                                           PCDBitSequence_Z,     // EOC
+217                                           PCDBitSequence_Y});   // EOC
+218                     
+219        1/1                  expected = new('{1'b1, 1'b0, 1'b0}, 1'b1);
+220        1/1                  send_data_verify_result(trans, expected);
+221                         endtask
+222                     
+223                         task assign_vars_and_test(int missing_edges,
+224                                                   int pcd_pause_len,
+225                                                   int pause_n_asserts_after_ps,
+226                                                   int pause_n_deasserts_after_ps,
+227                                                   int clock_stops_after_ps,
+228                                                   int clock_starts_after_ps);
+229        1/1                  $display(&quot;\nUsing:&quot;);
+230        1/1                  $display(&quot;  missing edges        %d edges&quot;, missing_edges);
+231        1/1                  $display(&quot;  PCD pause length     %d ticks&quot;, pcd_pause_len);
+232        1/1                  $display(&quot;  pause_n_asserts_after   %d ps&quot;, pause_n_asserts_after_ps);
+233        1/1                  $display(&quot;  pause_n_deasserts_after %d ps&quot;, pause_n_deasserts_after_ps);
+234        1/1                  $display(&quot;  clock_stops_after       %d ps&quot;, clock_stops_after_ps);
+235        1/1                  $display(&quot;  clock_starts_after      %d ps&quot;, clock_starts_after_ps);
+236        1/1                  $display(&quot;========================================&quot;);
+237                     
+238        1/1                  analogue_sim_inst.set_pause_ticks(pcd_pause_len);
+239        1/1                  analogue_sim_inst.set_params(.clock_stops                   (missing_edges != 0),
+240                                                          .clock_stops_after_ps          (clock_stops_after_ps),
+241                                                          .clock_starts_after_ps         (clock_starts_after_ps),
+242                                                          .pause_n_asserts_after_ps      (pause_n_asserts_after_ps),
+243                                                          .pause_n_deasserts_after_ps    (pause_n_deasserts_after_ps));
+244                     
+245        1/1                  expected_missing_edges = 64'(missing_edges);
+246                     
+247        1/1                  run_tests;
+248                         endtask
+249                     
+250                         task randomise_vars_and_test(int missing_edges);
+251                             int pcd_pause_len;
+252                             int pause_n_asserts_after_ps;
+253                             int pause_n_deasserts_after_ps;
+254                             int clock_stops_after_ps;
+255                             int clock_starts_after_ps;
+256                     
+257        1/1                  std::randomize(pcd_pause_len,
+258                                            pause_n_asserts_after_ps, pause_n_deasserts_after_ps,
+259                                            clock_stops_after_ps, clock_starts_after_ps)
+260                             with
+261                             {
+262                                 // ISO/IEC 14443-2A:2016 section 8.1.2.1
+263                                 // figure 3 and table 4. PCD pause length is T1. The time from when it starts
+264                                 // transmitting a pause until it starts stopping to transmit a pause.
+265                                 // My DUT shouldn't care about this length though, so I've increased the tested
+266                                 // range. This gives more flexibility to the other parameters, ensuring we test
+267                                 // larger ranges of those.
+268                                 pcd_pause_len &gt;= 10;
+269                                 pcd_pause_len &lt;= 50;
+270                     
+271                                 // The AFE must detect the pause before the PCD finishes transmitting it.
+272                                 // Otherwise the amplitude of the carrier wave will start to rise and the AFE
+273                                 // may not detect the pause at all.
+274                                 // This constraint is also required for my pause_detect model to work correctly.
+275                                 pause_n_asserts_after_ps &gt;= 0;
+276                                 pause_n_asserts_after_ps &lt; (pcd_pause_len*CLOCK_PERIOD_PS);
+277                     
+278                                 // The upper bound on this is that the end of the pause has to come before the
+279                                 // start of the pause of the next sequence. Which means at most 64 - pcd_pause_len
+280                                 // ticks (for an X-&gt;Z (error)). Minus up to 3 ticks more for the synchroniser.
+281                                 // However that would be pretty extreme if pcd_pause_len were on the lower end
+282                                 // (64 - 10 - 3 = 51). When simulating Fabricio's SPICE model the largest delay I
+283                                 // found here was ~600ns which is just over 8 ticks. I'm using 2us here as an
+284                                 // upper bound, which is about 27 ticks, that's plenty of flexibility.
+285                                 pause_n_deasserts_after_ps &gt;= 0;
+286                                 pause_n_deasserts_after_ps &lt; 2*1000*1000;
+287                                 pause_n_deasserts_after_ps &lt; (64 - pcd_pause_len - 3)*CLOCK_PERIOD_PS;
+288                     
+289                                 // If the clock is going to stop during a pause, it must stop before the PCD finishes
+290                                 // transmitting the pause.
+291                                 clock_stops_after_ps &gt;= 0;
+292                                 clock_stops_after_ps &lt; (pcd_pause_len*CLOCK_PERIOD_PS);
+293                     
+294                                 // Like pause_n_deasserts_after_ps, the only upper bound on the clock starting again
+295                                 // is that it should occur before the next pause starts. I constrain it to the same
+296                                 // range as pause_n_deasserts_after_ps (2us).
+297                                 clock_starts_after_ps &gt;= 0;
+298                                 clock_starts_after_ps &lt; 2*1000*1000;
+299                                 clock_starts_after_ps &lt; (64 - pcd_pause_len - 3)*CLOCK_PERIOD_PS;
+300                     
+301                                 // when the PICC clock stops we miss a certain number of edges compared to the
+302                                 // PCD clock. We want that number to be missing_edges. If the clocks stopped at the
+303                                 // very start of the pause and started again at the very end of the pause, the number
+304                                 // of missing edges would be pcd_pause_len*2 (two edges per tick).
+305                                 // If you increase clock_stops_after_ps then you reduce the number of missing edges.
+306                                 // If you increase clock_starts_after_ps then you increase the number of missing edges.
+307                                 // So missing_edges = 2*pcd_pause_len -
+308                                 //                    $floor(2.0*clock_stops_after_ps/CLOCK_PERIOD_PS) +
+309                                 //                    $floor(2.0*clock_starts_after_ps/CLOCK_PERIOD_PS)
+310                                 //
+311                                 // we want to pick values such that missing_edges is as desired
+312                                 // VCS doesn't support reals in the constraint block, meaning we can't do
+313                                 // $floor(2.0*...). Normally when casting from a real to an int SV rounds to nearest
+314                                 // whereas we want to truncate. However since all values are ints the resullt of the
+315                                 // division is automatically truncated, we confirm we miss the correct number of edges
+316                                 // by measuring the time between clock edeges above.
+317                                 //
+318                                 // If missing_edges is 0, then the clock doesn't stop, and we can ignore this constraint
+319                                 (missing_edges == 0) ||
+320                                 (missing_edges == (2*pcd_pause_len) -
+321                                                   ((2*clock_stops_after_ps)/CLOCK_PERIOD_PS) +
+322                                                   ((2*clock_starts_after_ps)/CLOCK_PERIOD_PS));
+323                     
+324                                 // there's some errors where we get the wrong number of ticks if the clock starts
+325                                 // or stops exactly on an edge. So make sure that doesn't happen
+326                                 (clock_stops_after_ps*2 % CLOCK_PERIOD_PS) != 0;
+327                                 (clock_starts_after_ps*2 % CLOCK_PERIOD_PS) != 0;
+328                             };
+329                     
+330        1/1                  assign_vars_and_test(.missing_edges                 (missing_edges),
+331                                                  .pcd_pause_len                 (pcd_pause_len),
+332                                                  .pause_n_asserts_after_ps      (pause_n_asserts_after_ps),
+333                                                  .pause_n_deasserts_after_ps    (pause_n_deasserts_after_ps),
+334                                                  .clock_stops_after_ps          (clock_stops_after_ps),
+335                                                  .clock_starts_after_ps         (clock_starts_after_ps));
+336                         endtask
+337                     
+338                         initial begin
+339                             int missing_edges;
+340        1/1                  analogue_sim_inst.init();
+341        1/1                  monitor = new (out_iface);
+342                     
+343        1/1                  send_queue = '{};
+344        1/1                  recv_queue = '{};
+345                     
+346        1/1                  analogue_sim_inst.start(send_queue);
+347        1/1                  monitor.start(recv_queue);
+348                     
+349                             // reset for 5 ticks
+350        1/1                  rst_n &lt;= 1'b0;
+351        2/2                  repeat (5) @(posedge clk) begin end
+                        REPEAT_FALSE
+352        1/1                  rst_n &lt;= 1'b1;
+353        2/2                  repeat (5) @(posedge clk) begin end
+                        REPEAT_FALSE
+354                     
+355                             // for debugging
+356                             /* assign_vars_and_test(.missing_edges                 (115),
+357                                                  .pcd_pause_len                 (50),
+358                                                  .pause_n_asserts_after_ps      (3325529),
+359                                                  .pause_n_deasserts_after_ps    (959786),
+360                                                  .clock_stops_after_ps          (146774),
+361                                                  .clock_starts_after_ps         (676579));
+362                             repeat (5) @(posedge clk) begin end
+363                             $stop; */
+364                     
+365                             // AFE must drop at most 59 ticks (118) edges.
+366                             // In this range my tests always pass, out of this range they can fail.
+367                             // 100 loops of randomise_vars_and_test takes ~2 minutes. I don't think theer's much point
+368                             // in testing every possible value for missing_edges, I'm more interested
+369                             // in running lots of test for each missing_edges, varying the other parameters
+370                             // We test the lower end, the upper end and then a bunch of random ones in the middle.
+371                     
+372                             // missed_ticks: 0 - 3, lower range
+373        1/1                  for (int missing_edges = 0; missing_edges &lt;= 3; missing_edges++) begin
+374        1/1                      repeat (100) begin
+375        1/1                          randomise_vars_and_test(missing_edges);
+376                                 end
+377                             end
+378                     
+379                             // missed_ticks: 115 - 116, first half of upper range
+380        1/1                  for (int missing_edges = 115; missing_edges &lt;= 116; missing_edges++) begin
+381        1/1                      repeat (100) begin
+382        1/1                          randomise_vars_and_test(missing_edges);
+383                                 end
+384                             end
+385                     
+386                             // missed_ticks: 117 - 118, second half of upper range
+387                             // These can only be run if the dataValidOnlyOneTick assert in the rx_interface is disabled
+388                             // That's because when detecting: XYZ, with certain timings the timeout detects the Y on one
+389                             // tick, and the end of the next pause on the next tick, leading to data_valid being asserted
+390                             // for two ticks in a row. This isn't a problem, that assert only exists to make sure we don't
+391                             // accidentally leave the data_valid signal asserted normally.
+392        1/1                  $assertoff(0, out_iface.useAsserts.dataValidOnlyOneTick);
+393        1/1                  for (int missing_edges = 117; missing_edges &lt;= 118; missing_edges++) begin
+394        1/1                      repeat (100) begin
+395        1/1                          randomise_vars_and_test(missing_edges);
+396                                 end
+397                             end
+398        1/1                  $asserton(0, out_iface.useAsserts.dataValidOnlyOneTick);
+399                     
+400                             // missed_ticks: random selection from 4 - 114 (middle)
+401        1/1                  repeat (1000) begin
+402        1/1                      randomise_vars_and_test($urandom_range(4,114));
+403                             end
+                        REPEAT_FALSE
+404                     
+405                             // assert reset for toggle coverage
+406        1/1                  rst_n &lt;= 1'b0;
+407        2/2                  repeat (5) @(posedge clk) begin end
+                        REPEAT_FALSE
+408        1/1                  $stop;
+</pre>
+<hr>
+<a name="Toggle"></a>
+Toggle Coverage for Module : <a href="mod3.html" >sequence_decode_tb</a><br clear=all>
+<table align=left class="noborder">
+<tr>
+<th nowrap width=120></th><th nowrap width=80>Total</th><th nowrap width=80>Covered</th><th nowrap width=80>Percent</th></tr><tr class="s10">
+<td>Totals</td>
+<td class="rt">3</td>
+<td class="rt">3</td>
+<td class="rt">100.00</td>
+</tr><tr class="s10">
+<td>Total Bits</td>
+<td class="rt">6</td>
+<td class="rt">6</td>
+<td class="rt">100.00</td>
+</tr><tr class="s10">
+<td nowrap>Total Bits 0->1</td>
+<td class="rt">3</td>
+<td class="rt">3</td>
+<td class="rt">100.00</td>
+</tr><tr class="s10">
+<td nowrap>Total Bits 1->0</td>
+<td class="rt">3</td>
+<td class="rt">3</td>
+<td class="rt">100.00</td>
+</tr></table><br clear=all>
+<table align=left class="noborder">
+<tr>
+<th nowrap width=120></th><th nowrap width=80></th><th nowrap width=80></th><th nowrap width=80></th></tr><tr class="s10">
+<td>Signals</td>
+<td class="rt">3</td>
+<td class="rt">3</td>
+<td class="rt">100.00</td>
+</tr><tr class="s10">
+<td>Signal Bits</td>
+<td class="rt">6</td>
+<td class="rt">6</td>
+<td class="rt">100.00</td>
+</tr><tr class="s10">
+<td nowrap>Signal Bits 0->1</td>
+<td class="rt">3</td>
+<td class="rt">3</td>
+<td class="rt">100.00</td>
+</tr><tr class="s10">
+<td nowrap>Signal Bits 1->0</td>
+<td class="rt">3</td>
+<td class="rt">3</td>
+<td class="rt">100.00</td>
+</tr></table><br clear=all>
+<table align=left class="sortable noborder">
+<caption><b>Signal Details</b></caption>
+<tr class="sortablehead">
+<td class="alfsrt">Name</td><td class="alfsrt">Toggle</td><td class="alfsrt">Toggle 1->0</td><td class="alfsrt">Toggle 0->1</td></tr><tr>
+<td>clk</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+</tr><tr>
+<td>rst_n</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+</tr><tr>
+<td>pause_n_synchronised</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+<td class="s9 cl">Yes</td>
+</tr></table><br clear=all>
+<hr>
+<a name="Branch"></a>
+Branch Coverage for Module : <a href="mod3.html" >sequence_decode_tb</a><br clear=all>
+<table align=left class="noborder">
+<tr>
+<th nowrap width=120></th><th nowrap width=80>Line No.</th><th nowrap width=80>Total</th><th nowrap width=80>Covered</th><th nowrap width=80>Percent</th></tr><tr class="s10">
+<td>Branches</td>
+<td></td>
+<td class="rt">3</td>
+<td class="rt">3</td>
+<td class="rt">100.00</td>
+</tr><tr class="s10">
+<td>IF</td>
+<td class="rt">86</td>
+<td class="rt">3</td>
+<td class="rt">3</td>
+<td class="rt">100.00</td>
+</tr></table><br clear=all>
+<pre class="code"><br clear=all>
+86                 if (last_picc_clock_edge != 0) begin: notZero
+                   <font color = "green">-1-</font>  
+87                     automatic longint time_between_edges = now - last_picc_clock_edge;
+88                     // ignore normal readings (when time between edges is period / 2
+89                     // with a small margin for rounding errors
+90                     if (time_between_edges > ((CLOCK_PERIOD_PS/2) + 64'd100)) begin: missingEdge
+                       <font color = "green">-2-</font>  
+91                         // there were missing edges
+92                         // the number of missing edges is:
+93                         // (time_between_edges - CLOCK_PERIOD_PS/2)/CLOCK_PERIOD_PS/2
+94                         longint missing_edges;
+95                         missing_edges = (2*time_between_edges - CLOCK_PERIOD_PS)/CLOCK_PERIOD_PS;
+           <font color = "green">                ==></font>
+96                         missingEdgeAssert:
+97                         assert (missing_edges == expected_missing_edges)
+98                         else $error("Missed %d edges expected %d", missing_edges, expected_missing_edges);
+99                     end
+                       MISSING_ELSE
+           <font color = "green">            ==></font>
+100                end
+                   MISSING_ELSE
+           <font color = "green">        ==></font>
+</pre>
+<br clear=all>
+<span class=repname>Branches:</span>
+<br clear=all>
+<table align=left class="noborder">
+<tr>
+<th nowrap width=80>-1-</th><th nowrap width=80>-2-</th><th nowrap width=80>Status</th></tr><tr class="uGreen">
+<td align=center>1</td>
+<td align=center>1</td>
+<td>Covered</td>
+</tr><tr class="uGreen">
+<td align=center>1</td>
+<td align=center>0</td>
+<td>Covered</td>
+</tr><tr class="uGreen">
+<td align=center>0</td>
+<td align=center nowrap>-</td>
+<td>Covered</td>
+</tr></table><br clear=all>
+<hr>
+<a name="Assert"></a>
+Assert Coverage for Module : <a href="mod3.html" >sequence_decode_tb</a><br clear=all>
+<table align=left class="noborder">
+<tr>
+<th nowrap width=120></th><th nowrap width=80>Total</th><th nowrap width=80>Attempted</th><th nowrap width=80>Percent</th><th nowrap width=80>Succeeded/Matched</th><th nowrap width=80>Percent</th></tr><tr>
+<td class="wht cl"><a href="#122936462" >Assertions</a></td>
+<td class="wht cl rt">3</td>
+<td class="s10 cl rt">3</td>
+<td class="s10 cl rt">100.00</td>
+<td class="s10 cl rt">3</td>
+<td class="s10 cl rt">100.00</td>
+</tr><tr>
+<td class="wht cl"><a href="#1925832989" >Cover properties</a></td>
+<td class="wht cl rt">0</td>
+<td class="wht cl rt">0</td>
+<td class="wht cl"></td>
+<td class="wht cl rt">0</td>
+<td class="wht cl"></td>
+</tr><tr>
+<td class="wht cl"><a href="#236144520" >Cover sequences</a></td>
+<td class="wht cl rt">0</td>
+<td class="wht cl rt">0</td>
+<td class="wht cl"></td>
+<td class="wht cl rt">0</td>
+<td class="wht cl"></td>
+</tr><tr>
+<td class="wht cl"><b>Total</b></td>
+<td class="wht cl rt">3</td>
+<td class="s10 cl rt">3</td>
+<td class="s10 cl rt">100.00</td>
+<td class="s10 cl rt">3</td>
+<td class="s10 cl rt">100.00</td>
+</tr></table><br clear=all>
+<br clear=all>
+<hr>
+<br clear=all>
+<a name="122936462"></a>
+<b>Assertion Details</b><br clear=all>
+<br clear=all>
+<table align=left class="sortable noborder">
+<tr class="sortablehead">
+<td class="alfsrt">Name</td><td>Attempts</td><td>Real Successes</td><td>Failures</td><td>Incomplete</td></tr><tr>
+<td class="wht cl"><a name="1900038835"></a>
+missingEdgeChecking.notZero.missingEdge.missingEdgeAssert</td>
+<td class="s9 cl rt">3373577</td>
+<td class="s9 cl rt">3373577</td>
+<td class="s9 cl rt">0</td>
+<td class="wht cl rt">0</td>
+</tr><tr>
+<td class="wht cl"><a name="2073047535"></a>
+send_data_verify_result.receivedOneTransaction</td>
+<td class="s9 cl rt">97200</td>
+<td class="s9 cl rt">97200</td>
+<td class="s9 cl rt">0</td>
+<td class="wht cl rt">0</td>
+</tr><tr>
+<td class="wht cl"><a name="384290808"></a>
+send_data_verify_result.recvQueueNotEmpty.receivedExpected</td>
+<td class="s9 cl rt">97200</td>
+<td class="s9 cl rt">97200</td>
+<td class="s9 cl rt">0</td>
+<td class="wht cl rt">0</td>
+</tr></table><br clear=all>
+</div>
+</div>
+<div class="ui-layout-center-inner-north">
+<div id="center-bread-crumb" class="breadCrumb module urg-margin-bottom">
+  <ul name="inst_tag_3">
+    <li>
+      <a href="#Line">Line</a>    </li>
+    <li>
+      <a href="#Toggle">Toggle</a>    </li>
+    <li>
+      <a href="#Branch">Branch</a>    </li>
+    <li>
+      <a href="#Assert">Assert</a>    </li>
+  </ul>
+  <ul name="tag_sequence_decode_tb">
+    <li>
+      <a href="#Line">Line</a>    </li>
+    <li>
+      <a href="#Toggle">Toggle</a>    </li>
+    <li>
+      <a href="#Branch">Branch</a>    </li>
+    <li>
+      <a href="#Assert">Assert</a>    </li>
+  </ul>
+</div>
+</div>
+</div>
+<div class="ui-layout-south">
+<table align=center><tr><td class="s0 cl">0%</td>
+<td class="s1 cl">10%</td>
+<td class="s2 cl">20%</td>
+<td class="s3 cl">30%</td>
+<td class="s4 cl">40%</td>
+<td class="s5 cl">50%</td>
+<td class="s6 cl">60%</td>
+<td class="s7 cl">70%</td>
+<td class="s8 cl">80%</td>
+<td class="s9 cl">90%</td>
+<td class="s10 cl">100%</td></tr></table></div>
+</body>
+</html>

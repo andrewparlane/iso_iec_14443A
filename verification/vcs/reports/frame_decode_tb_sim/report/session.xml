@@ -1,0 +1,45 @@
+<session version="1.1" release="R-2020.12-SP2-6" timestp="2022-04-27 21:14:29 GMT">
+  <info>
+    <attr name="datetime" value="Wed Apr 27 18:14:30 2022
+"/>
+    <attr name="command" value="urg -dir frame_decode_tb_sim/simv.vdb -report frame_decode_tb_sim/report"/>
+    <attr name="top_instance" value="frame_decode_tb"/>
+  </info>
+  <hvp>
+    <datadef>
+      <metdef name="Line" type="ratio" aggregator="average" builtin="1" />
+      <metdef name="Cond" type="ratio" aggregator="average" builtin="1" />
+      <metdef name="Toggle" type="ratio" aggregator="average" builtin="1" />
+      <metdef name="FSM" type="ratio" aggregator="average" builtin="1" />
+      <metdef name="Branch" type="ratio" aggregator="average" builtin="1" />
+      <metdef name="Assert" type="ratio" aggregator="average" builtin="1" />
+    </datadef>
+  </hvp>
+  <old_coverage>
+  <scope type="top" name="top">
+    <metric name="Line" value="128/142" />
+    <metric name="Cond" value="6/6" />
+    <metric name="Toggle" value="66/78" />
+    <metric name="Branch" value="14/14" />
+    <metric name="Assert" value="17/17" />
+  </scope>
+  <scope type="instance" name="top">
+  </scope>
+  <scope type="group" name="top">
+  </scope>
+  <scope type="assert" name="Statistics">
+    <scorelist type="total" name="Design Hierarchy Assert">
+      <score name="Assert" value="17/17" />
+      <score name="Score" value="100.00" />
+    </scorelist>
+    <scorelist type="total" name="Module List Assert">
+      <score name="Assert" value="12/12" />
+      <score name="Score" value="100.00" />
+    </scorelist>
+    <scorelist type="total" name="Assertion">
+      <score name="Assert" value="18/18" />
+      <score name="Score" value="100.00" />
+    </scorelist>
+  </scope>
+  </old_coverage>
+</session>
