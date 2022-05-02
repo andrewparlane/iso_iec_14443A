@@ -1,6 +1,6 @@
-<session version="1.1" release="R-2020.12-SP2-6" timestp="2022-04-27 21:14:29 GMT">
+<session version="1.1" release="R-2020.12-SP2-6" timestp="2022-05-02 18:59:02 GMT">
   <info>
-    <attr name="datetime" value="Wed Apr 27 18:14:30 2022
+    <attr name="datetime" value="Mon May  2 15:59:02 2022
 "/>
     <attr name="command" value="urg -dir frame_decode_tb_sim/simv.vdb -report frame_decode_tb_sim/report"/>
     <attr name="top_instance" value="frame_decode_tb"/>
@@ -19,7 +19,7 @@
   <scope type="top" name="top">
     <metric name="Line" value="128/142" />
     <metric name="Cond" value="6/6" />
-    <metric name="Toggle" value="66/78" />
+    <metric name="Toggle" value="68/80" />
     <metric name="Branch" value="14/14" />
     <metric name="Assert" value="17/17" />
   </scope>

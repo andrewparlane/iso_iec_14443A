@@ -17018,127 +17018,7 @@ URG Version R-2020.12-SP2-6                                    infringers.
 
 Note-[URG-RDG] Report directory generated
   Report written to directory iso14443_2a_tb_sim/report
-
-[34;01melaborating frame_decode_tb with arguments  as frame_decode_tb_sim/simv [0m
-
-Doing common elaboration 
-                         Chronologic VCS (TM)
-      Version R-2020.12-SP2-6_Full64 -- Wed Apr 27 18:14:25 2022
-
-                    Copyright (c) 1991 - 2022 Synopsys, Inc.
-   This software and the associated documentation are proprietary to Synopsys,
- Inc. This software may only be used in accordance with the terms and conditions
- of a written license agreement with Synopsys, Inc. All other use, reproduction,
-   or distribution of this software is strictly prohibited.  Licensed Products
-     communicate with Synopsys servers for the purpose of providing software
-    updates, detecting software piracy and verifying that customers are using
-    Licensed Products in conformity with the applicable License Key for such
-  Licensed Products. Synopsys will use information gathered in connection with
-    this process to deliver software updates and pursue software pirates and
-                                   infringers.
-
- Inclusivity & Diversity - Visit SolvNetPlus to read the "Synopsys Statement on
-            Inclusivity and Diversity" (Refer to article 000036315 at
-                        https://solvnetplus.synopsys.com)
-
-Top Level Modules:
-       frame_decode_tb
-TimeScale is 1 ps / 1 ps
-VCS Coverage Metrics Release R-2020.12-SP2-6_Full64 Copyright (c) 1991-2020 by Synopsys Inc.
-Notice: Ports coerced to inout, use -notice for details
-Starting vcs inline pass...
-13 modules and 0 UDP read.
-recompiling package vcs_paramclassrepository
-recompiling package transaction_pkg
-recompiling package ISO14443A_pkg
-recompiling package queue_transaction_pkg
-recompiling package rx_bit_transaction_pkg
-recompiling package monitor_pkg
-recompiling package rx_iface_monitor_pkg
-recompiling package rx_bit_iface_monitor_pkg
-recompiling package driver_pkg
-recompiling package rx_iface_driver_pkg
-recompiling package rx_bit_iface_driver_pkg
-recompiling module frame_decode_tb
-recompiling module rx_interface
-All of 13 modules done
-make[1]: Entering directory `/home/aparlane/fiuba_thesis/hdl/components/iso_iec_14443A/verification/vcs/csrc'
-make[1]: Leaving directory `/home/aparlane/fiuba_thesis/hdl/components/iso_iec_14443A/verification/vcs/csrc'
-make[1]: Entering directory `/home/aparlane/fiuba_thesis/hdl/components/iso_iec_14443A/verification/vcs/csrc'
-rm -f _cuarc*.so _csrc*.so pre_vcsobj_*.so share_vcsobj_*.so
-if [ -x ../frame_decode_tb_sim/simv ]; then chmod a-x ../frame_decode_tb_sim/simv; fi
-g++  -o ../frame_decode_tb_sim/simv      -rdynamic -Wl,-rpath='$ORIGIN'/simv.daidir -Wl,-rpath=./simv.daidir -Wl,-rpath=/usr/synopsys2/vcs/R-2020.12-SP2-6/linux64/lib -L/usr/synopsys2/vcs/R-2020.12-SP2-6/linux64/lib -Wl,-rpath-link=./  /usr/lib64/libnuma.so.1   objs/amcQw_d.o   _30950_archive_1.so  SIM_l.o      rmapats_mop.o rmapats.o rmar.o rmar_nd.o  rmar_llvm_0_1.o rmar_llvm_0_0.o           -lerrorinf -lsnpsmalloc -lvfs    -lvcsnew -lsimprofile -lvirsim -lreader_common /usr/synopsys2/vcs/R-2020.12-SP2-6/linux64/lib/libBA.a -luclinative /usr/synopsys2/vcs/R-2020.12-SP2-6/linux64/lib/vcs_tls.o   -Wl,-whole-archive  -lvcsucli    -Wl,-no-whole-archive        _vcs_pli_stub_.o   /usr/synopsys2/vcs/R-2020.12-SP2-6/linux64/lib/vcs_save_restore_new.o /usr/synopsys2/verdi/R-2020.12-SP2-6/share/PLI/VCS/LINUX64/pli.a -ldl  -lc -lm -lpthread -ldl 
-../frame_decode_tb_sim/simv up to date
-make[1]: Leaving directory `/home/aparlane/fiuba_thesis/hdl/components/iso_iec_14443A/verification/vcs/csrc'
-CPU time: .568 seconds to compile + .280 seconds to elab + .197 seconds to link
-Verdi KDB elaboration done and the database successfully generated: 0 error(s), 0 warning(s)
-[34;01mSimulating frame_decode_tb_sim[0m
-
-Chronologic VCS simulator copyright 1991-2020
-Contains Synopsys proprietary information.
-Compiler version R-2020.12-SP2-6_Full64; Runtime version R-2020.12-SP2-6_Full64;  Apr 27 18:14 2022
-[34;01mNOTE: automatic random seed used: 179330076[0m
-
- VCS Coverage Metrics Release R-2020.12-SP2-6_Full64 Copyright (c) 1991-2020 by Synopsys Inc.
-ucli% run
-Testing an 8 bit frame with parity bit OK
-Testing an 8 bit frame with parity FAIL
-Testing an 8 bit frame with parity bit missing
-Testing 8 bit frame with errors
-Testing 0 to 7 bit frames
-Testing random length frames
-Testing random length frames with parity fail
-Testing frames with missing last parity bit
-[31;01m"../../verification/tb/iso14443_3a/frame_decode_tb.sv", 222: frame_decode_tb.lastBitStableBetweenFrames: started at 75511073637ps failed at 75512401065ps[0m
-	Offending '$stable(last_bit)'
-[31;01mError: "../../verification/tb/iso14443_3a/frame_decode_tb.sv", 222: frame_decode_tb.lastBitStableBetweenFrames: at time 75512401065 ps[0m
-last_bit changed between frames
-ucli% assertion report -r .
-[32;01m"frame_decode_tb.lastBitCorrect", 1008 successes, 0 failures[0m
-[31;01m"frame_decode_tb.lastBitStableBetweenFrames", 4010 successes, 1 failures[0m
-[32;01m"frame_decode_tb.do_test.recvQueueNotEmpty.receivedExpected", 4011 successes, 0 failures[0m
-[32;01m"frame_decode_tb.do_test.receivedOneTransaction", 4011 successes, 0 failures[0m
-[32;01m"frame_decode_tb.do_test.missingLastParity.lastBitIsParity", 1001 successes, 0 failures[0m
-[32;01m"frame_decode_tb.in_iface.useAsserts.signalsInReset", 9 successes, 0 failures[0m
-[32;01m"frame_decode_tb.in_iface.useAsserts.socOnlyOneTick", 4011 successes, 0 failures[0m
-[32;01m"frame_decode_tb.in_iface.useAsserts.eocOnlyOneTick", 4011 successes, 0 failures[0m
-[32;01m"frame_decode_tb.in_iface.useAsserts.errorOnlyOneTick", 1000 successes, 0 failures[0m
-[32;01m"frame_decode_tb.in_iface.useAsserts.dataValidOnlyOneTick", 152362 successes, 0 failures[0m
-[32;01m"frame_decode_tb.in_iface.useAsserts.rxInterfaceInitial.foreverBlock.outputsValid", 1023956 successes, 0 failures[0m
-[32;01m"frame_decode_tb.out_iface.useAsserts.signalsInReset", 9 successes, 0 failures[0m
-[32;01m"frame_decode_tb.out_iface.useAsserts.socOnlyOneTick", 4011 successes, 0 failures[0m
-[32;01m"frame_decode_tb.out_iface.useAsserts.eocOnlyOneTick", 4011 successes, 0 failures[0m
-[32;01m"frame_decode_tb.out_iface.useAsserts.errorOnlyOneTick", 3003 successes, 0 failures[0m
-[32;01m"frame_decode_tb.out_iface.useAsserts.dataValidOnlyOneTick", 114534 successes, 0 failures[0m
-[32;01m"frame_decode_tb.out_iface.useAsserts.rxInterfaceInitial.foreverBlock.outputsValid", 1023956 successes, 0 failures[0m
-ucli% quit
-
----------------------------------------------------------------------------
-VCS Coverage Metrics: during simulation line, cond, FSM, branch, tgl was monitored
----------------------------------------------------------------------------
-
- Coverage status: End of All Coverages ...
-
-           V C S   S i m u l a t i o n   R e p o r t 
-Time: 75512696049 ps
-CPU Time:      3.370 seconds;       Data structure size:   0.0Mb
-Wed Apr 27 18:14:29 2022
-Note: Bumping stack limit from 10240 to unlimited Kbytes.
-URG Version R-2020.12-SP2-6                                    infringers.
-
- Inclusivity & Diversity - Visit SolvNetPlus to read the "Synopsys Statement on
-            Inclusivity and Diversity" (Refer to article 000036315 at
-                        https://solvnetplus.synopsys.com)
-Load Failed: 
-Warning-[UCAPI-SNF] Shape Not Found
-  'Fsm' coverage shape is not there in the vdb 'frame_decode_tb_sim/simv.vdb'.
-  Coverage of this metric will not be reported.
-  Please check if proper -cm option was used at compile time.
-
-Note-[URG-RDG] Report directory generated
-  Report written to directory frame_decode_tb_sim/report
-
-[34;01melaborating fdt_tb with arguments  as fdt_tb_sim/simv [0m
+[34;01melaborating fdt_tb with arguments  as fdt_tb_sim/simv [0m
 
 Doing common elaboration 
                          Chronologic VCS (TM)
@@ -31561,3 +31441,128 @@ Note-[URG-RDG] Report directory generated
 ]0;aparlane@micro0:~/fiuba_thesis/hdl/components/iso_iec_14443A/verification/vcs\]0;~/fiuba_thesis/hdl/components/iso_iec_14443A/verification/vcs
 [32maparlane@micro0 [33m~/fiuba_thesis/hdl/components/iso_iec_14443A/verification/vcs[0m
 $xit
+]0;aparlane@micro0:~/fiuba_thesis/hdl/components/iso_iec_14443A/verification/vcs\]0;~/fiuba_thesis/hdl/components/iso_iec_14443A/verification/vcs
+[32maparlane@micro0 [33m~/fiuba_thesis/hdl/components/iso_iec_14443A/verification/vcs[0m
+$make frame_decode_tb RANDOM_SEED=179330076[C[C[1@m[1@a[1@k[1@e[1@ [1@f[1@r[1@a[C[1@m[1@e[1@_[1@d[1@e[1@c[1@o[1@d[1@e[1@_[1@t[1@b[1@ [1@&[1@&[1@ 
+[34;01mSimulating frame_decode_tb_sim[0m
+
+Chronologic VCS simulator copyright 1991-2020
+Contains Synopsys proprietary information.
+Compiler version R-2020.12-SP2-6_Full64; Runtime version R-2020.12-SP2-6_Full64;  May  2 15:58 2022
+[34;01mNOTE: automatic random seed used: 2753726401[0m
+
+ VCS Coverage Metrics Release R-2020.12-SP2-6_Full64 Copyright (c) 1991-2020 by Synopsys Inc.
+ucli% run
+Testing an 8 bit frame with parity bit OK
+Testing an 8 bit frame with parity FAIL
+Testing an 8 bit frame with parity bit missing
+Testing 8 bit frame with errors
+Testing 0 to 7 bit frames
+Testing random length frames
+Testing random length frames with parity fail
+Testing frames with missing last parity bit
+ucli% assertion report -r .
+[32;01m"frame_decode_tb.lastBitCorrect", 1008 successes, 0 failures[0m
+[32;01m"frame_decode_tb.lastBitStableBetweenFrames", 4010 successes, 0 failures[0m
+[32;01m"frame_decode_tb.do_test.recvQueueNotEmpty.receivedExpected", 4011 successes, 0 failures[0m
+[32;01m"frame_decode_tb.do_test.receivedOneTransaction", 4011 successes, 0 failures[0m
+[32;01m"frame_decode_tb.do_test.missingLastParity.lastBitIsParity", 1001 successes, 0 failures[0m
+[32;01m"frame_decode_tb.in_iface.useAsserts.signalsInReset", 9 successes, 0 failures[0m
+[32;01m"frame_decode_tb.in_iface.useAsserts.socOnlyOneTick", 4011 successes, 0 failures[0m
+[32;01m"frame_decode_tb.in_iface.useAsserts.eocOnlyOneTick", 4011 successes, 0 failures[0m
+[32;01m"frame_decode_tb.in_iface.useAsserts.errorOnlyOneTick", 1000 successes, 0 failures[0m
+[32;01m"frame_decode_tb.in_iface.useAsserts.dataValidOnlyOneTick", 149912 successes, 0 failures[0m
+[32;01m"frame_decode_tb.in_iface.useAsserts.rxInterfaceInitial.foreverBlock.outputsValid", 1009262 successes, 0 failures[0m
+[32;01m"frame_decode_tb.out_iface.useAsserts.signalsInReset", 9 successes, 0 failures[0m
+[32;01m"frame_decode_tb.out_iface.useAsserts.socOnlyOneTick", 4011 successes, 0 failures[0m
+[32;01m"frame_decode_tb.out_iface.useAsserts.eocOnlyOneTick", 4011 successes, 0 failures[0m
+[32;01m"frame_decode_tb.out_iface.useAsserts.errorOnlyOneTick", 3003 successes, 0 failures[0m
+[32;01m"frame_decode_tb.out_iface.useAsserts.dataValidOnlyOneTick", 112572 successes, 0 failures[0m
+[32;01m"frame_decode_tb.out_iface.useAsserts.rxInterfaceInitial.foreverBlock.outputsValid", 1009262 successes, 0 failures[0m
+ucli% quit
+
+---------------------------------------------------------------------------
+VCS Coverage Metrics: during simulation line, cond, FSM, branch, tgl was monitored
+---------------------------------------------------------------------------
+
+ Coverage status: End of All Coverages ...
+
+           V C S   S i m u l a t i o n   R e p o r t 
+Time: 74429072325 ps
+CPU Time:      3.370 seconds;       Data structure size:   0.0Mb
+Mon May  2 15:58:58 2022
+Note: Bumping stack limit from 10240 to unlimited Kbytes.
+URG Version R-2020.12-SP2-6                                    infringers.
+
+ Inclusivity & Diversity - Visit SolvNetPlus to read the "Synopsys Statement on
+            Inclusivity and Diversity" (Refer to article 000036315 at
+                        https://solvnetplus.synopsys.com)
+Load Failed: 
+Warning-[UCAPI-SNF] Shape Not Found
+  'Fsm' coverage shape is not there in the vdb 'frame_decode_tb_sim/simv.vdb'.
+  Coverage of this metric will not be reported.
+  Please check if proper -cm option was used at compile time.
+
+Note-[URG-RDG] Report directory generated
+  Report written to directory frame_decode_tb_sim/report
+
+[34;01mSimulating frame_decode_tb_sim[0m
+
+Chronologic VCS simulator copyright 1991-2020
+Contains Synopsys proprietary information.
+Compiler version R-2020.12-SP2-6_Full64; Runtime version R-2020.12-SP2-6_Full64;  May  2 15:58 2022
+
+ VCS Coverage Metrics Release R-2020.12-SP2-6_Full64 Copyright (c) 1991-2020 by Synopsys Inc.
+ucli% run
+Testing an 8 bit frame with parity bit OK
+Testing an 8 bit frame with parity FAIL
+Testing an 8 bit frame with parity bit missing
+Testing 8 bit frame with errors
+Testing 0 to 7 bit frames
+Testing random length frames
+Testing random length frames with parity fail
+Testing frames with missing last parity bit
+ucli% assertion report -r .
+[32;01m"frame_decode_tb.lastBitCorrect", 1008 successes, 0 failures[0m
+[32;01m"frame_decode_tb.lastBitStableBetweenFrames", 4010 successes, 0 failures[0m
+[32;01m"frame_decode_tb.do_test.recvQueueNotEmpty.receivedExpected", 4011 successes, 0 failures[0m
+[32;01m"frame_decode_tb.do_test.receivedOneTransaction", 4011 successes, 0 failures[0m
+[32;01m"frame_decode_tb.do_test.missingLastParity.lastBitIsParity", 1001 successes, 0 failures[0m
+[32;01m"frame_decode_tb.in_iface.useAsserts.signalsInReset", 9 successes, 0 failures[0m
+[32;01m"frame_decode_tb.in_iface.useAsserts.socOnlyOneTick", 4011 successes, 0 failures[0m
+[32;01m"frame_decode_tb.in_iface.useAsserts.eocOnlyOneTick", 4011 successes, 0 failures[0m
+[32;01m"frame_decode_tb.in_iface.useAsserts.errorOnlyOneTick", 1000 successes, 0 failures[0m
+[32;01m"frame_decode_tb.in_iface.useAsserts.dataValidOnlyOneTick", 152362 successes, 0 failures[0m
+[32;01m"frame_decode_tb.in_iface.useAsserts.rxInterfaceInitial.foreverBlock.outputsValid", 1023956 successes, 0 failures[0m
+[32;01m"frame_decode_tb.out_iface.useAsserts.signalsInReset", 9 successes, 0 failures[0m
+[32;01m"frame_decode_tb.out_iface.useAsserts.socOnlyOneTick", 4011 successes, 0 failures[0m
+[32;01m"frame_decode_tb.out_iface.useAsserts.eocOnlyOneTick", 4011 successes, 0 failures[0m
+[32;01m"frame_decode_tb.out_iface.useAsserts.errorOnlyOneTick", 3003 successes, 0 failures[0m
+[32;01m"frame_decode_tb.out_iface.useAsserts.dataValidOnlyOneTick", 114534 successes, 0 failures[0m
+[32;01m"frame_decode_tb.out_iface.useAsserts.rxInterfaceInitial.foreverBlock.outputsValid", 1023956 successes, 0 failures[0m
+ucli% quit
+
+---------------------------------------------------------------------------
+VCS Coverage Metrics: during simulation line, cond, FSM, branch, tgl was monitored
+---------------------------------------------------------------------------
+
+ Coverage status: End of All Coverages ...
+
+           V C S   S i m u l a t i o n   R e p o r t 
+Time: 75512696049 ps
+CPU Time:      3.410 seconds;       Data structure size:   0.0Mb
+Mon May  2 15:59:02 2022
+Note: Bumping stack limit from 10240 to unlimited Kbytes.
+URG Version R-2020.12-SP2-6                                    infringers.
+
+ Inclusivity & Diversity - Visit SolvNetPlus to read the "Synopsys Statement on
+            Inclusivity and Diversity" (Refer to article 000036315 at
+                        https://solvnetplus.synopsys.com)
+Load Failed: 
+Warning-[UCAPI-SNF] Shape Not Found
+  'Fsm' coverage shape is not there in the vdb 'frame_decode_tb_sim/simv.vdb'.
+  Coverage of this metric will not be reported.
+  Please check if proper -cm option was used at compile time.
+
+Note-[URG-RDG] Report directory generated
+  Report written to directory frame_decode_tb_sim/report
